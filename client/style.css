@@ -92,7 +92,7 @@
 }
 
 .main-header h1 {
-    font-size: 1.5rem;
+    font-size: 2rem;
     font-weight: 600;
     color: white;
     animation: fadeInSlide 1s ease-out 0.5s forwards;
@@ -111,7 +111,7 @@
 }
 
 .welcome-message h2 {
-    font-size: 2rem;
+    font-size: 1rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
 }
