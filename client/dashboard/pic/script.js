@@ -2,7 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const userEmail = localStorage.getItem('userEmail');
     if (!userEmail) {
         alert("Anda belum login atau sesi telah habis.");
-        window.location.replace('auth/pic/login.html');
+        window.location.replace('../../auth/pic/login.html'); 
+        return;
     }
     const apiUrl = `https://sparta-backend.onrender.com/api/user_info_by_email?email=${userEmail}`;
     const nameElement = document.getElementById('name');
@@ -11,13 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function getUserData() {
         try {
             const response = await fetch(apiUrl);
-            
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             const data = await response.json();
             console.log("Data dari API:", data); 
-
             if (data.status === 'success') {
                 nameElement.textContent = `Halo, ${data.name || "User"}`;
                 const usercabang = data.cabang ? data.cabang : "-"; 
