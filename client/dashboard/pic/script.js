@@ -1,6 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const userEmail = "husni.yulianto@sat.co.id"; 
-    const apiUrl = `https://sparta-backend.onrender.com/api/name_by_email?email=${userEmail}`;
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) {
+        alert("Anda belum login atau sesi telah habis.");
+        window.location.href = '../../login.html'; 
+        return;
+    }
+    const apiUrl = `https://sparta-backend.onrender.com/api/user_info_by_email?email=${userEmail}`;
     const nameElement = document.getElementById('name');
     const cabangElement = document.getElementById('cabang');
 
@@ -13,13 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (data.status === 'success') {
                 nameElement.textContent = `Halo, ${data.name}`;
-                const userCabang = data.cabang || "-"; 
-                cabangElement.textContent = userCabang;
+                const usercabang = data.cabang || data.cabang || "-"; 
+                cabangElement.textContent = usercabang;
             } else {
+                console.warn("User tidak ditemukan di database:", data);
                 nameElement.textContent = "Halo, User";
-                console.warn("Status API tidak success:", data);
             }
-
         } catch (error) {
             console.error("Gagal mengambil data user:", error);
             nameElement.textContent = "Halo, User";
