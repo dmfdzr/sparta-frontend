@@ -6,16 +6,16 @@
         }
 
         header {
-            background-color: #ffffff;
-            color: #1a202c;
-            text-align: center;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); /* Gradasi Merah */
+        color: white;
+        text-align: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Border halus */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .header-logo {
@@ -30,9 +30,10 @@
         header h1 {
             margin: 0;
             font-size: 1.75rem;
-            /* Adjusted font size */
-            font-weight: 600;
+            font-weight: 700;
             letter-spacing: -0.5px;
+            color: white; /* Paksa warna putih */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .container {
@@ -93,51 +94,57 @@
             transform: translateY(-2px);
         }
 
-        .btn-logout-form {
+        .btn-back-header {
             position: absolute;
             right: 25px;
             top: 50%;
             transform: translateY(-50%);
-            padding: 0.5rem 1rem;
-            background-color: #e53e3e;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             color: white;
-            border: none;
-            border-radius: 8px;
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
             font-size: 0.9rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        .btn-logout-form:hover {
-            background-color: #c53030;
+        .btn-back-header:hover {
+            background-color: #ffffff;
+            color: #b91c1c;
+            transform: translateY(-50%) scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-back-header:active {
+            transform: translateY(-50%) scale(0.95);
         }
 
         .chart-wrapper {
             height: 70vh;
             max-height: 600px;
-            /* Atau batas pixel tertentu */
-            /* Aktifkan Scrollbar di sini (Vertikal & Horizontal) */
             overflow: auto;
-            /* Style tambahan agar rapi */
             border: 1px solid #dee2e6;
             border-radius: 8px;
             background: #fff;
             position: relative;
-            /* Penting untuk context sticky */
         }
 
         .chart-header,
         .task-row {
             width: 100%;
-            /* Akan mengikuti width parent (gantt-chart) */
             min-width: fit-content;
-            /* Penting agar mengikuti konten child */
         }
 
         .gantt-chart {
             display: table;
-            /* Trik agar lebar konten mengikuti isinya */
             min-width: 100%;
         }
 
@@ -145,7 +152,6 @@
             display: flex;
             border-bottom: 1px solid #e9ecef;
             background: #f8f9fa;
-            /* Menempel di ATAS container .chart-wrapper */
             position: sticky;
             top: 0;
             z-index: 30;
@@ -157,10 +163,8 @@
             padding: 10px 15px;
             font-weight: bold;
             background: #f8f9fa;
-            /* Warna sama dengan header */
             border-right: 1px solid #dee2e6;
             border-bottom: 1px solid #dee2e6;
-            /* Menempel di KIRI dan ATAS */
             position: sticky;
             left: 0;
             top: 0;
@@ -181,9 +185,7 @@
             font-size: 10px;
             color: #495057;
             box-sizing: border-box;
-            /* Agar padding tidak menambah width */
             flex-shrink: 0;
-            /* Mencegah kolom mengecil */
         }
 
         .day-header span.d-date {
@@ -209,7 +211,6 @@
 
         .chart-body {
             position: relative;
-            /* PENTING: Menjadi acuan koordinat garis */
             overflow-x: auto;
             overflow-y: visible;
             overflow: visible;
@@ -219,7 +220,6 @@
             display: flex;
             border-bottom: 1px solid #e9ecef;
             min-height: 50px;
-            /* Tinggi baris */
             background: #fff;
             align-items: stretch;
         }
@@ -243,7 +243,6 @@
             position: sticky;
             left: 0;
             z-index: 20;
-            /* Di atas bar, tapi di bawah header */
             background: #fff;
         }
 
@@ -284,12 +283,10 @@
             cursor: pointer;
             z-index: 10;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            /* Tambahkan bayangan sedikit agar terlihat */
         }
 
         .bar:hover {
             transform: translateY(-50%) scale(1.02);
-            /* Tetap pertahankan translateY(-50%) */
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
             z-index: 20;
         }
@@ -313,9 +310,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            /* Agar klik tembus ke bar di bawahnya */
             z-index: 1;
-            /* Di bawah bar chart (bar biasanya z-index 10 atau 20) */
         }
 
         .dependency-line {
@@ -394,9 +389,7 @@
         .api-data {
             padding: 20px 30px;
             background: #f8f9fa;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 15px;
+            display: block;
             border-bottom: 2px solid #e9ecef;
         }
 
@@ -456,6 +449,154 @@
         .api-card.api-error {
             border-color: #feb2b2;
             background: #fff5f5;
+        }
+
+        .task-input-card {
+            max-width: 100%;
+        }
+
+        .task-input-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .task-input-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            gap: 15px;
+        }
+
+        .task-input-row:last-child {
+            border-bottom: none;
+        }
+
+        .task-input-row:hover {
+            background: #f8f9fa;
+        }
+
+        .task-input-label {
+            flex: 1;
+            font-weight: 600;
+            color: #1a202c;
+            font-size: 14px;
+        }
+
+        .task-input-fields {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 14px;
+        }
+
+        .task-day-input {
+            width: 70px;
+            padding: 6px 10px;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .task-day-input:focus {
+            outline: none;
+            border-color: rgba(0, 128, 255, 0.73);
+            box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
+        }
+
+        .input-separator {
+            color: #718096;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .task-input-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #cbd5e0;
+        }
+
+        .btn-apply-schedule,
+        .btn-reset-schedule,
+        .btn-publish {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-apply-schedule:hover,
+        .btn-reset-schedule:hover,
+        .btn-publish:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-apply-schedule:active,
+        .btn-reset-schedule:active,
+        .btn-publish:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) inset;
+        }
+
+        .btn-apply-schedule {
+            background: linear-gradient(135deg, #007bff 0%, #0062cc 100%);
+            color: white;
+        }
+
+        .btn-apply-schedule:hover {
+            background: linear-gradient(135deg, #0069d9 0%, #0056b3 100%);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4); /* Glow Biru */
+        }
+
+        .btn-reset-schedule {
+            background: linear-gradient(135deg, #ff0000ff 0%, #cc0000ff 100%);
+            color: white;
+        }
+
+        .btn-reset-schedule:hover {
+            background: linear-gradient(135deg, #d90000ff 0%, #b30000ff 100%);
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4); /* Glow Biru */
+        }
+
+        .btn-publish {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            color: white;
+            width: 100%; /* Agar tombol kunci memenuhi lebar di barisnya */
+        }
+
+        .btn-publish:hover {
+            background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4); /* Glow Hijau */
         }
 
         .project-detail {
@@ -546,31 +687,34 @@
             }
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .container {
                 margin: 1rem;
                 padding: 1.5rem;
                 max-width: 100%;
             }
-
             header {
                 flex-direction: column;
                 padding: 1.5rem;
                 height: auto;
             }
-
             header h1 {
                 font-size: 1.5rem;
                 margin-top: 1rem;
                 text-align: center;
             }
-
             .header-logo {
                 position: static;
                 transform: none;
                 margin: 0 auto;
                 width: 120px;
                 left: auto;
+            }
+            .btn-back-header span {
+                display: none; /* Sembunyikan teks di HP, cukup ikon panah */
+            }
+            .btn-back-header {
+                padding: 0.6rem; /* Kotak kecil di HP */
+                border-radius: 50%;
             }
         }
