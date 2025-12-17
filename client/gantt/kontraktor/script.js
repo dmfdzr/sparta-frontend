@@ -323,7 +323,6 @@ async function fetchGanttDataForSelection(selectedValue) {
 function renderApiData() {
     const container = document.getElementById('apiData');
     if (!container) return;
-
     // 1. Kondisi Loading
     if (isLoadingGanttData) {
         container.innerHTML = `
@@ -333,7 +332,6 @@ function renderApiData() {
             </div>`;
         return;
     }
-
     // 2. Kondisi Error
     if (ganttApiError) {
         container.innerHTML = `
@@ -343,10 +341,11 @@ function renderApiData() {
             </div>`;
         return;
     }
-
-    // 3. Kondisi Belum Pilih Proyek
-    if (!currentProject) return;
-
+    // 3. Kondisi Belum Pilih Proyek (PERBAIKAN DISINI)
+    if (!currentProject) {
+        container.innerHTML = ''; // Pastikan container dibersihkan saat reset
+        return;
+    }
     // 4. Kondisi TERKUNCI (Published)
     if (isProjectLocked) {
         container.innerHTML = `
@@ -362,7 +361,6 @@ function renderApiData() {
         document.getElementById('exportButtons').style.display = 'flex'; 
         return;
     }
-
     // 5. Kondisi Normal (Input Form)
     let html = '<div class="api-card task-input-card">';
     html += '<div class="api-card-title">Input Pengerjaan Tahapan</div>';
@@ -387,7 +385,6 @@ function renderApiData() {
             </div>
         `;
     });
-
     html += '</div>';
     html += `
         <div class="task-input-actions">
