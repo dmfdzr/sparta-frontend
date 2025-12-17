@@ -16,7 +16,7 @@ let isProjectLocked = false; // Track status dikunci/belum
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
-    { id: 1, name: 'Instalasi', start: 0, duration: 0, dependencies: [] },
+    { id: 1, name: 'Instalasi', start: -1, duration: 0, dependencies: [] },
     { id: 2, name: 'Fixture', start: 0, duration: 0, dependencies: [] },
     { id: 3, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [] },
     { id: 4, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [] },
@@ -36,6 +36,7 @@ const taskTemplateSipil = [
     { id: 11, name: 'Pekerjaan Atap', start: 0, duration: 0, dependencies: [] },
     { id: 12, name: 'Pekerjaan Kusen, Pintu, dan Kaca', start: 0, duration: 0, dependencies: [] },
     { id: 13, name: 'Pekerjaan Finishing', start: 0, duration: 0, dependencies: [] },
+    { id: 14, name: 'Pekerjaan Beanspot', start: 0, duration: 0, dependencies: [] },
     { id: 14, name: 'Pekerjaan Beanspot', start: 0, duration: 0, dependencies: [] },
     { id: 15, name: 'Pekerjaan Tambahan', start: 0, duration: 0, dependencies: [] },
     { id: 16, name: 'Pekerjaan SBO', start: 0, duration: 0, dependencies: [] },
