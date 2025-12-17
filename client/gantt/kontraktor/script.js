@@ -192,7 +192,7 @@ async function loadDataAndInit() {
         }
 
         projects = apiData.map(item => parseProjectFromLabel(item.label, item.value));
-        
+
         if (projects.length === 0) {
             showErrorMessage("Tidak ada data proyek ditemukan untuk email ini.");
             return;
@@ -249,7 +249,7 @@ function initChart() {
         const projectExists = projects.some(p => p.ulok === savedUlok);
         if (projectExists) {
             ulokSelect.value = savedUlok;
-            ulokSelect.dispatchEvent(new Event('change')); 
+            ulokSelect.dispatchEvent(new Event('change'));
         }
     }
     showSelectProjectMessage();
@@ -272,7 +272,7 @@ async function fetchGanttDataForSelection(selectedValue) {
 
     try {
         const response = await fetch(url);
-        
+
         if (response.status === 404) {
             throw new Error("DATA_NOT_FOUND");
         }
@@ -282,21 +282,7 @@ async function fetchGanttDataForSelection(selectedValue) {
 
         ganttApiData = data;
 
-<<<<<<< HEAD
         // Update project info dari RAB jika ada
-=======
-        const rawStatus = data.Status || data.status || data.status_jadwal || '';
-        const normalizedStatus = String(rawStatus).trim().toLowerCase();
-
-        if (normalizedStatus === 'Terkunci' || normalizedStatus === 'locked' || normalizedStatus === 'published' || data.is_locked === true) {
-            isProjectLocked = true;
-            console.log("🔒 Status Proyek: TERKUNCI (Loaded from DB)");
-        } else {
-            isProjectLocked = false;
-            console.log("🔓 Status Proyek: ACTIVE");
-        }
-
->>>>>>> 3f4de5782033e9cbdaaef3480ab73c3e1b70a552
         if (currentProject && data?.rab) {
             updateProjectFromRab(data.rab);
         }
@@ -304,7 +290,7 @@ async function fetchGanttDataForSelection(selectedValue) {
         // ==================== CEK GANTT_DATA ====================
         if (data.gantt_data && typeof data.gantt_data === 'object') {
             console.log("📊 gantt_data ditemukan di response");
-            
+
             const ganttData = data.gantt_data;
             const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
@@ -313,15 +299,15 @@ async function fetchGanttDataForSelection(selectedValue) {
                 isProjectLocked = true;
                 hasUserInput = true;
                 console.log("🔒 Status Gantt: TERKUNCI");
-                
+
                 // Parse data kategori dari gantt_data untuk chart
                 parseGanttDataToTasks(ganttData, selectedValue);
-                
+
             } else {
                 // Status Active - tampilkan data di input form
                 isProjectLocked = false;
                 console.log("🔓 Status Gantt: ACTIVE - Menampilkan data di form input");
-                
+
                 // Parse data kategori dari gantt_data ke input form
                 parseGanttDataToTasks(ganttData, selectedValue);
                 hasUserInput = true;
@@ -330,7 +316,7 @@ async function fetchGanttDataForSelection(selectedValue) {
         } else if (data.existing_tasks && Array.isArray(data.existing_tasks) && data.existing_tasks.length > 0) {
             // Fallback ke existing_tasks jika gantt_data tidak ada
             console.log("📋 Menggunakan existing_tasks");
-            
+
             currentTasks = data.existing_tasks.map(t => ({
                 id: t.id,
                 name: t.name,
@@ -339,18 +325,18 @@ async function fetchGanttDataForSelection(selectedValue) {
                 dependencies: t.dependencies || [],
                 inputData: { startDay: t.start, endDay: (t.start + t.duration - 1) }
             }));
-            
+
             projectTasks[selectedValue] = currentTasks;
             hasUserInput = true;
             isProjectLocked = false;
 
         } else {
-            throw new Error("DATA_EMPTY"); 
+            throw new Error("DATA_EMPTY");
         }
 
     } catch (error) {
         console.warn('⚠️ Menggunakan template default:', error.message);
-        ganttApiError = null; 
+        ganttApiError = null;
 
         if (currentProject) {
 
@@ -362,14 +348,14 @@ async function fetchGanttDataForSelection(selectedValue) {
             projectTasks[selectedValue] = currentTasks;
             hasUserInput = false;
 
-            isProjectLocked = false; 
+            isProjectLocked = false;
         }
 
     } finally {
         isLoadingGanttData = false;
         renderProjectInfo();
 
-        renderApiData(); 
+        renderApiData();
 
         if (hasUserInput) {
             renderChart();
@@ -386,10 +372,10 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 
     // Ambil tanggal proyek dari gantt_data atau gunakan default
     const projectStartDate = new Date(currentProject.startDate);
-    
+
     // Tentukan template berdasarkan lingkup pekerjaan
-    const template = currentProject.work === 'ME' 
-        ? JSON.parse(JSON.stringify(taskTemplateME)) 
+    const template = currentProject.work === 'ME'
+        ? JSON.parse(JSON.stringify(taskTemplateME))
         : JSON.parse(JSON.stringify(taskTemplateSipil));
 
     // Parse setiap kategori dari gantt_data
@@ -427,9 +413,9 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 
         task.start = startDay > 0 ? startDay : 0;
         task.duration = duration > 0 ? duration : 0;
-        task.inputData = { 
-            startDay: startDay > 0 ? startDay : 0, 
-            endDay: endDay > 0 ? endDay : 0 
+        task.inputData = {
+            startDay: startDay > 0 ? startDay : 0,
+            endDay: endDay > 0 ? endDay : 0
         };
 
         console.log(`📅 ${task.name}: H${startDay} - H${endDay} (${duration} hari)`);
@@ -477,7 +463,7 @@ function renderApiData() {
                 </div>
             </div>
         `;
-        document.getElementById('exportButtons').style.display = 'flex'; 
+        document.getElementById('exportButtons').style.display = 'flex';
         return;
     }
     // 5. Kondisi Normal (Input Form)
@@ -533,10 +519,10 @@ async function changeUlok() {
 
     currentProject = projects.find(p => p.ulok === selectedUlok);
     // Kita set currentTasks dari template dulu, nanti di-override fetchGanttData jika ada di DB
-    currentTasks = projectTasks[selectedUlok]; 
+    currentTasks = projectTasks[selectedUlok];
     hasUserInput = false;
     isProjectLocked = false; // Reset lock state
-    
+
     fetchGanttDataForSelection(selectedUlok);
 
     renderProjectInfo();
@@ -580,7 +566,7 @@ async function saveProjectSchedule(statusType = "Active") {
     // Tentukan pesan sukses berdasarkan status
     const isLocking = statusType === "Terkunci";
     const loadingText = isLocking ? "🔒 Mengunci..." : "💾 Menyimpan...";
-    
+
     // Siapkan Payload
     const payload = {
         "Nomor Ulok": currentProject.ulokClean,
@@ -614,13 +600,13 @@ async function saveProjectSchedule(statusType = "Active") {
     });
 
     // Indikator Loading di Tombol yang sesuai
-    const btnTarget = isLocking 
-        ? document.querySelector('.btn-publish') 
+    const btnTarget = isLocking
+        ? document.querySelector('.btn-publish')
         : document.querySelector('.btn-apply-schedule');
-        
+
     const originalText = btnTarget ? btnTarget.innerText : (isLocking ? 'Kunci Jadwal' : 'Terapkan Jadwal');
-    
-    if(btnTarget) {
+
+    if (btnTarget) {
         btnTarget.innerText = loadingText;
         btnTarget.disabled = true;
     }
@@ -651,14 +637,14 @@ async function saveProjectSchedule(statusType = "Active") {
         }
 
         // Render ulang UI sesuai status baru
-        renderApiData(); 
-        renderChart(); 
+        renderApiData();
+        renderChart();
 
     } catch (error) {
         console.error("❌ Error saving:", error);
         alert(`Gagal menyimpan (${statusType}): ` + error.message);
     } finally {
-        if(btnTarget) {
+        if (btnTarget) {
             btnTarget.innerText = originalText;
             btnTarget.disabled = false;
         }
@@ -716,19 +702,19 @@ function applyTaskSchedule(silentMode = false) {
 
 function resetTaskSchedule() {
     if (!currentProject) return;
-    
+
     // Reset data di memori
     if (currentProject.work === 'ME') {
         currentTasks = JSON.parse(JSON.stringify(taskTemplateME));
     } else {
         currentTasks = JSON.parse(JSON.stringify(taskTemplateSipil));
     }
-    
+
     projectTasks[currentProject.ulok] = currentTasks;
     hasUserInput = false;
 
     // Render ulang form menjadi 0 semua
-    renderApiData(); 
+    renderApiData();
     showPleaseInputMessage(); // Hapus chart, minta input
     updateStats();
     document.getElementById('exportButtons').style.display = 'none';
@@ -754,7 +740,7 @@ function updateProjectFromRab(rabData) {
 function renderProjectInfo() {
     if (!currentProject) return;
     const info = document.getElementById('projectInfo');
-    
+
     let html = `
         <div class="project-detail">
             <div class="project-label">No. Ulok</div>
@@ -846,13 +832,13 @@ function renderChart() {
 
         const leftPos = (task.start - 1) * DAY_WIDTH;
         const widthPos = task.duration * DAY_WIDTH;
-        
+
         // Tgl asli
-        const tStart = new Date(projectStartDate); 
+        const tStart = new Date(projectStartDate);
         tStart.setDate(projectStartDate.getDate() + (task.start - 1));
         const tEnd = new Date(tStart);
         tEnd.setDate(tStart.getDate() + task.duration);
-        
+
         html += '<div class="task-row">';
         html += `<div class="task-name">
             <span>${task.name}</span>
@@ -869,7 +855,7 @@ function renderChart() {
     html += '</div>';
 
     chart.innerHTML = html;
-    
+
     // Draw lines after render
     setTimeout(drawDependencyLines, 50);
 }
@@ -900,7 +886,7 @@ function drawDependencyLines() {
                     const y1 = (r1.top + r1.height / 2 - bodyRect.top) + chartBody.scrollTop;
                     const x2 = (r2.left - bodyRect.left) + chartBody.scrollLeft;
                     const y2 = (r2.top + r2.height / 2 - bodyRect.top) + chartBody.scrollTop;
-                    
+
                     const d = `M ${x1} ${y1} C ${x1 + 20} ${y1}, ${x2 - 20} ${y2}, ${x2} ${y2}`;
                     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                     path.setAttribute('d', d);
@@ -927,7 +913,7 @@ function exportToExcel() {
         if (task.duration === 0) return;
         const tStart = new Date(startDate); tStart.setDate(startDate.getDate() + (task.start - 1));
         const tEnd = new Date(tStart); tEnd.setDate(tStart.getDate() + task.duration - 1);
-        data.push([i+1, task.name, formatDateID(tStart), formatDateID(tEnd), task.duration]);
+        data.push([i + 1, task.name, formatDateID(tStart), formatDateID(tEnd), task.duration]);
     });
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
