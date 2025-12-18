@@ -466,33 +466,18 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 function renderApiData() {
     const container = document.getElementById('apiData');
     if (!container) return;
-    // 1. Kondisi Loading
-    if (isLoadingGanttData) {
-        container.innerHTML = `
-            <div class="api-card">
-                <div class="api-card-title">Memuat data...</div>
-                <div class="api-row">Mohon tunggu sebentar.</div>
-            </div>`;
-        return;
-    }
-    // 2. Kondisi Error
     if (ganttApiError) {
         container.innerHTML = `
-            <div class="api-card api-error">
-                <div class="api-card-title">Gagal memuat data</div>
-                <div class="api-row">${escapeHtml(ganttApiError)}</div>
-            </div>`;
+            <div class="api-card error">
+                <div class="api-card-title">⚠️ Gagal Memuat Data</div>
+                <p>${ganttApiError}</p>
+            </div>
+        `;
         return;
     }
-    // 3. Kondisi Belum Pilih Proyek (PERBAIKAN DISINI)
-    if (!currentProject) {
-        container.innerHTML = ''; // Pastikan container dibersihkan saat reset
-        return;
-    }
-    // 4. Kondisi TERKUNCI (Published)
     if (isProjectLocked) {
         container.innerHTML = `
-            <div class="api-card" style="border: 2px solid #48bb78; background: #f0fff4;">
+            <div class="api-card locked" style="border: 2px solid #48bb78; background: #f0fff4;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div>
                         <h3 style="color: #2f855a; margin: 0 0 5px 0;">✅ Jadwal Terkunci</h3>
@@ -504,42 +489,7 @@ function renderApiData() {
         document.getElementById('exportButtons').style.display = 'flex';
         return;
     }
-    // 5. Kondisi Normal (Input Form)
-    let html = '<div class="api-card task-input-card">';
-    html += '<div class="api-card-title">Input Pengerjaan Tahapan</div>';
-    html += '<div class="task-input-container">';
-
-    currentTasks.forEach((task) => {
-        const taskData = task.inputData || { startDay: 0, endDay: 0 };
-        html += `
-            <div class="task-input-row">
-                <div class="task-input-label">${escapeHtml(task.name)}</div>
-                <div class="task-input-fields">
-                    <div class="input-group">
-                        <label>H</label>
-                        <input type="number" class="task-day-input" id="task-start-${task.id}" value="${taskData.startDay}" min="0">
-                    </div>
-                    <span class="input-separator">s/d</span>
-                    <div class="input-group">
-                        <label>H</label>
-                        <input type="number" class="task-day-input" id="task-end-${task.id}" value="${taskData.endDay}" min="0">
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    html += '</div>';
-    html += `
-        <div class="task-input-actions">
-            <button class="btn-apply-schedule" onclick="applyTaskSchedule()">Terapkan Jadwal</button>
-            <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
-        </div>
-        <div class="task-input-actions" style="border-top: none; padding-top: 0;">
-            <button class="btn-publish" onclick="confirmAndPublish()">🔒 Kunci Jadwal</button>
-        </div>
-    `;
-    html += '</div>';
-    container.innerHTML = html;
+    container.innerHTML = '';
 }
 
 // ==================== CHANGE ULOK (SELECT PROJECT) ====================
