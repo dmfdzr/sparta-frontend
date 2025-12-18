@@ -511,11 +511,8 @@ function renderApiData() {
                         <label>Jml Hari (Delay)</label>
                         <input type="number" id="delayDaysInput" class="form-control" placeholder="0" min="0">
                     </div>
-                    <button onclick="handleDelayUpdate('apply')" class="btn-delay-action btn-apply">
+                    <button onclick="saveDelay(${task.id})" class="btn-terapkan-delay">
                         Terapkan
-                    </button>
-                    <button onclick="handleDelayUpdate('reset')" class="btn-delay-action btn-reset">
-                        Hapus
                     </button>
                 </div>
             </div>
