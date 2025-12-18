@@ -253,101 +253,103 @@ function initChart() {
 
 // ==================== GANTT DATA FETCH (API) ====================
 async function fetchGanttDataForSelection(selectedValue) {
+    // 1. Validasi awal
     if (!selectedValue) {
         ganttApiData = null;
         renderApiData();
         return;
     }
 
+    // 2. Ekstrak parameter ULOK dan LINGKUP
     const { ulok, lingkup } = extractUlokAndLingkup(selectedValue);
+    
+    // Set loading state
     isLoadingGanttData = true;
     ganttApiError = null;
     renderApiData();
 
+    // 3. Konstruksi URL
     const url = `${ENDPOINTS.ganttData}?ulok=${encodeURIComponent(ulok)}&lingkup=${encodeURIComponent(lingkup)}`;
+    console.log(`🔗 Fetching Gantt Data from: ${url}`); // Log URL untuk debugging
 
     try {
         const response = await fetch(url);
 
-        if (response.status === 404) {
-            throw new Error("DATA_NOT_FOUND");
+        // Cek HTTP Error (misal 404 atau 500)
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error("Data Gantt tidak ditemukan di server (404).");
+            }
+            throw new Error(`Gagal mengambil data (Status: ${response.status})`);
         }
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Error fetch');
-
         ganttApiData = data;
 
-        // Update project info dari RAB jika ada
+        // Update Project Info dari RAB (jika tersedia di respon)
         if (currentProject && data?.rab) {
             updateProjectFromRab(data.rab);
         }
 
-        // ==================== CEK GANTT_DATA ====================
-        if (data.gantt_data && typeof data.gantt_data === 'object') {
-            console.log("📊 gantt_data ditemukan di response");
-
+        // 4. VALIDASI KETAT: HANYA TERIMA KEY 'gantt_data'
+        // Kita hapus logika fallback ke 'existing_tasks' sesuai permintaan Anda.
+        if (data && data.gantt_data && typeof data.gantt_data === 'object') {
+            console.log("📊 Data 'gantt_data' ditemukan.");
+            
             const ganttData = data.gantt_data;
             const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
-            // Cek Status di gantt_data
-            if (ganttStatus === 'terkunci' || ganttStatus === 'locked' || ganttStatus === 'published') {
+            // Cek Status Lock
+            if (['terkunci', 'locked', 'published'].includes(ganttStatus)) {
                 isProjectLocked = true;
-                hasUserInput = true;
-                console.log("🔒 Status Gantt: TERKUNCI");
-
-                // Parse data kategori dari gantt_data untuk chart
-                parseGanttDataToTasks(ganttData, selectedValue);
-
+                console.log("🔒 Status Project: TERKUNCI");
             } else {
-                // Status Active - tampilkan data di input form
                 isProjectLocked = false;
-                console.log("🔓 Status Gantt: ACTIVE - Menampilkan data di form input");
-
-                // Parse data kategori dari gantt_data ke input form
-                parseGanttDataToTasks(ganttData, selectedValue);
-                hasUserInput = true;
+                console.log("🔓 Status Project: ACTIVE");
             }
 
-        } else if (data.existing_tasks && Array.isArray(data.existing_tasks) && data.existing_tasks.length > 0) {
-            // Fallback ke existing_tasks jika gantt_data tidak ada
-            console.log("📋 Menggunakan existing_tasks");
-
-            currentTasks = data.existing_tasks.map(t => ({
-                id: t.id,
-                name: t.name,
-                start: t.start,
-                duration: t.duration,
-                dependencies: t.dependencies || [],
-                inputData: { startDay: t.start, endDay: (t.start + t.duration - 1) }
-            }));
-
-            projectTasks[selectedValue] = currentTasks;
-            hasUserInput = true;
-            isProjectLocked = false;
+            // Parsing data menggunakan fungsi dinamis Anda
+            parseGanttDataToTasks(ganttData, selectedValue);
+            
+            // Tandai bahwa data sudah masuk
+            hasUserInput = true; 
 
         } else {
-            throw new Error("DATA_EMPTY");
+            // Jika 'gantt_data' tidak ada, anggap error. Jangan ambil data lain.
+            console.warn("⚠️ Response API valid, tetapi tidak memiliki properti 'gantt_data'.");
+            throw new Error("Format data API tidak valid: 'gantt_data' hilang.");
         }
 
     } catch (error) {
-        console.error('❌ Gagal memuat gantt_data:', error.message);
+        console.error('❌ Error fetchGanttDataForSelection:', error.message);
+        
+        // Tampilkan pesan error ke variabel global agar muncul di UI
         ganttApiError = error.message;
+        
+        // Reset data tugas karena gagal mengambil data yang valid
         currentTasks = []; 
         projectTasks[selectedValue] = [];
         hasUserInput = false;
         isProjectLocked = false;
-        
+
     } finally {
+        // Matikan loading state
         isLoadingGanttData = false;
+        
+        // Render ulang UI
         renderProjectInfo();
+        renderApiData(); 
 
-        renderApiData();
-
-        if (hasUserInput) {
+        // Tampilkan Chart atau Pesan Error
+        if (hasUserInput && currentTasks.length > 0) {
             renderChart();
         } else {
-            showPleaseInputMessage();
+            // Jika error, pastikan chart dibersihkan/tampilkan pesan error
+            if (ganttApiError) {
+                showErrorMessage(ganttApiError);
+            } else {
+                showPleaseInputMessage();
+            }
         }
         updateStats();
     }
