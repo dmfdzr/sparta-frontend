@@ -2,7 +2,7 @@ if (!sessionStorage.getItem('loggedInUserCabang')) {
     window.location.replace('../../auth/pic/login.html');
 }
 
-const API_BASE_URL = "https://sparta-backend.onrender.com/api";
+const API_BASE_URL = "https://sparta-backend.web.id/api";
 const ENDPOINTS = {
     ulokList: `${API_BASE_URL}/get_ulok_by_cabang_pic`,
     ganttData: `${API_BASE_URL}/get_gantt_data`,
