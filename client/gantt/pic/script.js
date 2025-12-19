@@ -306,18 +306,23 @@ async function fetchGanttDataForSelection(selectedValue) {
 
             const ganttData = data.gantt_data;
             rawGanttData = ganttData; // Store for delay reference
-            const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
+            const ganttStatus = String(ganttData.Status || '');
 
             // Cek Status di gantt_data
-            if (ganttStatus === 'terkunci') {
+            if (ganttStatus === 'Terkunci' || ganttStatus === 'locked' || ganttStatus === 'TERKUNCI') {
                 isProjectLocked = true;
                 hasUserInput = true;
                 console.log("🔒 Status Gantt: TERKUNCI");
+
+                // Parse data kategori dari gantt_data untuk chart
                 parseGanttDataToTasks(ganttData, selectedValue);
 
             } else {
+                // Status Active - tampilkan data di input form
                 isProjectLocked = false;
-                console.log("🔓 Status Gantt: ACTIVE (" + ganttStatus + ") - Menampilkan data di form input");
+                console.log("🔓 Status Gantt: ACTIVE - Menampilkan data di form input");
+
+                // Parse data kategori dari gantt_data ke input form
                 parseGanttDataToTasks(ganttData, selectedValue);
                 hasUserInput = true;
             }
