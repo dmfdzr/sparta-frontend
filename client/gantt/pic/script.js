@@ -304,27 +304,32 @@ async function fetchGanttDataForSelection(selectedValue) {
         if (data.gantt_data && typeof data.gantt_data === 'object') {
             console.log("📊 gantt_data ditemukan di response");
 
-            const ganttData = data.gantt_data;
-            rawGanttData = ganttData; // Store for delay reference
-            const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
+            const rawStatus = ganttData.Status || ganttData.status || '';
+            
+            // 2. Ubah jadi huruf kecil semua & buang spasi agar mudah dicek
+            const ganttStatus = String(rawStatus).trim().toLowerCase();
 
-            // Cek Status di gantt_data
-            if (ganttStatus === 'Terkunci' || ganttStatus === 'terkunci' || ganttStatus === 'TERKUNCI') {
+            // Debugging: Lihat apa yang sebenarnya dibaca oleh kode di Console Browser
+            console.log("🔍 Debug Status API:", rawStatus); 
+            console.log("   -> Hasil olahan:", ganttStatus);
+
+            // 3. Logika Pengecekan (Cukup cek 'terkunci' karena sudah di-lowercase)
+            if (ganttStatus === 'terkunci') {
                 isProjectLocked = true;
                 hasUserInput = true;
                 console.log("🔒 Status Gantt: TERKUNCI");
 
-                // Parse data kategori dari gantt_data untuk chart
+                // Render Chart langsung (Mode Read-Only)
                 parseGanttDataToTasks(ganttData, selectedValue);
 
             } else {
-                // Status Active - tampilkan data di input form
+                // Status Active / Kosong / Lainnya
                 isProjectLocked = false;
-                console.log("🔓 Status Gantt: ACTIVE - Menampilkan data di form input");
+                hasUserInput = true; // Anggap true agar form muncul
+                console.log("🔓 Status Gantt: ACTIVE (Editable)");
 
-                // Parse data kategori dari gantt_data ke input form
+                // Render Data ke Form Input agar bisa diedit
                 parseGanttDataToTasks(ganttData, selectedValue);
-                hasUserInput = true;
             }
 
         } else if (data.existing_tasks && Array.isArray(data.existing_tasks) && data.existing_tasks.length > 0) {
