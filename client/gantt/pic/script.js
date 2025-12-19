@@ -306,7 +306,7 @@ async function fetchGanttDataForSelection(selectedValue) {
 
             const ganttData = data.gantt_data;
             rawGanttData = ganttData; // Store for delay reference
-            const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
+            const ganttStatus = String(ganttData.Status || '');
 
             // Cek Status di gantt_data
             if (ganttStatus === 'Terkunci' || ganttStatus === 'locked' || ganttStatus === 'published') {
