@@ -1,12 +1,11 @@
 const API_PROXY_URL = "https://sparta-backend-5hdj.onrender.com/api/form";
 const GAS_LOGIN_VERIFY_URL = "https://sparta-backend-5hdj.onrender.com/api/form?form=login_perpanjanganspk&action=verifyToken";
-const LOGIN_PAGE_URL = "https://frontend-form-virid.vercel.app/login-perpanjanganspk.html";
 
 let currentUser = null;
 let ulokData = []; 
 let originalEndDateISO = '';
 let newEndDateISO = '';
-      
+
 const ulokSelect = document.getElementById('nomor_ulok');
 const pertambahanHariInput = document.getElementById('pertambahan_hari');
 const tglSpkAkhirInput = document.getElementById('tanggal_spk_akhir');
