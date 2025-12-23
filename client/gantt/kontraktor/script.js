@@ -842,9 +842,7 @@ function updateStats() {
 function renderChart() {
     if (!currentProject) return;
     const chart = document.getElementById('ganttChart');
-    const DAY_WIDTH = 40;
-
-    // Tentukan lebar chart
+    const DAY_WIDTH = 40; 
     let maxTaskEndDay = 0;
     currentTasks.forEach(task => {
         const end = task.start + task.duration;
@@ -856,69 +854,71 @@ function renderChart() {
     );
     const totalChartWidth = totalDaysToRender * DAY_WIDTH;
     const projectStartDate = new Date(currentProject.startDate);
-
-    // Render Header
     let html = '<div class="chart-header">';
     html += '<div class="task-column">Tahapan</div>';
     html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
+
     for (let i = 0; i < totalDaysToRender; i++) {
-        // Menghitung hari ke-sekian (dimulai dari 1)
-        const dayNumber = i + 1; 
-        // (Opsional) Jika Anda masih ingin mewarnai hari Minggu berdasarkan tanggal asli:
+        // Logika pewarnaan hari Minggu (opsional, tetap berdasarkan tanggal asli)
         const currentDate = new Date(projectStartDate);
         currentDate.setDate(projectStartDate.getDate() + i);
         const isSunday = currentDate.getDay() === 0;
+        
+        // Ubah tampilan menjadi angka urut (1, 2, 3...)
+        const dayNumber = i + 1;
+
+        // Note: box-sizing: border-box ditambahkan agar lebar border tidak merusak layout
         html += `
-            <div class="day-header" style="width: ${DAY_WIDTH}px; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
+            <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
                 <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
-                </div>
+            </div>
         `;
     }
     html += '</div></div>';
 
-    // Render Body
+    // --- RENDER BODY (BAR CHART PRESISI) ---
     html += '<div class="chart-body">';
     currentTasks.forEach(task => {
-        if (task.duration === 0) return; // Skip yang 0 durasi
-
+        if (task.duration === 0) return;
         const leftPos = (task.start - 1) * DAY_WIDTH;
-        const widthPos = task.duration * DAY_WIDTH;
+        const widthPos = (task.duration * DAY_WIDTH) - 1; 
+        
         const keterlambatan = task.keterlambatan || 0;
-
-        // Tgl asli
         const tStart = new Date(projectStartDate);
         tStart.setDate(projectStartDate.getDate() + (task.start - 1));
         const tEnd = new Date(tStart);
-        tEnd.setDate(tStart.getDate() + task.duration - 1); // Fix: -1 agar tanggal akhir benar
+        tEnd.setDate(tStart.getDate() + task.duration - 1);
+        const delayLeftPos = leftPos + widthPos + 1; // +1 untuk kompensasi pengurangan di atas
+        const delayWidthPos = (keterlambatan * DAY_WIDTH) - 1;
 
-        // Hitung posisi bar keterlambatan (setelah bar utama)
-        const delayLeftPos = leftPos + widthPos;
-        const delayWidthPos = keterlambatan * DAY_WIDTH;
-
-        // Tanggal akhir dengan keterlambatan
         const tEndWithDelay = new Date(tEnd);
         tEndWithDelay.setDate(tEnd.getDate() + keterlambatan);
 
         html += '<div class="task-row">';
+        
+        // Kolom Nama Tahapan
         html += `<div class="task-name">
             <span>${task.name}</span>
             <span class="task-duration">Durasi: ${task.duration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
         </div>`;
+        
+        // Kolom Timeline
         html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
-        // Bar utama (hijau/on-time)
+        // 1. BAR UTAMA (Hijau/Biru)
+        // box-sizing: border-box penting agar padding/border tidak menambah lebar
         html += `<div class="bar on-time" data-task-id="${task.id}" 
-                style="left: ${leftPos}px; width: ${widthPos}px;" 
+                style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;" 
                 title="${task.name}: ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
-            ${task.duration}h
+            ${task.duration}
         </div>`;
 
-        // Bar keterlambatan (merah) - hanya tampil jika ada keterlambatan
+        // 2. BAR DELAY (Merah) - Jika ada
         if (keterlambatan > 0) {
             html += `<div class="bar delayed" data-task-id="${task.id}-delay" 
-                    style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
+                    style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
                     title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
-                +${keterlambatan}h
+                +${keterlambatan}
             </div>`;
         }
 
@@ -928,7 +928,7 @@ function renderChart() {
 
     chart.innerHTML = html;
 
-    // Draw lines after render
+    // Draw dependency lines (panah ketergantungan)
     setTimeout(drawDependencyLines, 50);
 }
 
