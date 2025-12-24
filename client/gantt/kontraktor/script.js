@@ -48,13 +48,16 @@ const taskTemplateSipil = [
 ];
 
 let currentTasks = [];
-const totalDaysME = 100;
-const totalDaysSipil = 205;
+const totalDaysME = 40; // Disesuaikan agar chart tidak terlalu panjang
+const totalDaysSipil = 60; // Disesuaikan
 
 // ==================== HELPER FUNCTIONS ====================
 function formatDateID(date) {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
     const options = { day: 'numeric', month: 'short', year: 'numeric' };
-    return date.toLocaleDateString('id-ID', options);
+    return d.toLocaleDateString('id-ID', options);
 }
 
 function extractUlokAndLingkup(value) {
@@ -86,41 +89,55 @@ function escapeHtml(value) {
 
 function showLoadingMessage() {
     const chart = document.getElementById('ganttChart');
-    chart.innerHTML = `
-        <div style="text-align: center; padding: 60px; color: #6c757d;">
-            <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
-            <h2 style="margin-bottom: 15px;">Memuat Data...</h2>
-            <p>Sedang mengambil data proyek dari server.</p>
-        </div>
-    `;
+    if(chart) {
+        chart.innerHTML = `
+            <div style="text-align: center; padding: 60px; color: #6c757d;">
+                <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+                <h2 style="margin-bottom: 15px;">Memuat Data...</h2>
+                <p>Sedang mengambil data proyek dari server.</p>
+            </div>
+        `;
+    }
 }
 
 function showErrorMessage(message) {
     const chart = document.getElementById('ganttChart');
-    chart.innerHTML = `
-        <div style="text-align: center; padding: 60px; color: #e53e3e;">
-            <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
-            <h2 style="margin-bottom: 15px;">Terjadi Kesalahan</h2>
-            <p>${message}</p>
-            <button onclick="loadDataAndInit()" style="margin-top: 20px; padding: 10px 20px; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                🔄 Coba Lagi
-            </button>
-        </div>
-    `;
+    if(chart) {
+        chart.innerHTML = `
+            <div style="text-align: center; padding: 60px; color: #e53e3e;">
+                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                <h2 style="margin-bottom: 15px;">Terjadi Kesalahan</h2>
+                <p>${message}</p>
+                <button onclick="loadDataAndInit()" style="margin-top: 20px; padding: 10px 20px; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    🔄 Coba Lagi
+                </button>
+            </div>
+        `;
+    }
 }
 
 function showSelectProjectMessage() {
     const chart = document.getElementById('ganttChart');
-    chart.innerHTML = `
-        <div style="text-align: center; padding: 60px; color: #6c757d;">
-            <h2 style="margin-bottom: 15px;">📋 Pilih No. Ulok</h2>
-            <p>Data berhasil dimuat. Silakan pilih proyek di atas.</p>
-        </div>
-    `;
-    document.getElementById('projectInfo').innerHTML = '';
-    document.getElementById('stats').innerHTML = '';
-    document.getElementById('exportButtons').style.display = 'none';
-    document.getElementById('dependencyManager').style.display = 'none';
+    if (chart) {
+        chart.innerHTML = `
+            <div style="text-align: center; padding: 60px; color: #6c757d;">
+                <h2 style="margin-bottom: 15px;">📋 Pilih No. Ulok</h2>
+                <p>Silakan pilih proyek di menu dropdown di atas untuk melihat jadwal.</p>
+            </div>
+        `;
+    }
+    const info = document.getElementById('projectInfo');
+    if(info) info.innerHTML = '';
+    
+    const stats = document.getElementById('stats');
+    if(stats) stats.innerHTML = '';
+    
+    const exportBtn = document.getElementById('exportButtons');
+    if(exportBtn) exportBtn.style.display = 'none';
+    
+    const depMgr = document.getElementById('dependencyManager');
+    if(depMgr) depMgr.style.display = 'none';
+
     ganttApiData = null;
     ganttApiError = null;
     hasUserInput = false;
@@ -131,13 +148,15 @@ function showSelectProjectMessage() {
 
 function showPleaseInputMessage() {
     const chart = document.getElementById('ganttChart');
-    chart.innerHTML = `
-        <div style="text-align: center; padding: 60px; color: #6c757d;">
-            <div style="font-size: 48px; margin-bottom: 20px;">⏱️</div>
-            <h2 style="margin-bottom: 15px;">Silakan Input Jadwal Pengerjaan</h2>
-            <p>Masukkan hari mulai dan selesai untuk setiap tahapan di form di atas, kemudian klik <strong>"Terapkan Jadwal"</strong>.</p>
-        </div>
-    `;
+    if(chart) {
+        chart.innerHTML = `
+            <div style="text-align: center; padding: 60px; color: #6c757d;">
+                <div style="font-size: 48px; margin-bottom: 20px;">⏱️</div>
+                <h2 style="margin-bottom: 15px;">Silakan Input Jadwal Pengerjaan</h2>
+                <p>Masukkan hari mulai dan selesai untuk setiap tahapan di form di atas, kemudian klik <strong>"Terapkan Jadwal"</strong>.</p>
+            </div>
+        `;
+    }
 }
 
 // ==================== PARSE PROJECT DATA ====================
@@ -186,7 +205,11 @@ async function loadDataAndInit() {
     try {
         showLoadingMessage();
         const userEmail = sessionStorage.getItem('loggedInUserEmail');
-        const urlWithParam = `${ENDPOINTS.ulokList}?email=${encodeURIComponent(userEmail)}`;
+        
+        // Fallback jika email tidak ada di session (untuk testing)
+        const emailToUse = userEmail || "kontraktor@example.com"; 
+
+        const urlWithParam = `${ENDPOINTS.ulokList}?email=${encodeURIComponent(emailToUse)}`;
         const response = await fetch(urlWithParam);
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
@@ -243,8 +266,6 @@ function initChart() {
         hasUserInput = false;
         isProjectLocked = false;
         fetchGanttDataForSelection(selectedUlok);
-        renderProjectInfo();
-        updateStats();
         document.getElementById('exportButtons').style.display = 'block';
         document.getElementById('dependencyManager').style.display = 'none';
     });
@@ -255,8 +276,9 @@ function initChart() {
             ulokSelect.value = savedUlok;
             ulokSelect.dispatchEvent(new Event('change'));
         }
+    } else {
+        showSelectProjectMessage();
     }
-    showSelectProjectMessage();
 }
 
 // ==================== GANTT DATA FETCH (API) ====================
@@ -295,7 +317,6 @@ async function fetchGanttDataForSelection(selectedValue) {
 
         if (data.filtered_categories && Array.isArray(data.filtered_categories)) {
             filteredCategories = data.filtered_categories;
-            console.log("📂 Filtered Categories:", filteredCategories);
         } else {
             filteredCategories = null;
         }
@@ -306,7 +327,7 @@ async function fetchGanttDataForSelection(selectedValue) {
             const ganttData = data.gantt_data;
             const ganttStatus = String(ganttData.Status || '').trim().toLowerCase();
 
-            if (['terkunci', 'locked', 'published'].includes(ganttStatus)) {
+            if (['terkunci', 'locked', 'published', 'selesai'].includes(ganttStatus)) {
                 isProjectLocked = true;
                 console.log("🔒 Status Project: TERKUNCI");
             } else {
@@ -342,7 +363,6 @@ async function fetchGanttDataForSelection(selectedValue) {
                     );
                 });
                 currentTasks = currentTasks.map((task, idx) => ({ ...task, id: idx + 1 }));
-                console.log(`📋 Tasks filtered: ${currentTasks.length} dari ${templateTasks.length}`);
             } else {
                 currentTasks = templateTasks;
             }
@@ -362,6 +382,7 @@ async function fetchGanttDataForSelection(selectedValue) {
         isLoadingGanttData = false;
         renderProjectInfo();
         renderApiData();
+        updateStats();
 
         if (hasUserInput && currentTasks.length > 0) {
             renderChart();
@@ -372,7 +393,6 @@ async function fetchGanttDataForSelection(selectedValue) {
                 showPleaseInputMessage();
             }
         }
-        updateStats();
     }
 }
 
@@ -385,6 +405,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
     let tempTaskList = [];
     let i = 1;
 
+    // Loop untuk membaca Kategori_1, Kategori_2, dst.
     while (true) {
         const kategoriKey = `Kategori_${i}`;
         const mulaiKey = `Hari_Mulai_Kategori_${i}`;
@@ -436,7 +457,6 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 
     const projectStartDate = earliestDate;
     currentProject.startDate = projectStartDate.toISOString().split('T')[0];
-    console.log(`📆 Project Start Date (dari gantt_data): ${currentProject.startDate}`);
     const msPerDay = 1000 * 60 * 60 * 24;
 
     tempTaskList.forEach(item => {
@@ -468,11 +488,9 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
     });
     currentTasks = dynamicTasks;
     projectTasks[selectedValue] = currentTasks;
-
-    console.log(`✅ Data API berhasil diparsing: ${currentTasks.length} tahapan ditemukan.`);
 }
 
-// ==================== RENDER API DATA ====================
+// ==================== RENDER API DATA (INPUT FORM) ====================
 function renderApiData() {
     const container = document.getElementById('apiData');
     if (!container) return;
@@ -594,11 +612,254 @@ function renderApiData() {
             <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
         </div>
         <div class="task-input-actions" style="border-top: none; padding-top: 0;">
-            <button class="btn-publish" onclick="confirmAndPublish()">🔒 Kunci Jadwal</button>
+            <button class="btn-publish" onclick="confirmAndPublish()">🔒 Kunci & Terbitkan Jadwal</button>
         </div>
     `;
     html += '</div>';
     container.innerHTML = html;
+}
+
+// ==================== VISUALIZATION FUNCTIONS (MISSING PART 1) ====================
+
+function renderProjectInfo() {
+    const container = document.getElementById('projectInfo');
+    if (!container) return;
+    
+    if (!currentProject) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="info-item"><strong>No. Ulok:</strong> ${escapeHtml(currentProject.ulok)}</div>
+        <div class="info-item"><strong>Toko:</strong> ${escapeHtml(currentProject.store)}</div>
+        <div class="info-item"><strong>Jenis:</strong> ${escapeHtml(currentProject.projectType)}</div>
+        <div class="info-item"><strong>Mulai:</strong> ${formatDateID(new Date(currentProject.startDate))}</div>
+    `;
+}
+
+function updateProjectFromRab(rabData) {
+    if (!currentProject || !rabData) return;
+    if (rabData.nama_toko) currentProject.store = rabData.nama_toko;
+    if (rabData.jenis_proyek) currentProject.projectType = rabData.jenis_proyek;
+}
+
+function renderChart() {
+    const chartContainer = document.getElementById('ganttChart');
+    if(!chartContainer) return;
+    chartContainer.innerHTML = '';
+
+    if (!currentProject || !currentTasks.length) return;
+
+    // Tentukan panjang hari chart
+    const totalDays = currentProject.lingkup === 'ME' ? totalDaysME : totalDaysSipil;
+    
+    // Header
+    let headerHTML = '<div class="chart-header"><div class="task-column">Tahapan Pekerjaan</div><div class="timeline-column">';
+    for (let i = 1; i <= totalDays; i++) {
+        headerHTML += `<div class="day-header"><span class="d-date">${i}</span></div>`;
+    }
+    headerHTML += '</div></div>';
+
+    // Body
+    let bodyHTML = '<div class="chart-body">';
+    currentTasks.forEach(task => {
+        bodyHTML += `<div class="task-row">
+            <div class="task-name">${task.id}. ${escapeHtml(task.name)}</div>
+            <div class="timeline-column">`;
+        
+        for (let i = 1; i <= totalDays; i++) {
+            let activeClass = '';
+            
+            // Cek apakah hari ini masuk dalam salah satu range
+            if (task.inputData && task.inputData.ranges) {
+                task.inputData.ranges.forEach(range => {
+                    if (i >= range.start && i <= range.end) {
+                        activeClass = 'bar-active'; 
+                        // Note: pastikan di CSS ada class .bar-active { background-color: #3182ce; }
+                    }
+                });
+            }
+
+            bodyHTML += `<div class="day-cell ${activeClass}" title="Hari ke-${i}"></div>`;
+        }
+        bodyHTML += `</div></div>`;
+    });
+    bodyHTML += '</div>';
+    
+    chartContainer.innerHTML = headerHTML + bodyHTML;
+}
+
+function updateStats() {
+    const statsContainer = document.getElementById('stats');
+    if (!statsContainer || !currentTasks.length) {
+        if(statsContainer) statsContainer.innerHTML = '';
+        return;
+    }
+
+    let completed = 0;
+    let total = currentTasks.length;
+    
+    currentTasks.forEach(t => {
+        if (t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0 && t.inputData.ranges[0].end > 0) {
+            completed++;
+        }
+    });
+
+    const percent = Math.round((completed / total) * 100);
+
+    statsContainer.innerHTML = `
+        <div class="stat-box">
+            <div class="stat-value">${percent}%</div>
+            <div class="stat-label">Terisi</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">${total}</div>
+            <div class="stat-label">Total Tahapan</div>
+        </div>
+    `;
+}
+
+// ==================== LOGIC FUNCTIONS (MISSING PART 2) ====================
+
+function applyTaskSchedule() {
+    // 1. Ambil nilai dari input form
+    currentTasks.forEach(task => {
+        const rangesContainer = document.getElementById(`ranges-${task.id}`);
+        if (!rangesContainer) return;
+
+        const rangeGroups = rangesContainer.querySelectorAll('.range-input-group');
+        let newRanges = [];
+
+        rangeGroups.forEach(group => {
+            const startInput = group.querySelector('input[data-type="start"]');
+            const endInput = group.querySelector('input[data-type="end"]');
+            
+            if (startInput && endInput) {
+                const start = parseInt(startInput.value) || 0;
+                const end = parseInt(endInput.value) || 0;
+
+                if (start > 0 && end >= start) {
+                    newRanges.push({
+                        start: start,
+                        end: end,
+                        duration: end - start + 1
+                    });
+                }
+            }
+        });
+
+        // Update task data
+        task.inputData = { ranges: newRanges };
+        
+        // Update properti utama task (ambil range pertama sebagai default start/durasi)
+        if (newRanges.length > 0) {
+            task.start = newRanges[0].start;
+            task.duration = newRanges[0].duration;
+        } else {
+            task.start = 0;
+            task.duration = 0;
+        }
+    });
+
+    // 2. Kalkulasi ulang berdasarkan dependency (jika ada)
+    calculateDependencyAdjustedSchedule();
+
+    // 3. Render ulang chart dan update input form (agar sinkron dengan hasil kalkulasi)
+    renderChart();
+    renderApiData(); 
+    updateStats();
+    
+    alert("Jadwal berhasil diterapkan!");
+}
+
+function resetTaskSchedule() {
+    if (confirm("Apakah Anda yakin ingin mereset semua input?")) {
+        // Reload data from API (membuang perubahan lokal)
+        if (currentProject) {
+            fetchGanttDataForSelection(currentProject.ulok);
+        }
+    }
+}
+
+async function confirmAndPublish() {
+    if (!currentProject) return;
+
+    if (!confirm("Apakah Anda yakin ingin mengunci dan menerbitkan jadwal ini? Data tidak dapat diubah setelah diterbitkan.")) {
+        return;
+    }
+
+    // Persiapkan payload
+    // Kita kirim seluruh data tasks yang sudah diinput
+    const payload = {
+        ulok: currentProject.ulokClean, // Menggunakan ULOK bersih tanpa suffix -ME/-Sipil
+        lingkup: currentProject.lingkup,
+        project_data: currentProject,
+        tasks: currentTasks.map(t => ({
+            id: t.id,
+            name: t.name,
+            ranges: t.inputData.ranges,
+            dependencies: t.manualDependencies
+        })),
+        publishedAt: new Date().toISOString()
+    };
+
+    try {
+        showLoadingMessage();
+        
+        const response = await fetch(ENDPOINTS.insertData, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Gagal menyimpan data: ${response.status}`);
+        }
+
+        const result = await response.json();
+        alert("✅ Jadwal berhasil diterbitkan!");
+        
+        // Refresh data untuk masuk ke mode terkunci
+        fetchGanttDataForSelection(currentProject.ulok);
+
+    } catch (error) {
+        console.error("Publish error:", error);
+        showErrorMessage(`Gagal menerbitkan jadwal: ${error.message}`);
+    }
+}
+
+function exportToExcel() {
+    if (!currentProject || !currentTasks.length) {
+        alert("Tidak ada data untuk diekspor.");
+        return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "ID,Tahapan Pekerjaan,Mulai (Hari ke),Selesai (Hari ke),Durasi,Dependencies\n";
+
+    currentTasks.forEach(task => {
+        const deps = task.manualDependencies ? task.manualDependencies.join(';') : '';
+        const rangesStr = task.inputData && task.inputData.ranges 
+            ? task.inputData.ranges.map(r => `H${r.start}-H${r.end}`).join(' | ') 
+            : '-';
+        
+        // Ambil data utama dari range pertama untuk kolom CSV sederhana
+        const start = task.start || 0;
+        const end = (task.start + task.duration - 1) || 0;
+            
+        csvContent += `${task.id},"${task.name}",${start},${end},${task.duration},"${deps}"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Jadwal_${currentProject.ulok}_${currentProject.lingkup}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // ==================== ADD/REMOVE RANGE FUNCTIONS ====================
@@ -646,6 +907,7 @@ function removeRange(taskId, rangeIdx) {
     if (targetRange) {
         targetRange.remove();
         
+        // Re-index sisanya
         const remainingRanges = rangesContainer.querySelectorAll('.range-input-group');
         remainingRanges.forEach((range, newIdx) => {
             range.setAttribute('data-range-idx', newIdx);
@@ -794,3 +1056,6 @@ function calculateDependencyAdjustedSchedule() {
     currentTasks = adjustedTasks;
     projectTasks[currentProject.ulok] = adjustedTasks;
 }
+
+// Inisialisasi awal
+document.addEventListener('DOMContentLoaded', loadDataAndInit);
