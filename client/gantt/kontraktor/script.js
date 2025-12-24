@@ -7,6 +7,7 @@ const ENDPOINTS = {
     ulokList: `${API_BASE_URL}/get_ulok_by_email`,
     ganttData: `${API_BASE_URL}/get_gantt_data`,
     insertData: `${API_BASE_URL}/gantt/insert`,
+    dayInsert: `${API_BASE_URL}/gantt/day/insert`,
 };
 
 let projects = [];
@@ -465,7 +466,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 function renderApiData() {
     const container = document.getElementById('apiData');
     if (!container) return;
-    
+
     if (isLoadingGanttData) {
         container.innerHTML = `
             <div class="api-card">
@@ -474,7 +475,7 @@ function renderApiData() {
             </div>`;
         return;
     }
-    
+
     if (ganttApiError) {
         container.innerHTML = `
             <div class="api-card api-error">
@@ -483,12 +484,12 @@ function renderApiData() {
             </div>`;
         return;
     }
-    
+
     if (!currentProject) {
         container.innerHTML = '';
         return;
     }
-    
+
     if (isProjectLocked) {
         container.innerHTML = `
             <div class="api-card" style="border: 2px solid #48bb78; background: #f0fff4;">
@@ -503,7 +504,7 @@ function renderApiData() {
         document.getElementById('exportButtons').style.display = 'flex';
         return;
     }
-    
+
     let html = '<div class="api-card task-input-card">';
     html += '<div class="api-card-title">Input Pengerjaan Tahapan (Multi Range)</div>';
     html += '<div class="task-input-container">';
@@ -511,13 +512,13 @@ function renderApiData() {
     currentTasks.forEach((task) => {
         const taskData = task.inputData || { ranges: [] };
         const ranges = taskData.ranges || [];
-        
+
         html += `
             <div class="task-input-row-multi" id="task-row-${task.id}">
                 <div class="task-input-label-multi">${escapeHtml(task.name)}</div>
                 <div class="task-ranges-container" id="ranges-${task.id}">
         `;
-        
+
         if (ranges.length > 0) {
             ranges.forEach((range, idx) => {
                 html += `
@@ -567,14 +568,14 @@ function renderApiData() {
                 </div>
             `;
         }
-        
+
         html += `
                 </div>
                 <button class="btn-add-range" onclick="addRange(${task.id})">+ Tambah Hari</button>
             </div>
         `;
     });
-    
+
     html += '</div>';
     html += `
         <div class="task-input-actions">
@@ -594,7 +595,7 @@ function addRange(taskId) {
     const rangesContainer = document.getElementById(`ranges-${taskId}`);
     const existingRanges = rangesContainer.querySelectorAll('.range-input-group');
     const newIdx = existingRanges.length;
-    
+
     const newRangeHTML = `
         <div class="range-input-group" data-range-idx="${newIdx}">
             <div class="input-group">
@@ -617,23 +618,23 @@ function addRange(taskId) {
             <button class="btn-remove-range" onclick="removeRange(${taskId}, ${newIdx})" title="Hapus range">×</button>
         </div>
     `;
-    
+
     rangesContainer.insertAdjacentHTML('beforeend', newRangeHTML);
 }
 
 function removeRange(taskId, rangeIdx) {
     const rangesContainer = document.getElementById(`ranges-${taskId}`);
     const rangeElements = rangesContainer.querySelectorAll('.range-input-group');
-    
+
     if (rangeElements.length <= 1) {
         alert('Minimal harus ada satu range hari!');
         return;
     }
-    
+
     const targetRange = rangesContainer.querySelector(`[data-range-idx="${rangeIdx}"]`);
     if (targetRange) {
         targetRange.remove();
-        
+
         const remainingRanges = rangesContainer.querySelectorAll('.range-input-group');
         remainingRanges.forEach((range, newIdx) => {
             range.setAttribute('data-range-idx', newIdx);
@@ -735,6 +736,10 @@ async function saveProjectSchedule(statusType = "Active") {
     // Isi payload utama (flat columns untuk kebutuhan view)
     currentTasks.forEach((task) => {
         const ranges = task.inputData?.ranges || [];
+<<<<<<< HEAD
+=======
+
+>>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
         if (ranges.length > 0) {
             const firstRange = ranges[0];
             const lastRange = ranges[ranges.length - 1];
@@ -745,6 +750,11 @@ async function saveProjectSchedule(statusType = "Active") {
             const tEnd = new Date(projectStartDate);
             tEnd.setDate(projectStartDate.getDate() + (lastRange.end - 1));
 
+<<<<<<< HEAD
+=======
+            const formatDateISO = (date) => date.toISOString().split('T')[0];
+
+>>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
             payload[`Kategori_${task.id}`] = task.name;
             payload[`Hari_Mulai_Kategori_${task.id}`] = formatDateISO(tStart);
             payload[`Hari_Selesai_Kategori_${task.id}`] = formatDateISO(tEnd);
@@ -763,6 +773,7 @@ async function saveProjectSchedule(statusType = "Active") {
         btnTarget.disabled = true;
     }
 
+<<<<<<< HEAD
     // 2. Siapkan Payload Detail Harian (FIXED BUG DISINI)
     // Menggunakan array baru untuk setiap entry guna menghindari referensi kosong
     const dayInsertPayload = [];
@@ -806,6 +817,64 @@ async function saveProjectSchedule(statusType = "Active") {
         console.log(`📤 Mengirim Data Utama (${statusType}):`, payload);
         
         // Kirim data utama dulu
+=======
+    // Build payload for day insert endpoint (massive data format)
+    const dayInsertPayload = [];
+    const formatDateDDMMYYYY = (date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
+    // Cache project data to avoid closure issues
+    const projectUlok = String(currentProject.ulokClean);
+    const projectLingkup = String(currentProject.work).toUpperCase();
+
+    for (let t = 0; t < currentTasks.length; t++) {
+        const task = currentTasks[t];
+        const taskName = String(task.name);
+        const ranges = task.inputData?.ranges || [];
+        
+        console.log(`📋 Task: ${taskName}, Ranges count: ${ranges.length}`, JSON.stringify(ranges));
+
+        for (let r = 0; r < ranges.length; r++) {
+            const range = ranges[r];
+            const startDay = parseInt(range.start) || 0;
+            const endDay = parseInt(range.end) || 0;
+            
+            console.log(`   Range ${r}: start=${startDay}, end=${endDay}`);
+            
+            if (startDay > 0 && endDay > 0) {
+                const rangeStart = new Date(projectStartDate.getTime());
+                rangeStart.setDate(rangeStart.getDate() + (startDay - 1));
+
+                const rangeEnd = new Date(projectStartDate.getTime());
+                rangeEnd.setDate(rangeEnd.getDate() + (endDay - 1));
+
+                const newEntry = {
+                    "Nomor Ulok": projectUlok,
+                    "Lingkup_Pekerjaan": projectLingkup,
+                    "Kategori": taskName,
+                    "h_awal": formatDateDDMMYYYY(rangeStart),
+                    "h_akhir": formatDateDDMMYYYY(rangeEnd)
+                };
+                
+                console.log(`   ✅ Adding entry:`, JSON.stringify(newEntry));
+                dayInsertPayload.push(newEntry);
+            }
+        }
+    }
+
+    console.log(`📤 Total Day Insert entries: ${dayInsertPayload.length}`);
+    console.log(`📤 Day Insert Payload:`, JSON.stringify(dayInsertPayload, null, 2));
+
+    try {
+        console.log(`📤 Mengirim Data (${statusType}):`, payload);
+        console.log(`📤 Mengirim Day Insert Data:`, dayInsertPayload);
+
+        // Send to main gantt insert endpoint
+>>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
         const response = await fetch(ENDPOINTS.insertData, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -817,11 +886,17 @@ async function saveProjectSchedule(statusType = "Active") {
             throw new Error(result.message || 'Gagal menyimpan data ke server');
         }
 
+<<<<<<< HEAD
         // Kirim data harian (jika ada)
         if (dayInsertPayload.length > 0) {
             console.log(`📤 Mengirim ${dayInsertPayload.length} baris ke Day Insert Endpoint...`);
             console.log("🔍 Sample Data:", JSON.stringify(dayInsertPayload[0])); // Debug sample
 
+=======
+        // Send to day insert endpoint if there's data
+        if (dayInsertPayload.length > 0) {
+            console.log(`📤 Mengirim ke Day Insert Endpoint...`);
+>>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
             const dayResponse = await fetch(ENDPOINTS.dayInsert, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -831,7 +906,11 @@ async function saveProjectSchedule(statusType = "Active") {
             const dayResult = await dayResponse.json();
 
             if (!dayResponse.ok) {
+<<<<<<< HEAD
                 console.warn('⚠️ Gagal insert data harian:', dayResult.message);
+=======
+                console.warn('⚠️ Day insert warning:', dayResult.message || 'Gagal menyimpan data hari');
+>>>>>>> 8edd98fffde68a2ee928a22f5e3c1d6b3b4640e6
             } else {
                 console.log('✅ Day insert berhasil:', dayResult);
             }
@@ -878,14 +957,19 @@ function applyTaskSchedule(silentMode = false) {
         let totalDuration = 0;
         let minStart = Infinity;
 
-        rangeElements.forEach(rangeEl => {
+        rangeElements.forEach((rangeEl, rangeIndex) => {
             const startInput = rangeEl.querySelector('[data-type="start"]');
             const endInput = rangeEl.querySelector('[data-type="end"]');
-            
+
             const startDay = parseInt(startInput.value) || 0;
             const endDay = parseInt(endInput.value) || 0;
 
-            if (startDay === 0 && endDay === 0) return;
+            console.log(`📊 Task ${task.name} - Range ${rangeIndex}: start=${startDay}, end=${endDay}`);
+
+            if (startDay === 0 && endDay === 0) {
+                console.log(`   ⏭️ Skipping empty range`);
+                return;
+            }
 
             if (endDay < startDay) {
                 alert(`Error pada ${task.name}: Hari selesai (${endDay}) tidak boleh lebih kecil dari hari mulai (${startDay})!`);
@@ -895,12 +979,13 @@ function applyTaskSchedule(silentMode = false) {
 
             const duration = endDay - startDay + 1;
             totalDuration += duration;
-            
+
             if (startDay < minStart) {
                 minStart = startDay;
             }
 
             ranges.push({ start: startDay, end: endDay, duration });
+            console.log(`   ✅ Range added:`, { start: startDay, end: endDay, duration });
         });
 
         if (hasError) break;
@@ -1043,12 +1128,12 @@ function renderChart() {
             });
         }
     });
-    
+
     const totalDaysToRender = Math.max(
         (currentProject.work === 'ME' ? totalDaysME : totalDaysSipil),
         maxTaskEndDay + 10
     );
-    
+
     const totalChartWidth = totalDaysToRender * DAY_WIDTH;
     const projectStartDate = new Date(currentProject.startDate);
 
@@ -1061,7 +1146,7 @@ function renderChart() {
         currentDate.setDate(projectStartDate.getDate() + i);
         const isSunday = currentDate.getDay() === 0;
         const dayNumber = i + 1;
-        
+
         html += `
             <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
                 <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
@@ -1070,53 +1155,53 @@ function renderChart() {
     }
     html += '</div></div>';
     html += '<div class="chart-body">';
-    
+
     currentTasks.forEach(task => {
         if (task.duration === 0) return;
-        
+
         const keterlambatan = task.keterlambatan || 0;
         const ranges = task.inputData?.ranges || [];
-        
+
         html += '<div class="task-row">';
         html += `<div class="task-name">
             <span>${task.name}</span>
             <span class="task-duration">Total Durasi: ${task.duration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
         </div>`;
         html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
-        
+
         ranges.forEach((range, idx) => {
             const leftPos = (range.start - 1) * DAY_WIDTH;
             const widthPos = (range.duration * DAY_WIDTH) - 1;
-            
+
             const tStart = new Date(projectStartDate);
             tStart.setDate(projectStartDate.getDate() + (range.start - 1));
             const tEnd = new Date(tStart);
             tEnd.setDate(tStart.getDate() + range.duration - 1);
-            
+
             html += `<div class="bar on-time" data-task-id="${task.id}-${idx}" 
                     style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;" 
                     title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
                 ${range.duration}
             </div>`;
         });
-        
+
         if (keterlambatan > 0 && ranges.length > 0) {
             const lastRange = ranges[ranges.length - 1];
             const lastEnd = new Date(projectStartDate);
             lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1);
-            
+
             const delayLeftPos = (lastRange.end) * DAY_WIDTH;
             const delayWidthPos = (keterlambatan * DAY_WIDTH) - 1;
             const tEndWithDelay = new Date(lastEnd);
             tEndWithDelay.setDate(lastEnd.getDate() + keterlambatan);
-            
+
             html += `<div class="bar delayed" data-task-id="${task.id}-delay" 
                     style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
                     title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
                 +${keterlambatan}
             </div>`;
         }
-        
+
         html += '</div></div>';
     });
     html += '</div>';
@@ -1180,12 +1265,12 @@ function exportToExcel() {
         if (ranges.length > 0) {
             const firstRange = ranges[0];
             const lastRange = ranges[ranges.length - 1];
-            
+
             const tStart = new Date(startDate);
             tStart.setDate(startDate.getDate() + (firstRange.start - 1));
             const tEnd = new Date(startDate);
             tEnd.setDate(startDate.getDate() + (lastRange.end - 1));
-            
+
             data.push([i + 1, task.name, formatDateID(tStart), formatDateID(tEnd), task.duration]);
         }
     });
