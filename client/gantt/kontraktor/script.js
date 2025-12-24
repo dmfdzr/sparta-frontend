@@ -713,7 +713,7 @@ async function saveProjectSchedule(statusType = "Active") {
         "Email_Pembuat": userEmail,
         "Proyek": currentProject.projectType || "Reguler",
         "Alamat": currentProject.alamat || "-",
-        "Cabang": "HEAD OFFICE",
+        "Cabang": currentProject.cabang || "-",
         "Nama_Toko": currentProject.store || "-",
         "Nama_Kontraktor": "PT KONTRAKTOR",
     };
@@ -889,6 +889,8 @@ function updateProjectFromRab(rabData) {
     };
     const alamat = getFirstNonEmpty(['Alamat', 'alamat']);
     if (alamat) currentProject.alamat = alamat;
+    const cabang = getFirstNonEmpty(['Cabang', 'cabang']);
+    if (cabang) currentProject.cabang = cabang;
     const storeVal = getFirstNonEmpty(['Nama Toko', 'Store', 'Nama_Toko']);
     if (storeVal) currentProject.store = storeVal;
 }
@@ -914,6 +916,10 @@ function renderProjectInfo() {
         <div class="project-detail">
             <div class="project-label">Lingkup Pekerjaan</div>
             <div class="project-value">${currentProject.work}</div>
+        </div>
+        <div class="project-detail">
+            <div class="project-label">Cabang</div>
+            <div class="project-value">${currentProject.cabang}</div>
         </div>
     `;
     info.innerHTML = html;
@@ -1095,6 +1101,7 @@ function exportToExcel() {
         ["Laporan Jadwal Proyek"],
         ["No. Ulok", currentProject.ulok],
         ["Nama Toko", currentProject.store],
+        ["Cabang", currentProject.cabang],
         [],
         ["No", "Tahapan", "Mulai", "Selesai", "Durasi"]
     ];
