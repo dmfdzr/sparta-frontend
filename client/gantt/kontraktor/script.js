@@ -466,7 +466,7 @@ function parseGanttDataToTasks(ganttData, selectedValue) {
 function renderApiData() {
     const container = document.getElementById('apiData');
     if (!container) return;
-    
+
     if (isLoadingGanttData) {
         container.innerHTML = `
             <div class="api-card">
@@ -475,7 +475,7 @@ function renderApiData() {
             </div>`;
         return;
     }
-    
+
     if (ganttApiError) {
         container.innerHTML = `
             <div class="api-card api-error">
@@ -484,12 +484,12 @@ function renderApiData() {
             </div>`;
         return;
     }
-    
+
     if (!currentProject) {
         container.innerHTML = '';
         return;
     }
-    
+
     if (isProjectLocked) {
         container.innerHTML = `
             <div class="api-card" style="border: 2px solid #48bb78; background: #f0fff4;">
@@ -504,7 +504,7 @@ function renderApiData() {
         document.getElementById('exportButtons').style.display = 'flex';
         return;
     }
-    
+
     let html = '<div class="api-card task-input-card">';
     html += '<div class="api-card-title">Input Pengerjaan Tahapan (Multi Range)</div>';
     html += '<div class="task-input-container">';
@@ -512,13 +512,13 @@ function renderApiData() {
     currentTasks.forEach((task) => {
         const taskData = task.inputData || { ranges: [] };
         const ranges = taskData.ranges || [];
-        
+
         html += `
             <div class="task-input-row-multi" id="task-row-${task.id}">
                 <div class="task-input-label-multi">${escapeHtml(task.name)}</div>
                 <div class="task-ranges-container" id="ranges-${task.id}">
         `;
-        
+
         if (ranges.length > 0) {
             ranges.forEach((range, idx) => {
                 html += `
@@ -568,14 +568,14 @@ function renderApiData() {
                 </div>
             `;
         }
-        
+
         html += `
                 </div>
                 <button class="btn-add-range" onclick="addRange(${task.id})">+ Tambah Hari</button>
             </div>
         `;
     });
-    
+
     html += '</div>';
     html += `
         <div class="task-input-actions">
@@ -595,7 +595,7 @@ function addRange(taskId) {
     const rangesContainer = document.getElementById(`ranges-${taskId}`);
     const existingRanges = rangesContainer.querySelectorAll('.range-input-group');
     const newIdx = existingRanges.length;
-    
+
     const newRangeHTML = `
         <div class="range-input-group" data-range-idx="${newIdx}">
             <div class="input-group">
@@ -618,23 +618,23 @@ function addRange(taskId) {
             <button class="btn-remove-range" onclick="removeRange(${taskId}, ${newIdx})" title="Hapus range">×</button>
         </div>
     `;
-    
+
     rangesContainer.insertAdjacentHTML('beforeend', newRangeHTML);
 }
 
 function removeRange(taskId, rangeIdx) {
     const rangesContainer = document.getElementById(`ranges-${taskId}`);
     const rangeElements = rangesContainer.querySelectorAll('.range-input-group');
-    
+
     if (rangeElements.length <= 1) {
         alert('Minimal harus ada satu range hari!');
         return;
     }
-    
+
     const targetRange = rangesContainer.querySelector(`[data-range-idx="${rangeIdx}"]`);
     if (targetRange) {
         targetRange.remove();
-        
+
         const remainingRanges = rangesContainer.querySelectorAll('.range-input-group');
         remainingRanges.forEach((range, newIdx) => {
             range.setAttribute('data-range-idx', newIdx);
@@ -723,19 +723,19 @@ async function saveProjectSchedule(statusType = "Active") {
 
     currentTasks.forEach((task) => {
         const ranges = task.inputData?.ranges || [];
-        
+
         if (ranges.length > 0) {
             const firstRange = ranges[0];
             const lastRange = ranges[ranges.length - 1];
-            
+
             const tStart = new Date(projectStartDate);
             tStart.setDate(projectStartDate.getDate() + (firstRange.start - 1));
-            
+
             const tEnd = new Date(projectStartDate);
             tEnd.setDate(projectStartDate.getDate() + (lastRange.end - 1));
-            
+
             const formatDateISO = (date) => date.toISOString().split('T')[0];
-            
+
             payload[`Kategori_${task.id}`] = task.name;
             payload[`Hari_Mulai_Kategori_${task.id}`] = formatDateISO(tStart);
             payload[`Hari_Selesai_Kategori_${task.id}`] = formatDateISO(tEnd);
@@ -765,22 +765,26 @@ async function saveProjectSchedule(statusType = "Active") {
 
     currentTasks.forEach((task) => {
         const ranges = task.inputData?.ranges || [];
-        
-        ranges.forEach((range) => {
+        console.log(`📋 Task: ${task.name}, Ranges count: ${ranges.length}`, ranges);
+
+        ranges.forEach((range, idx) => {
+            console.log(`   Range ${idx}: start=${range.start}, end=${range.end}`);
             if (range.start > 0 && range.end > 0) {
                 const rangeStart = new Date(projectStartDate);
                 rangeStart.setDate(projectStartDate.getDate() + (range.start - 1));
-                
+
                 const rangeEnd = new Date(projectStartDate);
                 rangeEnd.setDate(projectStartDate.getDate() + (range.end - 1));
-                
-                dayInsertPayload.push({
+
+                const entry = {
                     "Nomor Ulok": currentProject.ulokClean,
                     "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
                     "Kategori": task.name,
                     "h_awal": formatDateDDMMYYYY(rangeStart),
                     "h_akhir": formatDateDDMMYYYY(rangeEnd)
-                });
+                };
+                console.log(`   ✅ Adding entry:`, entry);
+                dayInsertPayload.push(entry);
             }
         });
     });
@@ -861,14 +865,19 @@ function applyTaskSchedule(silentMode = false) {
         let totalDuration = 0;
         let minStart = Infinity;
 
-        rangeElements.forEach(rangeEl => {
+        rangeElements.forEach((rangeEl, rangeIndex) => {
             const startInput = rangeEl.querySelector('[data-type="start"]');
             const endInput = rangeEl.querySelector('[data-type="end"]');
-            
+
             const startDay = parseInt(startInput.value) || 0;
             const endDay = parseInt(endInput.value) || 0;
 
-            if (startDay === 0 && endDay === 0) return;
+            console.log(`📊 Task ${task.name} - Range ${rangeIndex}: start=${startDay}, end=${endDay}`);
+
+            if (startDay === 0 && endDay === 0) {
+                console.log(`   ⏭️ Skipping empty range`);
+                return;
+            }
 
             if (endDay < startDay) {
                 alert(`Error pada ${task.name}: Hari selesai (${endDay}) tidak boleh lebih kecil dari hari mulai (${startDay})!`);
@@ -878,12 +887,13 @@ function applyTaskSchedule(silentMode = false) {
 
             const duration = endDay - startDay + 1;
             totalDuration += duration;
-            
+
             if (startDay < minStart) {
                 minStart = startDay;
             }
 
             ranges.push({ start: startDay, end: endDay, duration });
+            console.log(`   ✅ Range added:`, { start: startDay, end: endDay, duration });
         });
 
         if (hasError) break;
@@ -1026,12 +1036,12 @@ function renderChart() {
             });
         }
     });
-    
+
     const totalDaysToRender = Math.max(
         (currentProject.work === 'ME' ? totalDaysME : totalDaysSipil),
         maxTaskEndDay + 10
     );
-    
+
     const totalChartWidth = totalDaysToRender * DAY_WIDTH;
     const projectStartDate = new Date(currentProject.startDate);
 
@@ -1044,7 +1054,7 @@ function renderChart() {
         currentDate.setDate(projectStartDate.getDate() + i);
         const isSunday = currentDate.getDay() === 0;
         const dayNumber = i + 1;
-        
+
         html += `
             <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
                 <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
@@ -1053,53 +1063,53 @@ function renderChart() {
     }
     html += '</div></div>';
     html += '<div class="chart-body">';
-    
+
     currentTasks.forEach(task => {
         if (task.duration === 0) return;
-        
+
         const keterlambatan = task.keterlambatan || 0;
         const ranges = task.inputData?.ranges || [];
-        
+
         html += '<div class="task-row">';
         html += `<div class="task-name">
             <span>${task.name}</span>
             <span class="task-duration">Total Durasi: ${task.duration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
         </div>`;
         html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
-        
+
         ranges.forEach((range, idx) => {
             const leftPos = (range.start - 1) * DAY_WIDTH;
             const widthPos = (range.duration * DAY_WIDTH) - 1;
-            
+
             const tStart = new Date(projectStartDate);
             tStart.setDate(projectStartDate.getDate() + (range.start - 1));
             const tEnd = new Date(tStart);
             tEnd.setDate(tStart.getDate() + range.duration - 1);
-            
+
             html += `<div class="bar on-time" data-task-id="${task.id}-${idx}" 
                     style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;" 
                     title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
                 ${range.duration}
             </div>`;
         });
-        
+
         if (keterlambatan > 0 && ranges.length > 0) {
             const lastRange = ranges[ranges.length - 1];
             const lastEnd = new Date(projectStartDate);
             lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1);
-            
+
             const delayLeftPos = (lastRange.end) * DAY_WIDTH;
             const delayWidthPos = (keterlambatan * DAY_WIDTH) - 1;
             const tEndWithDelay = new Date(lastEnd);
             tEndWithDelay.setDate(lastEnd.getDate() + keterlambatan);
-            
+
             html += `<div class="bar delayed" data-task-id="${task.id}-delay" 
                     style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
                     title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
                 +${keterlambatan}
             </div>`;
         }
-        
+
         html += '</div></div>';
     });
     html += '</div>';
@@ -1163,12 +1173,12 @@ function exportToExcel() {
         if (ranges.length > 0) {
             const firstRange = ranges[0];
             const lastRange = ranges[ranges.length - 1];
-            
+
             const tStart = new Date(startDate);
             tStart.setDate(startDate.getDate() + (firstRange.start - 1));
             const tEnd = new Date(startDate);
             tEnd.setDate(startDate.getDate() + (lastRange.end - 1));
-            
+
             data.push([i + 1, task.name, formatDateID(tStart), formatDateID(tEnd), task.duration]);
         }
     });
