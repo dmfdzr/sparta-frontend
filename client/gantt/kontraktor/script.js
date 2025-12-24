@@ -698,17 +698,22 @@ async function saveProjectSchedule(statusType = "Active") {
 
     const userEmail = sessionStorage.getItem('loggedInUserEmail') || "user@unknown.com";
 
-    if (!currentProject.ulokClean || !currentProject.work) {
-        alert("⚠️ Data proyek tidak lengkap. Silakan refresh halaman.");
+    // Pastikan data project lengkap, gunakan fallback jika ulokClean kosong
+    const cleanUlok = currentProject.ulokClean || currentProject.ulok || "-";
+    const cleanWork = (currentProject.work || "Sipil").toUpperCase();
+
+    if (!cleanUlok) {
+        alert("⚠️ Data proyek tidak lengkap (No Ulok Hilang). Silakan refresh halaman.");
         return;
     }
 
     const isLocking = statusType === "Terkunci";
     const loadingText = isLocking ? "🔒 Mengunci..." : "💾 Menyimpan...";
 
+    // 1. Siapkan Payload Utama (Gantt Data)
     const payload = {
-        "Nomor Ulok": currentProject.ulokClean,
-        "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
+        "Nomor Ulok": cleanUlok,
+        "Lingkup_Pekerjaan": cleanWork,
         "Status": statusType,
         "Email_Pembuat": userEmail,
         "Proyek": currentProject.projectType || "Reguler",
@@ -719,22 +724,27 @@ async function saveProjectSchedule(statusType = "Active") {
     };
 
     const projectStartDate = new Date(currentProject.startDate);
+    const formatDateISO = (date) => date.toISOString().split('T')[0];
+    const formatDateDDMMYYYY = (date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
 
+    // Isi payload utama (flat columns untuk kebutuhan view)
     currentTasks.forEach((task) => {
         const ranges = task.inputData?.ranges || [];
-        
         if (ranges.length > 0) {
             const firstRange = ranges[0];
             const lastRange = ranges[ranges.length - 1];
-            
+
             const tStart = new Date(projectStartDate);
             tStart.setDate(projectStartDate.getDate() + (firstRange.start - 1));
-            
+
             const tEnd = new Date(projectStartDate);
             tEnd.setDate(projectStartDate.getDate() + (lastRange.end - 1));
-            
-            const formatDateISO = (date) => date.toISOString().split('T')[0];
-            
+
             payload[`Kategori_${task.id}`] = task.name;
             payload[`Hari_Mulai_Kategori_${task.id}`] = formatDateISO(tStart);
             payload[`Hari_Selesai_Kategori_${task.id}`] = formatDateISO(tEnd);
@@ -753,9 +763,49 @@ async function saveProjectSchedule(statusType = "Active") {
         btnTarget.disabled = true;
     }
 
-    try {
-        console.log(`📤 Mengirim Data (${statusType}):`, payload);
+    // 2. Siapkan Payload Detail Harian (FIXED BUG DISINI)
+    // Menggunakan array baru untuk setiap entry guna menghindari referensi kosong
+    const dayInsertPayload = [];
 
+    currentTasks.forEach((task) => {
+        const taskName = String(task.name); // Pastikan nama task string
+        const ranges = task.inputData?.ranges || [];
+
+        // Loop setiap range di task tersebut
+        ranges.forEach((range) => {
+            const startDay = parseInt(range.start) || 0;
+            const endDay = parseInt(range.end) || 0;
+
+            if (startDay > 0 && endDay > 0) {
+                // Hitung tanggal real
+                const rangeStart = new Date(projectStartDate.getTime());
+                rangeStart.setDate(projectStartDate.getDate() + (startDay - 1));
+
+                const rangeEnd = new Date(projectStartDate.getTime());
+                rangeEnd.setDate(projectStartDate.getDate() + (endDay - 1));
+
+                // BENTUK OBJECT BARU SECARA EKSPLISIT
+                // Memastikan variabel cleanUlok dan cleanWork masuk ke setiap baris
+                const rowEntry = {
+                    "Nomor Ulok": cleanUlok,
+                    "Lingkup_Pekerjaan": cleanWork,
+                    "Kategori": taskName,
+                    "h_awal": formatDateDDMMYYYY(rangeStart),
+                    "h_akhir": formatDateDDMMYYYY(rangeEnd)
+                };
+
+                // Validasi data sebelum push (opsional tapi disarankan)
+                if(rowEntry["Nomor Ulok"] && rowEntry["Kategori"]) {
+                    dayInsertPayload.push(rowEntry);
+                }
+            }
+        });
+    });
+
+    try {
+        console.log(`📤 Mengirim Data Utama (${statusType}):`, payload);
+        
+        // Kirim data utama dulu
         const response = await fetch(ENDPOINTS.insertData, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -763,9 +813,28 @@ async function saveProjectSchedule(statusType = "Active") {
         });
 
         const result = await response.json();
-
         if (!response.ok) {
             throw new Error(result.message || 'Gagal menyimpan data ke server');
+        }
+
+        // Kirim data harian (jika ada)
+        if (dayInsertPayload.length > 0) {
+            console.log(`📤 Mengirim ${dayInsertPayload.length} baris ke Day Insert Endpoint...`);
+            console.log("🔍 Sample Data:", JSON.stringify(dayInsertPayload[0])); // Debug sample
+
+            const dayResponse = await fetch(ENDPOINTS.dayInsert, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dayInsertPayload)
+            });
+
+            const dayResult = await dayResponse.json();
+
+            if (!dayResponse.ok) {
+                console.warn('⚠️ Gagal insert data harian:', dayResult.message);
+            } else {
+                console.log('✅ Day insert berhasil:', dayResult);
+            }
         }
 
         if (isLocking) {
