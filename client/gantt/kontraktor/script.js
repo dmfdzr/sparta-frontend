@@ -1050,41 +1050,136 @@ function renderChart() {
 }
 
 function drawDependencyLines() {
-    const existingSvg = document.querySelector('.dependency-svg');
-    if (existingSvg) existingSvg.remove();
+    const svg = document.getElementById('dependencyLayer');
+    if (!svg) return;
+    
+    svg.innerHTML = ''; // Bersihkan garis lama
+    
+    // Definisikan lebar kolom hari (sesuaikan dengan CSS Anda, misal 30px atau 40px)
+    const dayWidth = 30; 
+    const rowHeight = 50; // Sesuaikan tinggi baris row Anda
+    const headerHeight = 80; // Sesuaikan tinggi header agar garis pas secara vertikal
 
-    const chartBody = document.querySelector('.chart-body');
-    if (!chartBody) return;
+    currentTasks.forEach((task, index) => {
+        if (!task.dependencies || task.dependencies.length === 0) return;
 
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.classList.add('dependency-svg');
-    svg.style.width = `${chartBody.scrollWidth}px`;
-    svg.style.height = `${chartBody.scrollHeight}px`;
-    chartBody.appendChild(svg);
-    const bodyRect = chartBody.getBoundingClientRect();
+        task.dependencies.forEach(depId => {
+            const predecessor = currentTasks.find(t => t.id == depId);
+            if (predecessor) {
+                // Cari elemen Bar secara visual (opsional, atau hitung matematis)
+                // Kita hitung matematis agar lebih cepat:
+                
+                // Koordinat Akhir Pendahulu (Kanan)
+                const startX = (predecessor.start + predecessor.duration) * dayWidth;
+                const startY = (currentTasks.indexOf(predecessor) * rowHeight) + (rowHeight / 2);
 
-    currentTasks.forEach(task => {
-        if (task.dependencies && task.dependencies.length > 0) {
-            task.dependencies.forEach(depId => {
-                const fromBar = document.querySelector(`.bar[data-task-id="${depId}"]`);
-                const toBar = document.querySelector(`.bar[data-task-id="${task.id}"]`);
-                if (fromBar && toBar) {
-                    const r1 = fromBar.getBoundingClientRect();
-                    const r2 = toBar.getBoundingClientRect();
-                    const x1 = (r1.right - bodyRect.left) + chartBody.scrollLeft;
-                    const y1 = (r1.top + r1.height / 2 - bodyRect.top) + chartBody.scrollTop;
-                    const x2 = (r2.left - bodyRect.left) + chartBody.scrollLeft;
-                    const y2 = (r2.top + r2.height / 2 - bodyRect.top) + chartBody.scrollTop;
+                // Koordinat Awal Task Saat Ini (Kiri)
+                const endX = (task.start) * dayWidth;
+                const endY = (index * rowHeight) + (rowHeight / 2);
 
-                    const d = `M ${x1} ${y1} C ${x1 + 20} ${y1}, ${x2 - 20} ${y2}, ${x2} ${y2}`;
-                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    path.setAttribute('d', d);
-                    path.classList.add('dependency-line');
-                    svg.appendChild(path);
+                // Buat Jalur Garis (S-Curve sederhana menggunakan Bezier)
+                // Titik kontrol untuk membuat kurva halus
+                const controlPoint1X = startX + 20; 
+                const controlPoint1Y = startY;
+                const controlPoint2X = endX - 20;
+                const controlPoint2Y = endY;
+
+                // Path SVG
+                const pathData = `M ${startX} ${startY} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${endX} ${endY}`;
+
+                // Buat elemen Path
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", pathData);
+                path.setAttribute("class", "dependency-line");
+                
+                // Tambahkan panah di ujung (Marker)
+                // (Untuk simpelnya kita pakai lingkaran kecil di ujung atau styling CSS)
+                
+                svg.appendChild(path);
+                
+                // Opsional: Tambah lingkaran kecil di titik koneksi
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", endX);
+                circle.setAttribute("cy", endY);
+                circle.setAttribute("r", "3");
+                circle.setAttribute("fill", "#fbbf24");
+                svg.appendChild(circle);
+            }
+        });
+    });
+}
+
+function calculateSchedule() {
+    let changed = true;
+    let loopCount = 0;
+    
+    // Lakukan loop sampai tidak ada perubahan tanggal (untuk menangani dependency berantai A->B->C)
+    while (changed && loopCount < 50) {
+        changed = false;
+        loopCount++;
+
+        currentTasks.forEach(task => {
+            // Cek apakah task punya dependency
+            if (task.dependencies && task.dependencies.length > 0) {
+                let maxEndDateOfPredecessors = 0;
+
+                task.dependencies.forEach(depId => {
+                    // Cari task pendahulu berdasarkan ID
+                    const predecessor = currentTasks.find(t => t.id == depId);
+                    if (predecessor) {
+                        // Hitung tanggal selesai pendahulu (Start + Duration)
+                        const predEnd = predecessor.start + predecessor.duration;
+                        if (predEnd > maxEndDateOfPredecessors) {
+                            maxEndDateOfPredecessors = predEnd;
+                        }
+                    }
+                });
+
+                // Jika tanggal mulai saat ini bertabrakan dengan tanggal selesai pendahulu
+                // Geser task ini supaya mulai SETELAH pendahulu selesai
+                if (task.start < maxEndDateOfPredecessors) {
+                    task.start = maxEndDateOfPredecessors; // Finish-to-Start
+                    changed = true;
                 }
-            });
+            }
+        });
+    }
+    
+    // Setelah hitung ulang, render ulang chart dan garisnya
+    renderGanttChart(); 
+    drawDependencyLines();
+}
+
+function createInputRowHTML(task, index) {
+    // Buat opsi dropdown untuk memilih task lain sebagai pendahulu
+    let dependencyOptions = '<option value="">-</option>';
+    currentTasks.forEach(t => {
+        if (t.id !== task.id) { // Jangan pilih diri sendiri
+            const selected = (task.dependencies || []).includes(t.id) ? 'selected' : '';
+            dependencyOptions += `<option value="${t.id}" ${selected}>${t.id}. ${t.name}</option>`;
         }
     });
+
+    return `
+        <div class="task-input-row">
+            <span>${task.id}. ${task.name}</span>
+            <input type="number" class="input-start" value="${task.start}" onchange="updateTaskData(${index}, 'start', this.value)">
+            <input type="number" class="input-duration" value="${task.duration}" onchange="updateTaskData(${index}, 'duration', this.value)">
+            
+            <select class="dep-select" onchange="updateTaskDependency(${index}, this.value)">
+                ${dependencyOptions}
+            </select>
+        </div>
+    `;
+}
+
+// Handler untuk update dependency
+function updateTaskDependency(index, value) {
+    // Ubah value "1" menjadi array [1], atau array kosong jika kosong
+    currentTasks[index].dependencies = value ? [parseInt(value)] : [];
+    
+    // Hitung ulang jadwal otomatis!
+    calculateSchedule();
 }
 
 // ==================== EXPORT EXCEL ====================
