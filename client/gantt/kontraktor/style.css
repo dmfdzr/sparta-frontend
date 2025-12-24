@@ -302,26 +302,28 @@ header h1 {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
+.dependency-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
 .dependency-line {
     fill: none;
-    stroke: #fbbf24; /* Warna kuning emas atau bisa diganti #555 */
+    stroke: #3d9bffff;
     stroke-width: 2px;
-    pointer-events: none;
-    transition: d 0.3s ease;
-    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+    stroke-linecap: round;
+    transition: all 0.3s;
 }
 
-.dependency-arrow {
-    fill: #fbbf24;
-}
-
-/* Memastikan input dependensi terlihat rapi */
-.dep-select {
-    width: 100%;
-    padding: 4px;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    font-size: 12px;
+.dependency-line:hover {
+    stroke: #228be6;
+    stroke-width: 3px;
+    z-index: 100;
 }
 
 .legend {
