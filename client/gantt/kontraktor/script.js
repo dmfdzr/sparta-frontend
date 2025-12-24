@@ -763,31 +763,47 @@ async function saveProjectSchedule(statusType = "Active") {
         return `${day}/${month}/${year}`;
     };
 
-    currentTasks.forEach((task) => {
+    // Cache project data to avoid closure issues
+    const projectUlok = String(currentProject.ulokClean);
+    const projectLingkup = String(currentProject.work).toUpperCase();
+
+    for (let t = 0; t < currentTasks.length; t++) {
+        const task = currentTasks[t];
+        const taskName = String(task.name);
         const ranges = task.inputData?.ranges || [];
-        console.log(`📋 Task: ${task.name}, Ranges count: ${ranges.length}`, ranges);
+        
+        console.log(`📋 Task: ${taskName}, Ranges count: ${ranges.length}`, JSON.stringify(ranges));
 
-        ranges.forEach((range, idx) => {
-            console.log(`   Range ${idx}: start=${range.start}, end=${range.end}`);
-            if (range.start > 0 && range.end > 0) {
-                const rangeStart = new Date(projectStartDate);
-                rangeStart.setDate(projectStartDate.getDate() + (range.start - 1));
+        for (let r = 0; r < ranges.length; r++) {
+            const range = ranges[r];
+            const startDay = parseInt(range.start) || 0;
+            const endDay = parseInt(range.end) || 0;
+            
+            console.log(`   Range ${r}: start=${startDay}, end=${endDay}`);
+            
+            if (startDay > 0 && endDay > 0) {
+                const rangeStart = new Date(projectStartDate.getTime());
+                rangeStart.setDate(rangeStart.getDate() + (startDay - 1));
 
-                const rangeEnd = new Date(projectStartDate);
-                rangeEnd.setDate(projectStartDate.getDate() + (range.end - 1));
+                const rangeEnd = new Date(projectStartDate.getTime());
+                rangeEnd.setDate(rangeEnd.getDate() + (endDay - 1));
 
-                const entry = {
-                    "Nomor Ulok": currentProject.ulokClean,
-                    "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
-                    "Kategori": task.name,
+                const newEntry = {
+                    "Nomor Ulok": projectUlok,
+                    "Lingkup_Pekerjaan": projectLingkup,
+                    "Kategori": taskName,
                     "h_awal": formatDateDDMMYYYY(rangeStart),
                     "h_akhir": formatDateDDMMYYYY(rangeEnd)
                 };
-                console.log(`   ✅ Adding entry:`, entry);
-                dayInsertPayload.push(entry);
+                
+                console.log(`   ✅ Adding entry:`, JSON.stringify(newEntry));
+                dayInsertPayload.push(newEntry);
             }
-        });
-    });
+        }
+    }
+
+    console.log(`📤 Total Day Insert entries: ${dayInsertPayload.length}`);
+    console.log(`📤 Day Insert Payload:`, JSON.stringify(dayInsertPayload, null, 2));
 
     try {
         console.log(`📤 Mengirim Data (${statusType}):`, payload);
