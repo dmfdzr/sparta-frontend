@@ -136,6 +136,12 @@ const handleCurrencyInput = (event) => {
     calculateTotalPrice(input);
 };
 
+function initializeSelect2(selector) {
+        $(selector).select2({
+            width: '100%' // Pastikan lebar dropdown sesuai dengan kolom
+            });
+    }
+
 function getCurrentFormData() {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
