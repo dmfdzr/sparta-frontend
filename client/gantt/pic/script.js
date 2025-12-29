@@ -1376,6 +1376,18 @@ function renderChart() {
 
     chart.innerHTML = html
 
+    const chartContainer = document.getElementById("ganttChart")
+    const legendHtml = `
+        <div style="margin-top: 20px; padding: 12px; background-color: #f9fafb; border-radius: 6px; border-left: 4px solid #fbbf24;">
+        <div style="font-weight: bold; margin-bottom: 8px; color: #111827;">Keterangan:</div>
+        <div style="display: flex; align-items: center; gap: 8px; color: #4b5563;">
+            <div style="width: 20px; height: 20px; background-color: #fbbf24; border-radius: 4px;"></div>
+            <span>Hari Pengawasan (Hari 1-3 adalah default dan tidak dapat diubah)</span>
+        </div>
+        </div>
+    `
+    chartContainer.insertAdjacentHTML("afterend", legendHtml)
+
     // Draw lines after render
     setTimeout(drawDependencyLines, 50)
 }
