@@ -1,14 +1,15 @@
+// eslint-disable-next-line no-undef
 /* global XLSX */
 
 if (!sessionStorage.getItem("loggedInUserCabang")) {
-    window.location.replace("../../auth/pic/login.html")
+  window.location.replace("../../auth/pic/login.html")
 }
 
 const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com/api"
 const ENDPOINTS = {
-    ulokList: `${API_BASE_URL}/get_ulok_by_cabang_pic`,
-    ganttData: `${API_BASE_URL}/get_gantt_data`,
-    insertData: `${API_BASE_URL}/gantt/insert`, // Endpoint Insert
+  ulokList: `${API_BASE_URL}/get_ulok_by_cabang_pic`,
+  ganttData: `${API_BASE_URL}/get_gantt_data`,
+  insertData: `${API_BASE_URL}/gantt/insert`, // Endpoint Insert
 }
 
 let projects = []
@@ -27,30 +28,30 @@ let checkpoints = {} // Format: { taskId: [{ day: number, taskName: string }] }
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
-    { id: 1, name: "Instalasi", start: 0, duration: 0, dependencies: [] },
-    { id: 2, name: "Fixture", start: 0, duration: 0, dependencies: [] },
-    { id: 3, name: "Pekerjaan Tambahan", start: 0, duration: 0, dependencies: [] },
-    { id: 4, name: "Pekerjaan SBO", start: 0, duration: 0, dependencies: [] },
+  { id: 1, name: "Instalasi", start: 0, duration: 0, dependencies: [] },
+  { id: 2, name: "Fixture", start: 0, duration: 0, dependencies: [] },
+  { id: 3, name: "Pekerjaan Tambahan", start: 0, duration: 0, dependencies: [] },
+  { id: 4, name: "Pekerjaan SBO", start: 0, duration: 0, dependencies: [] },
 ]
 
 const taskTemplateSipil = [
-    { id: 1, name: "Pekerjaan Persiapan", start: 0, duration: 0, dependencies: [] },
-    { id: 2, name: "Pekerjaan Bobokan/Bongkaran", start: 0, duration: 0, dependencies: [] },
-    { id: 3, name: "Pekerjaan Tanah", start: 0, duration: 0, dependencies: [] },
-    { id: 4, name: "Pekerjaan Pondasi & Beton", start: 0, duration: 0, dependencies: [] },
-    { id: 5, name: "Pekerjaan Pasangan", start: 0, duration: 0, dependencies: [] },
-    { id: 6, name: "Pekerjaan Besi", start: 0, duration: 0, dependencies: [] },
-    { id: 7, name: "Pekerjaan Keramik", start: 0, duration: 0, dependencies: [] },
-    { id: 8, name: "Pekerjaan Plumbing", start: 0, duration: 0, dependencies: [] },
-    { id: 9, name: "Pekerjaan Sanitary & Acecories", start: 0, duration: 0, dependencies: [] },
-    { id: 10, name: "Pekerjaan Janitor", start: 0, duration: 0, dependencies: [] },
-    { id: 11, name: "Pekerjaan Atap", start: 0, duration: 0, dependencies: [] },
-    { id: 12, name: "Pekerjaan Kusen, Pintu, dan Kaca", start: 0, duration: 0, dependencies: [] },
-    { id: 13, name: "Pekerjaan Finishing", start: 0, duration: 0, dependencies: [] },
-    { id: 14, name: "Pekerjaan Beanspot", start: 0, duration: 0, dependencies: [] },
-    { id: 15, name: "Pekerjaan Area Terbuka", start: 0, duration: 0, dependencies: [] },
-    { id: 16, name: "Pekerjaan Tambahan", start: 0, duration: 0, dependencies: [] },
-    { id: 17, name: "Pekerjaan SBO", start: 0, duration: 0, dependencies: [] },
+  { id: 1, name: "Pekerjaan Persiapan", start: 0, duration: 0, dependencies: [] },
+  { id: 2, name: "Pekerjaan Bobokan/Bongkaran", start: 0, duration: 0, dependencies: [] },
+  { id: 3, name: "Pekerjaan Tanah", start: 0, duration: 0, dependencies: [] },
+  { id: 4, name: "Pekerjaan Pondasi & Beton", start: 0, duration: 0, dependencies: [] },
+  { id: 5, name: "Pekerjaan Pasangan", start: 0, duration: 0, dependencies: [] },
+  { id: 6, name: "Pekerjaan Besi", start: 0, duration: 0, dependencies: [] },
+  { id: 7, name: "Pekerjaan Keramik", start: 0, duration: 0, dependencies: [] },
+  { id: 8, name: "Pekerjaan Plumbing", start: 0, duration: 0, dependencies: [] },
+  { id: 9, name: "Pekerjaan Sanitary & Acecories", start: 0, duration: 0, dependencies: [] },
+  { id: 10, name: "Pekerjaan Janitor", start: 0, duration: 0, dependencies: [] },
+  { id: 11, name: "Pekerjaan Atap", start: 0, duration: 0, dependencies: [] },
+  { id: 12, name: "Pekerjaan Kusen, Pintu, dan Kaca", start: 0, duration: 0, dependencies: [] },
+  { id: 13, name: "Pekerjaan Finishing", start: 0, duration: 0, dependencies: [] },
+  { id: 14, name: "Pekerjaan Beanspot", start: 0, duration: 0, dependencies: [] },
+  { id: 15, name: "Pekerjaan Area Terbuka", start: 0, duration: 0, dependencies: [] },
+  { id: 16, name: "Pekerjaan Tambahan", start: 0, duration: 0, dependencies: [] },
+  { id: 17, name: "Pekerjaan SBO", start: 0, duration: 0, dependencies: [] },
 ]
 
 let currentTasks = []
@@ -59,30 +60,30 @@ const totalDaysSipil = 205
 
 // ==================== HELPER FUNCTIONS ====================
 function formatDateID(date) {
-    const options = { day: "numeric", month: "short", year: "numeric" }
-    return date.toLocaleDateString("id-ID", options)
+  const options = { day: "numeric", month: "short", year: "numeric" }
+  return date.toLocaleDateString("id-ID", options)
 }
 
 function extractUlokAndLingkup(value) {
-    if (!value) return { ulok: "", lingkup: "" }
+  if (!value) return { ulok: "", lingkup: "" }
 
-    const trimmed = String(value).trim()
-    const parts = trimmed.split("-")
+  const trimmed = String(value).trim()
+  const parts = trimmed.split("-")
 
-    if (parts.length < 2) {
-        return { ulok: trimmed, lingkup: "" }
-    }
+  if (parts.length < 2) {
+    return { ulok: trimmed, lingkup: "" }
+  }
 
-    const lingkupRaw = parts.pop()
-    const ulok = parts.join("-")
-    const lingkupUpper = lingkupRaw.replace(/[^a-zA-Z]/g, "").toUpperCase()
-    const lingkup = lingkupUpper === "ME" ? "ME" : "Sipil"
+  const lingkupRaw = parts.pop()
+  const ulok = parts.join("-")
+  const lingkupUpper = lingkupRaw.replace(/[^a-zA-Z]/g, "").toUpperCase()
+  const lingkup = lingkupUpper === "ME" ? "ME" : "Sipil"
 
-    return { ulok, lingkup }
+  return { ulok, lingkup }
 }
 
 function escapeHtml(value) {
-    return String(value ?? "")
+  return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -91,19 +92,19 @@ function escapeHtml(value) {
 }
 
 function showLoadingMessage() {
-    const chart = document.getElementById("ganttChart")
-        chart.innerHTML = `
-            <div style="text-align: center; padding: 60px; color: #6c757d;">
-                <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
-                <h2 style="margin-bottom: 15px;">Memuat Data...</h2>
-                <p>Sedang mengambil data proyek dari server.</p>
-            </div>
-        `
+  const chart = document.getElementById("ganttChart")
+  chart.innerHTML = `
+        <div style="text-align: center; padding: 60px; color: #6c757d;">
+            <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+            <h2 style="margin-bottom: 15px;">Memuat Data...</h2>
+            <p>Sedang mengambil data proyek dari server.</p>
+        </div>
+    `
 }
 
 function showErrorMessage(message) {
-    const chart = document.getElementById("ganttChart")
-    chart.innerHTML = `
+  const chart = document.getElementById("ganttChart")
+  chart.innerHTML = `
         <div style="text-align: center; padding: 60px; color: #e53e3e;">
             <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
             <h2 style="margin-bottom: 15px;">Terjadi Kesalahan</h2>
@@ -116,157 +117,157 @@ function showErrorMessage(message) {
 }
 
 function showSelectProjectMessage() {
-    const chart = document.getElementById("ganttChart")
-    chart.innerHTML = `
-            <div style="text-align: center; padding: 60px; color: #6c757d;">
-                <h2 style="margin-bottom: 15px;">📋 Pilih No. Ulok</h2>
-                <p>Data berhasil dimuat. Silakan pilih proyek di atas.</p>
-            </div>
-        `
-    document.getElementById("projectInfo").innerHTML = ""
-    document.getElementById("stats").innerHTML = ""
-    document.getElementById("exportButtons").style.display = "none"
-    ganttApiData = null
-    ganttApiError = null
-    hasUserInput = false
-    isProjectLocked = false
-    filteredCategories = null
-    rawGanttData = null
-    dayGanttData = null
-    checkpoints = {} // Clear checkpoints on error
-    renderCheckpointList() // Render empty list
-    renderApiData()
+  const chart = document.getElementById("ganttChart")
+  chart.innerHTML = `
+        <div style="text-align: center; padding: 60px; color: #6c757d;">
+            <h2 style="margin-bottom: 15px;">📋 Pilih No. Ulok</h2>
+            <p>Data berhasil dimuat. Silakan pilih proyek di atas.</p>
+        </div>
+    `
+  document.getElementById("projectInfo").innerHTML = ""
+  document.getElementById("stats").innerHTML = ""
+  document.getElementById("exportButtons").style.display = "none"
+  ganttApiData = null
+  ganttApiError = null
+  hasUserInput = false
+  isProjectLocked = false
+  filteredCategories = null
+  rawGanttData = null
+  dayGanttData = null
+  checkpoints = {} // Clear checkpoints on error
+  renderCheckpointList() // Render empty list
+  renderApiData()
 }
 
 function showPleaseInputMessage() {
-    const chart = document.getElementById("ganttChart")
-    chart.innerHTML = `
-            <div style="text-align: center; padding: 60px; color: #6c757d;">
-                <div style="font-size: 48px; margin-bottom: 20px;">⏱️</div>
-                <h2 style="margin-bottom: 15px;">Silakan Input Jadwal Pengerjaan</h2>
-                <p>Masukkan hari mulai dan selesai untuk setiap tahapan di form di atas, kemudian klik <strong>"Terapkan Jadwal"</strong>.</p>
-            </div>
-        `
+  const chart = document.getElementById("ganttChart")
+  chart.innerHTML = `
+        <div style="text-align: center; padding: 60px; color: #6c757d;">
+            <div style="font-size: 48px; margin-bottom: 20px;">⏱️</div>
+            <h2 style="margin-bottom: 15px;">Silakan Input Jadwal Pengerjaan</h2>
+            <p>Masukkan hari mulai dan selesai untuk setiap tahapan di form di atas, kemudian klik <strong>"Terapkan Jadwal"</strong>.</p>
+        </div>
+    `
 }
 
 // ==================== PARSE PROJECT DATA ====================
 function parseProjectFromLabel(label, value) {
-    const parts = label.split(" - ")
-    const { ulok: ulokClean, lingkup } = extractUlokAndLingkup(value)
+  const parts = label.split(" - ")
+  const { ulok: ulokClean, lingkup } = extractUlokAndLingkup(value)
 
-    const ulokNumber = ulokClean || value.replace(/-ME|-Sipil/gi, "")
-    let projectName = "Reguler"
-    let storeName = "Tidak Diketahui"
-    let workType = lingkup || "Sipil"
-    let projectType = "Reguler"
+  const ulokNumber = ulokClean || value.replace(/-ME|-Sipil/gi, "")
+  let projectName = "Reguler"
+  let storeName = "Tidak Diketahui"
+  let workType = lingkup || "Sipil"
+  let projectType = "Reguler"
 
-    if (label.toUpperCase().includes("(ME)")) {
-        workType = "ME"
+  if (label.toUpperCase().includes("(ME)")) {
+    workType = "ME"
+  }
+
+  if (parts.length >= 3) {
+    projectName = parts[1].replace(/$$ME$$|$$Sipil$$/gi, "").trim()
+    storeName = parts[2].trim()
+    if (label.toUpperCase().includes("RENOVASI") || ulokNumber.includes("-R")) {
+      projectType = "Renovasi"
     }
+  } else if (parts.length === 2) {
+    storeName = parts[1].replace(/$$ME$$|$$Sipil$$/gi, "").trim()
+  }
 
-    if (parts.length >= 3) {
-        projectName = parts[1].replace(/$$ME$$|$$Sipil$$/gi, "").trim()
-        storeName = parts[2].trim()
-        if (label.toUpperCase().includes("RENOVASI") || ulokNumber.includes("-R")) {
-        projectType = "Renovasi"
-        }
-    } else if (parts.length === 2) {
-        storeName = parts[1].replace(/$$ME$$|$$Sipil$$/gi, "").trim()
-    }
-
-    return {
-        ulok: value,
-        ulokClean: ulokClean || ulokNumber,
-        ulokNumber: ulokNumber,
-        name: projectName,
-        store: storeName,
-        work: workType,
-        lingkup: workType,
-        startDate: new Date().toISOString().split("T")[0],
-        durasi: workType === "ME" ? 37 : 184,
-        alamat: "",
-        status: "Berjalan",
-    }
+  return {
+    ulok: value,
+    ulokClean: ulokClean || ulokNumber,
+    ulokNumber: ulokNumber,
+    name: projectName,
+    store: storeName,
+    work: workType,
+    lingkup: workType,
+    startDate: new Date().toISOString().split("T")[0],
+    durasi: workType === "ME" ? 37 : 184,
+    alamat: "",
+    status: "Berjalan",
+  }
 }
 
 // ==================== FETCH DATA FROM API ====================
 async function loadDataAndInit() {
-    try {
-        showLoadingMessage()
-        const userCabang = sessionStorage.getItem("loggedInUserCabang")
-        const urlWithParam = `${ENDPOINTS.ulokList}?cabang=${encodeURIComponent(userCabang)}`
-        const response = await fetch(urlWithParam)
-        if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.message || `HTTP Error: ${response.status}`)
-        }
-
-        const apiData = await response.json()
-
-        if (!Array.isArray(apiData)) {
-        throw new Error("Format data API tidak valid (harus array)")
-        }
-
-        projects = apiData.map((item) => parseProjectFromLabel(item.label, item.value))
-
-        if (projects.length === 0) {
-        showErrorMessage("Tidak ada data proyek ditemukan untuk email ini.")
-        return
-        }
-
-        initChart()
-    } catch (error) {
-        console.error("❌ Error loading data:", error)
-        showErrorMessage(`Gagal memuat data: ${error.message}`)
+  try {
+    showLoadingMessage()
+    const userCabang = sessionStorage.getItem("loggedInUserCabang")
+    const urlWithParam = `${ENDPOINTS.ulokList}?cabang=${encodeURIComponent(userCabang)}`
+    const response = await fetch(urlWithParam)
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData.message || `HTTP Error: ${response.status}`)
     }
+
+    const apiData = await response.json()
+
+    if (!Array.isArray(apiData)) {
+      throw new Error("Format data API tidak valid (harus array)")
+    }
+
+    projects = apiData.map((item) => parseProjectFromLabel(item.label, item.value))
+
+    if (projects.length === 0) {
+      showErrorMessage("Tidak ada data proyek ditemukan untuk email ini.")
+      return
+    }
+
+    initChart()
+  } catch (error) {
+    console.error("❌ Error loading data:", error)
+    showErrorMessage(`Gagal memuat data: ${error.message}`)
+  }
 }
 
 function initChart() {
-    const ulokSelect = document.getElementById("ulokSelect")
-    ulokSelect.innerHTML = '<option value="">-- Pilih Proyek --</option>'
+  const ulokSelect = document.getElementById("ulokSelect")
+  ulokSelect.innerHTML = '<option value="">-- Pilih Proyek --</option>'
 
-    projects.forEach((project) => {
-        // Reset Template Default
-        projectTasks[project.ulok] = []
-        const option = document.createElement("option")
-        option.value = project.ulok
-        option.textContent = `${project.ulok} | ${project.store} (${project.work})`
-        ulokSelect.appendChild(option)
-    })
-    ulokSelect.addEventListener("change", (e) => {
-        const selectedUlok = e.target.value
-        if (selectedUlok) {
-        localStorage.setItem("lastSelectedUlok", selectedUlok)
-        } else {
-        localStorage.removeItem("lastSelectedUlok")
-        }
-        if (!selectedUlok) {
-        showSelectProjectMessage()
-        return
-        }
-        currentProject = projects.find((p) => p.ulok === selectedUlok)
-        if (projectTasks[selectedUlok]) {
-        currentTasks = projectTasks[selectedUlok]
-        }
-        hasUserInput = false
-        isProjectLocked = false
-        fetchGanttDataForSelection(selectedUlok)
-        renderProjectInfo()
-        updateStats()
-        document.getElementById("exportButtons").style.display = "block"
-        const checkpointSection = document.getElementById("checkpointSection")
-        if (checkpointSection) checkpointSection.style.display = "block"
-        populateCheckpointTasks()
-    })
-    const savedUlok = localStorage.getItem("lastSelectedUlok")
-    if (savedUlok) {
-        const projectExists = projects.some((p) => p.ulok === savedUlok)
-        if (projectExists) {
-        ulokSelect.value = savedUlok
-        ulokSelect.dispatchEvent(new Event("change"))
-        }
+  projects.forEach((project) => {
+    // Reset Template Default
+    projectTasks[project.ulok] = []
+    const option = document.createElement("option")
+    option.value = project.ulok
+    option.textContent = `${project.ulok} | ${project.store} (${project.work})`
+    ulokSelect.appendChild(option)
+  })
+  ulokSelect.addEventListener("change", (e) => {
+    const selectedUlok = e.target.value
+    if (selectedUlok) {
+      localStorage.setItem("lastSelectedUlok", selectedUlok)
+    } else {
+      localStorage.removeItem("lastSelectedUlok")
     }
-    showSelectProjectMessage()
+    if (!selectedUlok) {
+      showSelectProjectMessage()
+      return
+    }
+    currentProject = projects.find((p) => p.ulok === selectedUlok)
+    if (projectTasks[selectedUlok]) {
+      currentTasks = projectTasks[selectedUlok]
+    }
+    hasUserInput = false
+    isProjectLocked = false
+    fetchGanttDataForSelection(selectedUlok)
+    renderProjectInfo()
+    updateStats()
+    document.getElementById("exportButtons").style.display = "block"
+    const checkpointSection = document.getElementById("checkpointSection")
+    if (checkpointSection) checkpointSection.style.display = "block"
+    populateCheckpointTasks()
+  })
+  const savedUlok = localStorage.getItem("lastSelectedUlok")
+  if (savedUlok) {
+    const projectExists = projects.some((p) => p.ulok === savedUlok)
+    if (projectExists) {
+      ulokSelect.value = savedUlok
+      ulokSelect.dispatchEvent(new Event("change"))
+    }
+  }
+  showSelectProjectMessage()
 }
 
 // ==================== GANTT DATA FETCH (API) ====================
@@ -725,6 +726,35 @@ function populateTaskOptionsFromGanttData() {
     }
   })
 }
+
+function populateCheckpointTasksFromGanttData() {
+  const select = document.getElementById("checkpointTaskSelect")
+  if (!select || !rawGanttData) return
+  select.innerHTML = '<option value="">-- Pilih Tahapan --</option>'
+
+  // Loop melalui kategori di gantt_data sama seperti delay dropdown
+  let i = 1
+  while (true) {
+    const kategoriKey = `Kategori_${i}`
+
+    if (!rawGanttData.hasOwnProperty(kategoriKey)) break
+
+    const kategoriName = rawGanttData[kategoriKey]
+
+    // Hanya tambahkan jika kategori tidak kosong
+    if (kategoriName && kategoriName.trim() !== "") {
+      const option = document.createElement("option")
+      option.value = i // Store kategori index sebagai value
+      option.dataset.kategoriIndex = i
+      option.dataset.taskName = kategoriName
+      option.textContent = kategoriName
+
+      select.appendChild(option)
+    }
+    i++
+  }
+}
+
 async function handleDelayUpdate(action) {
   if (!currentProject) return alert("Silakan pilih No. Ulok terlebih dahulu.")
 
@@ -955,7 +985,7 @@ async function saveProjectSchedule(statusType = "Active") {
   }
 
   try {
-    console.log(`📤 Mengirim Data (${statusType}):`, payload)
+    console.log(`Save Payload:">${payload})`)
 
     const response = await fetch(ENDPOINTS.insertData, {
       method: "POST",
@@ -1372,10 +1402,10 @@ function exportToExcel() {
     tEnd.setDate(tStart.getDate() + task.duration - 1)
     data.push([i + 1, task.name, formatDateID(tStart), formatDateID(tEnd), task.duration])
   })
-  const ws = XLSX.utils.aoa_to_sheet(data)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, "Jadwal")
-  XLSX.writeFile(wb, `Jadwal_${currentProject.ulokClean}.xlsx`)
+  const ws = window.XLSX.utils.aoa_to_sheet(data)
+  const wb = window.XLSX.utils.book_new()
+  window.XLSX.utils.book_append_sheet(wb, ws, "Jadwal")
+  window.XLSX.writeFile(wb, `Jadwal_${currentProject.ulokClean}.xlsx`)
 }
 
 function handleCheckpointClick(taskId, day) {
@@ -1386,26 +1416,53 @@ function handleCheckpointClick(taskId, day) {
 
 function populateCheckpointTasks() {
   const select = document.getElementById("checkpointTaskSelect")
-  if (!select || !currentTasks || currentTasks.length === 0) return
+  if (!select) return
+
   select.innerHTML = '<option value="">-- Pilih Tahapan --</option>'
 
-  currentTasks.forEach((task) => {
-    const option = document.createElement("option")
-    option.value = task.id
-    option.textContent = task.name
-    select.appendChild(option)
-  })
+  // Jika ada rawGanttData (dari API), gunakan data tersebut
+  if (rawGanttData) {
+    let i = 1
+    while (true) {
+      const kategoriKey = `Kategori_${i}`
+
+      if (!rawGanttData.hasOwnProperty(kategoriKey)) break
+
+      const kategoriName = rawGanttData[kategoriKey]
+
+      // Hanya tambahkan jika kategori tidak kosong
+      if (kategoriName && kategoriName.trim() !== "") {
+        const option = document.createElement("option")
+        option.value = kategoriName
+        option.dataset.kategoriIndex = i
+        option.dataset.taskName = kategoriName
+        option.textContent = kategoriName
+
+        select.appendChild(option)
+      }
+      i++
+    }
+  } else if (currentTasks && currentTasks.length > 0) {
+    // Fallback ke currentTasks jika rawGanttData tidak ada
+    currentTasks.forEach((task) => {
+      const option = document.createElement("option")
+      option.value = task.id
+      option.textContent = task.name
+      select.appendChild(option)
+    })
+  }
 }
 
 function addCheckpoint() {
   const taskSelect = document.getElementById("checkpointTaskSelect")
   const dayInput = document.getElementById("checkpointDayInput")
 
-  const taskId = Number.parseInt(taskSelect.value)
+  const taskName = taskSelect.value
+  const selectedOption = taskSelect.options[taskSelect.selectedIndex]
+  const kategoriIndex = selectedOption?.dataset?.kategoriIndex
   const day = Number.parseInt(dayInput.value)
-  const taskName = taskSelect.options[taskSelect.selectedIndex]?.text
 
-  if (!taskId || isNaN(taskId)) {
+  if (!taskName) {
     alert("⚠️ Silakan pilih tahapan pekerjaan!")
     return
   }
@@ -1414,16 +1471,45 @@ function addCheckpoint() {
     return
   }
 
-  const task = currentTasks.find((t) => t.id === taskId)
-  if (!task) {
-    alert("❌ Tahapan pekerjaan tidak ditemukan!")
+  let task = null
+  let taskId = kategoriIndex ? Number.parseInt(kategoriIndex) : null
+
+  if (!taskId) {
+    // Fallback: cari dari currentTasks
+    task = currentTasks.find((t) => t.id === Number.parseInt(taskSelect.value) || t.name === taskName)
+    taskId = task?.id
+  } else {
+    // Cari task berdasarkan kategori index
+    task = currentTasks.find((t) => t.id === taskId)
+  }
+
+  if (!taskId || isNaN(taskId)) {
+    alert("❌ Tahapan pekerjaan tidak valid!")
     return
   }
 
-  const maxDay =
-    task.duration > 0
-      ? task.duration
-      : task.inputData?.ranges?.reduce((max, r) => Math.max(max, r.duration || 0), 0) || 1
+  // Validasi durasi tahapan
+  let maxDay = 1
+  if (task) {
+    maxDay =
+      task.duration > 0
+        ? task.duration
+        : task.inputData?.ranges?.reduce((max, r) => Math.max(max, r.duration || 0), 0) || 1
+  } else {
+    // Jika task tidak ditemukan, coba hitung dari rawGanttData
+    if (rawGanttData && kategoriIndex) {
+      const hAwalKey = `Hari_Mulai_Kategori_${kategoriIndex}`
+      const hAkhirKey = `Hari_Selesai_Kategori_${kategoriIndex}`
+      if (rawGanttData[hAwalKey] && rawGanttData[hAkhirKey]) {
+        const startDate = parseDateDDMMYYYY(rawGanttData[hAwalKey])
+        const endDate = parseDateDDMMYYYY(rawGanttData[hAkhirKey])
+        if (startDate && endDate) {
+          const msPerDay = 1000 * 60 * 60 * 24
+          maxDay = Math.round((endDate - startDate) / msPerDay) + 1
+        }
+      }
+    }
+  }
 
   if (day > maxDay) {
     alert(`⚠️ Hari checkpoint tidak boleh melebihi durasi tahapan (${maxDay} hari)!`)
@@ -1504,10 +1590,10 @@ function renderCheckpointList() {
     return
   }
 
-    allCheckpoints.sort((a, b) => a.taskId - b.taskId || a.day - b.day)
+  allCheckpoints.sort((a, b) => a.taskId - b.taskId || a.day - b.day)
 
-    let html = ""
-    allCheckpoints.forEach((cp) => {
+  let html = ""
+  allCheckpoints.forEach((cp) => {
     html += `
             <div class="checkpoint-item">
                 <div class="checkpoint-info">
@@ -1522,13 +1608,13 @@ function renderCheckpointList() {
                 </button>
             </div>
         `
-    })
+  })
 
-    listContainer.innerHTML = html
+  listContainer.innerHTML = html
 }
 
 // ==================== START ====================
 loadDataAndInit()
 window.addEventListener("resize", () => {
-    if (currentProject && hasUserInput) drawDependencyLines()
+  if (currentProject && hasUserInput) drawDependencyLines()
 })
