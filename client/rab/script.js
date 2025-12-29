@@ -515,232 +515,219 @@ const calculateGrandTotal = () => {
 };
 
 async function populateFormWithHistory(data) {
-  form.reset();
-  sipilTablesWrapper.innerHTML = "";
-  meTablesWrapper.innerHTML = "";
+    form.reset();
+    sipilTablesWrapper.innerHTML = "";
+    meTablesWrapper.innerHTML = "";
 
-  const nomorUlok = data["Nomor Ulok"];
-  if (nomorUlok) {
-    const cleanUlok = nomorUlok.replace(/-/g, ""); // Hapus dash jika ada
-    
-    // Cek panjang karakter
-    // Format Normal: Z001 2512 0001 (12 chars)
-    // Format Renov:  Z001 2512 C0B4 R (13 chars)
-    
-    let ulokParts;
-    const isRenov = cleanUlok.length === 13 && cleanUlok.endsWith("R");
-
-    if (isRenov) {
-        // Regex untuk Z001-2512-C0B4-R
-        ulokParts = cleanUlok.match(/^(.{4})(.{4})(.{4})R$/);
-    } else {
-        // Regex untuk Z001-2512-0001
-        ulokParts = cleanUlok.match(/^(.{4})(.{4})(.{4})$/);
-    }
-
-    if (ulokParts) {
-      document.getElementById("lokasi_cabang").value = ulokParts[1];
-      document.getElementById("lokasi_tanggal").value = ulokParts[2];
+    const nomorUlok = data["Nomor Ulok"];
+    if (nomorUlok) {
+        const cleanUlok = nomorUlok.replace(/-/g, "");
         
-      // Set status checkbox
-      const toggleBox = document.getElementById("toggle_renovasi");
-      if(isRenov) {
-          toggleBox.checked = true;
-          // Trigger event change manual agar UI suffix muncul
-          toggleBox.dispatchEvent(new Event('change')); 
-      } else {
-          toggleBox.checked = false;
-          toggleBox.dispatchEvent(new Event('change'));
-      }
-      
-      document.getElementById("lokasi_manual").value = ulokParts[3];
-      
-      updateNomorUlok();
-    }
-  }
-  // Isi ulang field Nama Toko dari riwayat (dukung kedua penamaan)
-  if (data["nama_toko"]) {
-    document.getElementById("nama_toko").value = data["nama_toko"];
-  } else if (data["Nama_Toko"]) {
-    document.getElementById("nama_toko").value = data["Nama_Toko"];
-  }
+        let ulokParts;
+        const isRenov = cleanUlok.length === 13 && cleanUlok.endsWith("R");
 
-  for (const key in data) {
-    const input = form.querySelector(`[name="${key}"]`);
-    if (input && key !== "Nomor Ulok") {
-      input.value = data[key];
-    }
-  }
-
-  const selectedScope = lingkupPekerjaanSelect.value;
-  sipilTablesWrapper.classList.toggle("hidden", selectedScope !== "Sipil");
-  meTablesWrapper.classList.toggle("hidden", selectedScope !== "ME");
-
-  await fetchAndPopulatePrices();
-
-  const itemDetails = data["Item_Details_JSON"]
-    ? JSON.parse(data["Item_Details_JSON"])
-    : data;
-
-  for (let i = 1; i <= 200; i++) {
-    if (itemDetails[`Jenis_Pekerjaan_${i}`]) {
-      const category = itemDetails[`Kategori_Pekerjaan_${i}`];
-      const scope = lingkupPekerjaanSelect.value;
-      const targetTbody = document.querySelector(
-        `.boq-table-body[data-category="${category}"][data-scope="${scope}"]`
-      );
-
-      if (targetTbody) {
-        const tableContainer = targetTbody.closest(".table-container");
-        if (tableContainer) tableContainer.style.display = "block";
-
-        const newRow = createBoQRow(category, scope);
-        targetTbody.appendChild(newRow);
-        populateJenisPekerjaanOptionsForNewRow(newRow);
-
-        newRow.querySelector(".jenis-pekerjaan").value =
-          itemDetails[`Jenis_Pekerjaan_${i}`];
-
-        autoFillPrices(newRow.querySelector(".jenis-pekerjaan"));
-
-        newRow.querySelector(".volume").value =
-          itemDetails[`Volume_Item_${i}`] || "0.00";
-
-        const materialInput = newRow.querySelector(".harga-material");
-        const upahInput = newRow.querySelector(".harga-upah");
-
-        if (!materialInput.readOnly) {
-          materialInput.value = formatNumberWithSeparators(
-            itemDetails[`Harga_Material_Item_${i}`]
-          );
+        if (isRenov) {
+            ulokParts = cleanUlok.match(/^(.{4})(.{4})(.{4})R$/);
+        } else {
+            ulokParts = cleanUlok.match(/^(.{4})(.{4})(.{4})$/);
         }
-        if (!upahInput.readOnly) {
-          upahInput.value = formatNumberWithSeparators(
-            itemDetails[`Harga_Upah_Item_${i}`]
-          );
-        }
-        calculateTotalPrice(newRow.querySelector(".volume"));
-      }
-    }
-  }
 
-  updateAllRowNumbersAndTotals();
-  originalFormData = getCurrentFormData();
+        if (ulokParts) {
+        document.getElementById("lokasi_cabang").value = ulokParts[1];
+        document.getElementById("lokasi_tanggal").value = ulokParts[2];
+        const toggleBox = document.getElementById("toggle_renovasi");
+            if(isRenov) {
+                toggleBox.checked = true;
+                // Trigger event change manual agar UI suffix muncul
+                toggleBox.dispatchEvent(new Event('change')); 
+            } else {
+                toggleBox.checked = false;
+                toggleBox.dispatchEvent(new Event('change'));
+            }
+            document.getElementById("lokasi_manual").value = ulokParts[3];
+            updateNomorUlok();
+        }
+    }
+    // Isi ulang field Nama Toko dari riwayat (dukung kedua penamaan)
+    if (data["nama_toko"]) {
+        document.getElementById("nama_toko").value = data["nama_toko"];
+    } else if (data["Nama_Toko"]) {
+        document.getElementById("nama_toko").value = data["Nama_Toko"];
+    }
+
+    for (const key in data) {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input && key !== "Nomor Ulok") {
+        input.value = data[key];
+        }
+    }
+
+    const selectedScope = lingkupPekerjaanSelect.value;
+    sipilTablesWrapper.classList.toggle("hidden", selectedScope !== "Sipil");
+    meTablesWrapper.classList.toggle("hidden", selectedScope !== "ME");
+
+    await fetchAndPopulatePrices();
+
+    const itemDetails = data["Item_Details_JSON"]
+        ? JSON.parse(data["Item_Details_JSON"])
+        : data;
+
+    for (let i = 1; i <= 200; i++) {
+        if (itemDetails[`Jenis_Pekerjaan_${i}`]) {
+            const category = itemDetails[`Kategori_Pekerjaan_${i}`];
+            const scope = lingkupPekerjaanSelect.value;
+            const targetTbody = document.querySelector(
+                `.boq-table-body[data-category="${category}"][data-scope="${scope}"]`
+            );
+
+            if (targetTbody) {
+                const tableContainer = targetTbody.closest(".table-container");
+                if (tableContainer) tableContainer.style.display = "block";
+
+                const newRow = createBoQRow(category, scope);
+                targetTbody.appendChild(newRow);
+                populateJenisPekerjaanOptionsForNewRow(newRow);
+
+                newRow.querySelector(".jenis-pekerjaan").value =
+                itemDetails[`Jenis_Pekerjaan_${i}`];
+
+                autoFillPrices(newRow.querySelector(".jenis-pekerjaan"));
+
+                newRow.querySelector(".volume").value =
+                itemDetails[`Volume_Item_${i}`] || "0.00";
+
+                const materialInput = newRow.querySelector(".harga-material");
+                const upahInput = newRow.querySelector(".harga-upah");
+
+                if (!materialInput.readOnly) {
+                    materialInput.value = formatNumberWithSeparators(
+                    itemDetails[`Harga_Material_Item_${i}`]
+                    );
+                }
+                if (!upahInput.readOnly) {
+                    upahInput.value = formatNumberWithSeparators(
+                    itemDetails[`Harga_Upah_Item_${i}`]
+                    );
+                }
+                calculateTotalPrice(newRow.querySelector(".volume"));
+            }
+        }
+    }
+    updateAllRowNumbersAndTotals();
+    originalFormData = getCurrentFormData();
 }
 
-
 async function handleFormSubmit() {
-  if (!form.checkValidity()) {
-    form.reportValidity();
-    return;
-  }
-
-  const currentData = getCurrentFormData();
-  if (originalFormData && currentData === originalFormData) {
-    messageDiv.textContent =
-      "Tidak ada perubahan yang terdeteksi. Silakan ubah data sebelum mengirim.";
-    messageDiv.style.backgroundColor = "#ffc107";
-    messageDiv.style.display = "block";
-    return;
-  }
-
-  submitButton.disabled = true;
-  messageDiv.textContent = "Mengirim data...";
-  messageDiv.style.display = "block";
-  messageDiv.style.backgroundColor = "#007bff";
-
-  const formData = new FormData(form);
-  const data = Object.fromEntries(formData.entries());
-
-  const luasTerbangunanRaw = document.getElementById("luas_terbangunan")?.value;
-  const luasTerbangunan = parseFloat(luasTerbangunanRaw);
-
-  // Jika kosong / bukan angka
-  if (!luasTerbangunanRaw || isNaN(luasTerbangunan)) {
-    messageDiv.textContent =
-      "Error: Luas Terbangunan belum terhitung. Periksa kembali input Luas Bangunan & Area Terbuka.";
-    messageDiv.style.backgroundColor = "#dc3545";
-    messageDiv.style.display = "block";
-    submitButton.disabled = false;
-    return;
-  }
-
-  // Jika hasil minus / <= 0
-  if (luasTerbangunan <= 0) {
-    messageDiv.textContent =
-      "Error: Luas Terbangunan tidak valid atau bernilai minus. Periksa kembali input Luas Bangunan & Area Terbuka.";
-    messageDiv.style.backgroundColor = "#dc3545";
-    messageDiv.style.display = "block";
-    submitButton.disabled = false;
-    return;
-  }
-
-  // Mapping nama_toko
-  data["nama_toko"] =
-    data["Nama_Toko"] ||
-    document.getElementById("nama_toko")?.value?.trim() ||
-    "";
-  data["Nama_Toko"] = data["nama_toko"];
-
-  data["Cabang"] = cabangSelect.value;
-  data["Email_Pembuat"] = sessionStorage.getItem("loggedInUserEmail");
-  data["Grand Total"] = parseRupiah(grandTotalAmount.textContent);
-
-  let itemIndex = 1;
-  document
-    .querySelectorAll(".boq-table-body:not(.hidden) .boq-item-row")
-    .forEach((row) => {
-      const jenisPekerjaan = row.querySelector(".jenis-pekerjaan").value;
-      const volume = parseFloat(row.querySelector(".volume").value) || 0;
-
-      if (jenisPekerjaan && volume > 0) {
-        const materialInput = row.querySelector(".harga-material");
-        const upahInput = row.querySelector(".harga-upah");
-
-        const materialValue = parseFormattedNumber(materialInput.value);
-        const upahValue = parseFormattedNumber(upahInput.value);
-
-        data[`Kategori_Pekerjaan_${itemIndex}`] = row.dataset.category;
-        data[`Jenis_Pekerjaan_${itemIndex}`] = jenisPekerjaan;
-        data[`Satuan_Item_${itemIndex}`] = row.querySelector(".satuan").value;
-        data[`Volume_Item_${itemIndex}`] = volume;
-        data[`Harga_Material_Item_${itemIndex}`] = materialValue;
-        data[`Harga_Upah_Item_${itemIndex}`] = upahValue;
-        data[`Total_Material_Item_${itemIndex}`] = parseRupiah(
-          row.querySelector(".total-material").value
-        );
-        data[`Total_Upah_Item_${itemIndex}`] = parseRupiah(
-          row.querySelector(".total-upah").value
-        );
-        data[`Total_Harga_Item_${itemIndex}`] = parseRupiah(
-          row.querySelector(".total-harga").value
-        );
-        itemIndex++;
-      }
-    });
-
-  try {
-    const response = await fetch(`${PYTHON_API_BASE_URL}/api/submit_rab`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-
-    const result = await response.json();
-
-    if (response.ok && result.status === "success") {
-      messageDiv.textContent =
-        "Data berhasil dikirim! Halaman akan dimuat ulang.";
-      messageDiv.style.backgroundColor = "#28a745";
-      setTimeout(() => window.location.reload(), 2000);
-    } else {
-      throw new Error(result.message || "Terjadi kesalahan di server.");
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
     }
-  } catch (error) {
-    messageDiv.textContent = `Error: ${error.message}`;
-    messageDiv.style.backgroundColor = "#dc3545";
-    submitButton.disabled = false;
-  }
+
+    const currentData = getCurrentFormData();
+    if (originalFormData && currentData === originalFormData) {
+        messageDiv.textContent =
+        "Tidak ada perubahan yang terdeteksi. Silakan ubah data sebelum mengirim.";
+        messageDiv.style.backgroundColor = "#ffc107";
+        messageDiv.style.display = "block";
+        return;
+    }
+
+    submitButton.disabled = true;
+    messageDiv.textContent = "Mengirim data...";
+    messageDiv.style.display = "block";
+    messageDiv.style.backgroundColor = "#007bff";
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    const luasTerbangunanRaw = document.getElementById("luas_terbangunan")?.value;
+    const luasTerbangunan = parseFloat(luasTerbangunanRaw);
+
+    if (!luasTerbangunanRaw || isNaN(luasTerbangunan)) {
+        messageDiv.textContent =
+        "Error: Luas Terbangunan belum terhitung. Periksa kembali input Luas Bangunan & Area Terbuka.";
+        messageDiv.style.backgroundColor = "#dc3545";
+        messageDiv.style.display = "block";
+        submitButton.disabled = false;
+        return;
+    }
+
+    // Jika hasil minus / <= 0
+    if (luasTerbangunan <= 0) {
+        messageDiv.textContent =
+        "Error: Luas Terbangunan tidak valid atau bernilai minus. Periksa kembali input Luas Bangunan & Area Terbuka.";
+        messageDiv.style.backgroundColor = "#dc3545";
+        messageDiv.style.display = "block";
+        submitButton.disabled = false;
+        return;
+    }
+
+    // Mapping nama_toko
+    data["nama_toko"] =
+        data["Nama_Toko"] ||
+        document.getElementById("nama_toko")?.value?.trim() ||
+        "";
+    data["Nama_Toko"] = data["nama_toko"];
+
+    data["Cabang"] = cabangSelect.value;
+    data["Email_Pembuat"] = sessionStorage.getItem("loggedInUserEmail");
+    data["Grand Total"] = parseRupiah(grandTotalAmount.textContent);
+
+    let itemIndex = 1;
+    document
+        .querySelectorAll(".boq-table-body:not(.hidden) .boq-item-row")
+        .forEach((row) => {
+        const jenisPekerjaan = row.querySelector(".jenis-pekerjaan").value;
+        const volume = parseFloat(row.querySelector(".volume").value) || 0;
+
+        if (jenisPekerjaan && volume > 0) {
+            const materialInput = row.querySelector(".harga-material");
+            const upahInput = row.querySelector(".harga-upah");
+
+            const materialValue = parseFormattedNumber(materialInput.value);
+            const upahValue = parseFormattedNumber(upahInput.value);
+
+            data[`Kategori_Pekerjaan_${itemIndex}`] = row.dataset.category;
+            data[`Jenis_Pekerjaan_${itemIndex}`] = jenisPekerjaan;
+            data[`Satuan_Item_${itemIndex}`] = row.querySelector(".satuan").value;
+            data[`Volume_Item_${itemIndex}`] = volume;
+            data[`Harga_Material_Item_${itemIndex}`] = materialValue;
+            data[`Harga_Upah_Item_${itemIndex}`] = upahValue;
+            data[`Total_Material_Item_${itemIndex}`] = parseRupiah(
+            row.querySelector(".total-material").value
+            );
+            data[`Total_Upah_Item_${itemIndex}`] = parseRupiah(
+            row.querySelector(".total-upah").value
+            );
+            data[`Total_Harga_Item_${itemIndex}`] = parseRupiah(
+            row.querySelector(".total-harga").value
+            );
+            itemIndex++;
+        }
+        });
+
+    try {
+        const response = await fetch(`${PYTHON_API_BASE_URL}/api/submit_rab`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.status === "success") {
+        messageDiv.textContent =
+            "Data berhasil dikirim! Halaman akan dimuat ulang.";
+        messageDiv.style.backgroundColor = "#28a745";
+        setTimeout(() => window.location.reload(), 2000);
+        } else {
+        throw new Error(result.message || "Terjadi kesalahan di server.");
+        }
+    } catch (error) {
+        messageDiv.textContent = `Error: ${error.message}`;
+        messageDiv.style.backgroundColor = "#dc3545";
+        submitButton.disabled = false;
+    }
 }
 
 function createTableStructure(categoryName, scope) {
