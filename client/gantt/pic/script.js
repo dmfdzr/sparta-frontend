@@ -19,6 +19,7 @@ let hasUserInput = false; // Track apakah user sudah input jadwal
 let isProjectLocked = false; // Track status dikunci/belum
 let filteredCategories = null;
 let rawGanttData = null; // Store raw gantt_data for delay values
+let dayGanttData = null; // Store day_gantt_data for multi-range bars
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
@@ -127,6 +128,7 @@ function showSelectProjectMessage() {
     isProjectLocked = false;
     filteredCategories = null;
     rawGanttData = null;
+    dayGanttData = null;
     renderApiData();
 }
 
@@ -300,6 +302,14 @@ async function fetchGanttDataForSelection(selectedValue) {
             filteredCategories = null;
         }
 
+        // ==================== SIMPAN DAY_GANTT_DATA ====================
+        if (data.day_gantt_data && Array.isArray(data.day_gantt_data)) {
+            dayGanttData = data.day_gantt_data;
+            console.log("📅 day_gantt_data ditemukan:", dayGanttData.length, "entries");
+        } else {
+            dayGanttData = null;
+        }
+
         // ==================== CEK GANTT_DATA ====================
         if (data.gantt_data && typeof data.gantt_data === 'object') {
             console.log("📊 gantt_data ditemukan di response");
@@ -314,16 +324,16 @@ async function fetchGanttDataForSelection(selectedValue) {
                 hasUserInput = true;
                 console.log("🔒 Status Gantt: TERKUNCI");
 
-                // Parse data kategori dari gantt_data untuk chart
-                parseGanttDataToTasks(ganttData, selectedValue);
+                // Parse data kategori dari gantt_data untuk chart dengan day_gantt_data
+                parseGanttDataToTasks(ganttData, selectedValue, dayGanttData);
 
             } else {
                 // Status Active - tampilkan data di input form
                 isProjectLocked = false;
                 console.log("🔓 Status Gantt: ACTIVE - Menampilkan data di form input");
 
-                // Parse data kategori dari gantt_data ke input form
-                parseGanttDataToTasks(ganttData, selectedValue);
+                // Parse data kategori dari gantt_data ke input form dengan day_gantt_data
+                parseGanttDataToTasks(ganttData, selectedValue, dayGanttData);
                 hasUserInput = true;
             }
 
@@ -352,6 +362,7 @@ async function fetchGanttDataForSelection(selectedValue) {
         console.warn('⚠️ Menggunakan template default:', error.message);
         ganttApiError = null;
         rawGanttData = null; // Reset raw data on error
+        dayGanttData = null; // Reset day gantt data on error
 
         if (currentProject) {
             let templateTasks;
@@ -398,85 +409,167 @@ async function fetchGanttDataForSelection(selectedValue) {
 }
 
 // ==================== PARSE GANTT_DATA TO TASKS ====================
-function parseGanttDataToTasks(ganttData, selectedValue) {
+function parseGanttDataToTasks(ganttData, selectedValue, dayGanttDataArray = null) {
     if (!currentProject || !ganttData) return;
+
     let dynamicTasks = [];
     let earliestDate = null;
     let tempTaskList = [];
     let i = 1;
 
+    // Extract categories from gantt_data
     while (true) {
         const kategoriKey = `Kategori_${i}`;
-        const mulaiKey = `Hari_Mulai_Kategori_${i}`;
-        const selesaiKey = `Hari_Selesai_Kategori_${i}`;
         const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
+
         if (!ganttData.hasOwnProperty(kategoriKey)) {
             break;
         }
 
         const kategoriName = ganttData[kategoriKey];
-        const hariMulai = ganttData[mulaiKey];
-        const hariSelesai = ganttData[selesaiKey];
         const keterlambatan = parseInt(ganttData[keterlambatanKey]) || 0;
-        if (kategoriName) {
-            let sDate = null;
-            if (hariMulai && hariMulai.trim() !== '') {
-                sDate = new Date(hariMulai);
-                if (!isNaN(sDate.getTime())) {
-                    if (!earliestDate || sDate < earliestDate) {
-                        earliestDate = sDate;
-                    }
-                }
-            }
 
+        if (kategoriName && kategoriName.trim() !== '') {
             tempTaskList.push({
                 id: i,
                 name: kategoriName,
-                rawStart: sDate,
-                rawEnd: hariSelesai ? new Date(hariSelesai) : null,
                 keterlambatan: keterlambatan
             });
         }
         i++;
     }
-    if (!earliestDate) {
-        earliestDate = new Date();
-    }
-    const projectStartDate = earliestDate;
-    currentProject.startDate = projectStartDate.toISOString().split('T')[0];
-    console.log(`📆 Project Start Date (dari gantt_data): ${currentProject.startDate}`);
-    const msPerDay = 1000 * 60 * 60 * 24;
 
-    tempTaskList.forEach(item => {
-        let startDay = 0;
-        let duration = 0;
-        let endDay = 0;
+    // Parse day_gantt_data to get ranges for each category
+    const categoryRangesMap = {};
 
-        if (item.rawStart && item.rawEnd && !isNaN(item.rawStart) && !isNaN(item.rawEnd)) {
-            const diffStartMs = item.rawStart - projectStartDate;
-            const diffEndMs = item.rawEnd - projectStartDate;
+    if (dayGanttDataArray && Array.isArray(dayGanttDataArray) && dayGanttDataArray.length > 0) {
+        console.log("📅 Parsing day_gantt_data for ranges...");
 
-            startDay = Math.round(diffStartMs / msPerDay) + 1;
-            endDay = Math.round(diffEndMs / msPerDay) + 1;
-            duration = endDay - startDay + 1;
+        // Find earliest date from day_gantt_data
+        dayGanttDataArray.forEach(entry => {
+            const hAwalStr = entry.h_awal;
+            if (hAwalStr) {
+                const parsedDate = parseDateDDMMYYYY(hAwalStr);
+                if (parsedDate && !isNaN(parsedDate.getTime())) {
+                    if (!earliestDate || parsedDate < earliestDate) {
+                        earliestDate = parsedDate;
+                    }
+                }
+            }
+        });
+
+        if (!earliestDate) {
+            earliestDate = new Date();
         }
+
+        const projectStartDate = earliestDate;
+        currentProject.startDate = projectStartDate.toISOString().split('T')[0];
+        console.log(`📆 Project Start Date (dari day_gantt_data): ${currentProject.startDate}`);
+
+        const msPerDay = 1000 * 60 * 60 * 24;
+
+        // Group ranges by category
+        dayGanttDataArray.forEach(entry => {
+            const kategori = entry.Kategori;
+            if (!kategori) return;
+
+            const hAwalStr = entry.h_awal;
+            const hAkhirStr = entry.h_akhir;
+
+            if (!hAwalStr || !hAkhirStr) return;
+
+            const startDate = parseDateDDMMYYYY(hAwalStr);
+            const endDate = parseDateDDMMYYYY(hAkhirStr);
+
+            if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                return;
+            }
+
+            const startDay = Math.round((startDate - projectStartDate) / msPerDay) + 1;
+            const endDay = Math.round((endDate - projectStartDate) / msPerDay) + 1;
+            const duration = endDay - startDay + 1;
+
+            if (!categoryRangesMap[kategori]) {
+                categoryRangesMap[kategori] = [];
+            }
+
+            categoryRangesMap[kategori].push({
+                start: startDay > 0 ? startDay : 1,
+                end: endDay > 0 ? endDay : 1,
+                duration: duration > 0 ? duration : 1
+            });
+        });
+
+        console.log("📊 Category Ranges Map:", categoryRangesMap);
+    } else {
+        // No day_gantt_data, use current date as start
+        earliestDate = new Date();
+        currentProject.startDate = earliestDate.toISOString().split('T')[0];
+        console.log(`📆 Project Start Date (default): ${currentProject.startDate}`);
+    }
+
+    // Build dynamic tasks with ranges from day_gantt_data
+    tempTaskList.forEach(item => {
+        // Find matching ranges by normalizing category names
+        const normalizedName = item.name.toLowerCase().trim();
+        let ranges = [];
+
+        // Try to find ranges by matching category name
+        for (const [kategori, rangeArray] of Object.entries(categoryRangesMap)) {
+            const normalizedKategori = kategori.toLowerCase().trim();
+            if (normalizedName === normalizedKategori ||
+                normalizedName.includes(normalizedKategori) ||
+                normalizedKategori.includes(normalizedName)) {
+                ranges = rangeArray;
+                break;
+            }
+        }
+
+        // Calculate total duration from all ranges
+        let totalDuration = 0;
+        let minStart = 0;
+        let maxEnd = 0;
+
+        if (ranges.length > 0) {
+            totalDuration = ranges.reduce((sum, r) => sum + r.duration, 0);
+            minStart = Math.min(...ranges.map(r => r.start));
+            maxEnd = Math.max(...ranges.map(r => r.end));
+        }
+
         dynamicTasks.push({
             id: item.id,
             name: item.name,
-            start: startDay > 0 ? startDay : 0,
-            duration: duration > 0 ? duration : 0,
+            start: minStart,
+            duration: totalDuration,
             dependencies: [],
             keterlambatan: item.keterlambatan || 0,
             inputData: {
-                startDay: startDay > 0 ? startDay : 0,
-                endDay: endDay > 0 ? endDay : 0
+                ranges: ranges,
+                startDay: minStart,
+                endDay: maxEnd
             }
         });
     });
+
     currentTasks = dynamicTasks;
     projectTasks[selectedValue] = currentTasks;
 
     console.log(`✅ Data API berhasil diparsing: ${currentTasks.length} tahapan ditemukan.`);
+}
+
+// Helper function to parse DD/MM/YYYY date format
+function parseDateDDMMYYYY(dateStr) {
+    if (!dateStr) return null;
+
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const year = parseInt(parts[2], 10);
+
+    const date = new Date(year, month, day);
+    return isNaN(date.getTime()) ? null : date;
 }
 
 function renderApiData() {
@@ -968,11 +1061,27 @@ function renderProjectInfo() {
 
 function updateStats() {
     if (!currentProject) return;
-    const inputedTasks = currentTasks.filter(t => t.duration > 0);
+
+    // Count tasks that have ranges or duration > 0
+    const inputedTasks = currentTasks.filter(t => {
+        const hasRanges = t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0;
+        return t.duration > 0 || hasRanges;
+    });
     const totalInputed = inputedTasks.length;
+
     let maxEnd = 0;
     if (inputedTasks.length > 0) {
-        maxEnd = Math.max(...inputedTasks.map(t => t.start + t.duration - 1));
+        inputedTasks.forEach(task => {
+            if (task.inputData && task.inputData.ranges && task.inputData.ranges.length > 0) {
+                task.inputData.ranges.forEach(range => {
+                    if (range.end > maxEnd) {
+                        maxEnd = range.end;
+                    }
+                });
+            } else if (task.start + task.duration - 1 > maxEnd) {
+                maxEnd = task.start + task.duration - 1;
+            }
+        });
     }
     const stats = document.getElementById('stats');
     stats.innerHTML = `
@@ -997,12 +1106,21 @@ function renderChart() {
     const chart = document.getElementById('ganttChart');
     const DAY_WIDTH = 40;
 
-    // Tentukan lebar chart
+    // Tentukan lebar chart berdasarkan ranges
     let maxTaskEndDay = 0;
     currentTasks.forEach(task => {
-        const end = task.start + task.duration;
-        if (end > maxTaskEndDay) maxTaskEndDay = end;
+        if (task.inputData && task.inputData.ranges && task.inputData.ranges.length > 0) {
+            task.inputData.ranges.forEach(range => {
+                if (range.end > maxTaskEndDay) {
+                    maxTaskEndDay = range.end;
+                }
+            });
+        } else {
+            const end = task.start + task.duration;
+            if (end > maxTaskEndDay) maxTaskEndDay = end;
+        }
     });
+
     const totalDaysToRender = Math.max(
         (currentProject.work === 'ME' ? totalDaysME : totalDaysSipil),
         maxTaskEndDay + 10
@@ -1020,9 +1138,10 @@ function renderChart() {
         const dateNum = currentDate.getDate();
         const monthName = currentDate.toLocaleDateString('id-ID', { month: 'short' });
         const isSunday = currentDate.getDay() === 0;
+        const dayNumber = i + 1;
         html += `
-            <div class="day-header" style="width: ${DAY_WIDTH}px; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
-                <span class="d-date">${dateNum}</span>
+            <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
+                <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
                 <span class="d-month">${monthName}</span>
             </div>
         `;
@@ -1032,47 +1151,88 @@ function renderChart() {
     // Render Body
     html += '<div class="chart-body">';
     currentTasks.forEach(task => {
-        if (task.duration === 0) return; // Skip yang 0 durasi
+        const ranges = task.inputData?.ranges || [];
 
-        const leftPos = (task.start - 1) * DAY_WIDTH;
-        const widthPos = task.duration * DAY_WIDTH;
+        // Skip tasks that have no ranges/bars to display
+        if (ranges.length === 0 && task.duration === 0) return;
+
         const keterlambatan = task.keterlambatan || 0;
 
-        // Tgl asli
-        const tStart = new Date(projectStartDate);
-        tStart.setDate(projectStartDate.getDate() + (task.start - 1));
-        const tEnd = new Date(tStart);
-        tEnd.setDate(tStart.getDate() + task.duration - 1); // Fix: -1 agar tanggal akhir benar
-
-        // Hitung posisi bar keterlambatan (setelah bar utama)
-        const delayLeftPos = leftPos + widthPos;
-        const delayWidthPos = keterlambatan * DAY_WIDTH;
-
-        // Tanggal akhir dengan keterlambatan
-        const tEndWithDelay = new Date(tEnd);
-        tEndWithDelay.setDate(tEnd.getDate() + keterlambatan);
+        // Calculate total duration from ranges if available
+        const totalDuration = task.duration > 0 ? task.duration :
+            ranges.reduce((sum, r) => sum + (r.duration || 0), 0);
 
         html += '<div class="task-row">';
         html += `<div class="task-name">
             <span>${task.name}</span>
-            <span class="task-duration">Durasi: ${task.duration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
+            <span class="task-duration">Total Durasi: ${totalDuration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
         </div>`;
         html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
-        // Bar utama (hijau/on-time)
-        html += `<div class="bar on-time" data-task-id="${task.id}" 
-                style="left: ${leftPos}px; width: ${widthPos}px;" 
-                title="${task.name}: ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
-            ${task.duration}h
-        </div>`;
+        // Render bars from ranges if available
+        if (ranges.length > 0) {
+            ranges.forEach((range, idx) => {
+                const leftPos = (range.start - 1) * DAY_WIDTH;
+                const widthPos = (range.duration * DAY_WIDTH) - 1;
 
-        // Bar keterlambatan (merah) - hanya tampil jika ada keterlambatan
-        if (keterlambatan > 0) {
-            html += `<div class="bar delayed" data-task-id="${task.id}-delay" 
-                    style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
-                    title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
-                +${keterlambatan}h
+                const tStart = new Date(projectStartDate);
+                tStart.setDate(projectStartDate.getDate() + (range.start - 1));
+                const tEnd = new Date(tStart);
+                tEnd.setDate(tStart.getDate() + range.duration - 1);
+
+                html += `<div class="bar on-time" data-task-id="${task.id}-${idx}" 
+                        style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;" 
+                        title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
+                    ${range.duration}
+                </div>`;
+            });
+
+            // Bar keterlambatan (merah) - setelah range terakhir
+            if (keterlambatan > 0) {
+                const lastRange = ranges[ranges.length - 1];
+                const lastEnd = new Date(projectStartDate);
+                lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1);
+
+                const delayLeftPos = (lastRange.end) * DAY_WIDTH;
+                const delayWidthPos = (keterlambatan * DAY_WIDTH) - 1;
+                const tEndWithDelay = new Date(lastEnd);
+                tEndWithDelay.setDate(lastEnd.getDate() + keterlambatan);
+
+                html += `<div class="bar delayed" data-task-id="${task.id}-delay" 
+                        style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
+                        title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                    +${keterlambatan}
+                </div>`;
+            }
+        } else {
+            // Fallback to old single-bar rendering if no ranges
+            const leftPos = (task.start - 1) * DAY_WIDTH;
+            const widthPos = task.duration * DAY_WIDTH;
+
+            const tStart = new Date(projectStartDate);
+            tStart.setDate(projectStartDate.getDate() + (task.start - 1));
+            const tEnd = new Date(tStart);
+            tEnd.setDate(tStart.getDate() + task.duration - 1);
+
+            html += `<div class="bar on-time" data-task-id="${task.id}" 
+                    style="left: ${leftPos}px; width: ${widthPos}px;" 
+                    title="${task.name}: ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
+                ${task.duration}h
             </div>`;
+
+            // Bar keterlambatan (merah)
+            if (keterlambatan > 0) {
+                const delayLeftPos = leftPos + widthPos;
+                const delayWidthPos = keterlambatan * DAY_WIDTH;
+                const tEndWithDelay = new Date(tEnd);
+                tEndWithDelay.setDate(tEnd.getDate() + keterlambatan);
+
+                html += `<div class="bar delayed" data-task-id="${task.id}-delay" 
+                        style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" 
+                        title="Keterlambatan ${task.name}: +${keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                    +${keterlambatan}h
+                </div>`;
+            }
         }
 
         html += '</div></div>';
