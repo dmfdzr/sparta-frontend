@@ -26,6 +26,9 @@ let dayGanttData = null // Store day_gantt_data for multi-range bars
 
 let checkpoints = {} // Format: { taskId: [{ day: number, taskName: string }] }
 
+let supervisionDays = { 1: true, 2: true, 3: true } // Format: { dayNumber: true, ... }
+const DEFAULT_SUPERVISION_DAYS = [1, 2, 3] // Days that cannot be edited/deleted
+
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
   { id: 1, name: "Instalasi", start: 0, duration: 0, dependencies: [] },
@@ -1237,13 +1240,15 @@ function renderChart() {
     const isSunday = currentDate.getDay() === 0
     const dayNumber = i + 1
     const isSupervisionDay = supervisionDays[dayNumber] === true
+    const isDefaultSupervision = DEFAULT_SUPERVISION_DAYS.includes(dayNumber)
     const supervisionClass = isSupervisionDay ? "supervision-active" : ""
+    const defaultSupervisionStyle = isDefaultSupervision ? "background-color: #fbbf24; cursor: not-allowed;" : ""
 
     html += `
                 <div class="day-header ${supervisionClass}" 
-                    style="width: ${DAY_WIDTH}px; box-sizing: border-box; : ""}"
-                    onclick="handleSupervisionDayClick(${dayNumber}, this)"
-                    title="${isSupervisionDay ? "Hari Pengawasan - Klik untuk menghapus" : "Klik untuk menerapkan pengawasan"}">
+                     style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? "background-color:#ffe3e3;" : ""} ${defaultSupervisionStyle}"
+                     onclick="handleSupervisionDayClick(${dayNumber}, this)"
+                     title="${isDefaultSupervision ? "Hari Pengawasan Default (tidak dapat diubah)" : isSupervisionDay ? "Hari Pengawasan - Klik untuk menghapus" : "Klik untuk menerapkan pengawasan"}">
                     <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
                 </div>
             `
@@ -1359,7 +1364,7 @@ function renderChart() {
           // Check if day falls within task duration
           const markerLeftPos = (dayInt - 1) * DAY_WIDTH
           html += `
-                        <div class="supervision-marker" 
+                        <div class="supervision-marker"
                              style="left: ${markerLeftPos}px;"
                              title="Hari Pengawasan: Hari ${dayInt}">
                         </div>
@@ -1371,6 +1376,18 @@ function renderChart() {
   html += "</div>"
 
   chart.innerHTML = html
+
+  const chartContainer = document.getElementById("ganttChart")
+  const legendHtml = `
+    <div style="margin-top: 20px; padding: 12px; background-color: #f9fafb; border-radius: 6px; border-left: 4px solid #fbbf24;">
+      <div style="font-weight: bold; margin-bottom: 8px; color: #111827;">Keterangan:</div>
+      <div style="display: flex; align-items: center; gap: 8px; color: #4b5563;">
+        <div style="width: 20px; height: 20px; background-color: #fbbf24; border-radius: 4px;"></div>
+        <span>Hari Pengawasan (Hari 1-3 adalah default dan tidak dapat diubah)</span>
+      </div>
+    </div>
+  `
+  chartContainer.insertAdjacentHTML("afterend", legendHtml)
 
   // Draw lines after render
   setTimeout(drawDependencyLines, 50)
@@ -1645,9 +1662,15 @@ function renderCheckpointList() {
 }
 
 // ==================== SUPERVISION DAY HANDLING ====================
-let supervisionDays = {} // Format: { dayNumber: true, ... }
+// let supervisionDays = { 1: true, 2: true, 3: true } // Format: { dayNumber: true, ... }
+// const DEFAULT_SUPERVISION_DAYS = [1, 2, 3] // Days that cannot be edited/deleted
 
 function handleSupervisionDayClick(dayNumber, element) {
+  if (DEFAULT_SUPERVISION_DAYS.includes(dayNumber)) {
+    alert(`⚠️ Hari ${dayNumber} adalah hari pengawasan default dan tidak dapat diubah.`)
+    return
+  }
+
   if (supervisionDays[dayNumber]) {
     // Sudah ada pengawasan, tanyakan apakah ingin dihapus
     const confirmDelete = confirm(`Hapus pengawasan?\n\nHari: ${dayNumber}\n\nApakah Anda yakin?`)
