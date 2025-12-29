@@ -11,6 +11,7 @@ const ENDPOINTS = {
     ganttData: `${API_BASE_URL}/get_gantt_data`,
     insertData: `${API_BASE_URL}/gantt/insert`,
     dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`, // New endpoint for day delay
+    pengawasanInsert: `${API_BASE_URL}/gantt/pengawasan/insert`, // New endpoint for supervision
 }
 
 let projects = []
@@ -343,6 +344,10 @@ async function fetchGanttDataForSelection(selectedValue) {
 
             const ganttData = data.gantt_data
             rawGanttData = ganttData // Store for delay reference
+
+            // Parse Pengawasan days from gantt_data
+            parseSupervisionFromGanttData(ganttData)
+
             const ganttStatus = String(ganttData.Status || "")
                 .trim()
                 .toLowerCase()
@@ -1749,22 +1754,106 @@ function renderCheckpointList() {
 // ==================== SUPERVISION DAY HANDLING ====================
 let supervisionDays = {} // Format: { dayNumber: true, ... }
 
-function handleSupervisionDayClick(dayNumber, element) {
+// Parse Pengawasan_1 to Pengawasan_10 from gantt_data
+function parseSupervisionFromGanttData(ganttData) {
+    if (!ganttData) return
+
+    supervisionDays = {} // Reset supervision days
+
+    // Check Pengawasan_1 to Pengawasan_10
+    for (let i = 1; i <= 10; i++) {
+        const key = `Pengawasan_${i}`
+        const value = ganttData[key]
+
+        if (value !== undefined && value !== null && value !== "") {
+            // Value contains the day number
+            const dayNum = Number.parseInt(value, 10)
+            if (!isNaN(dayNum) && dayNum > 0) {
+                supervisionDays[dayNum] = true
+                console.log(`👁️ Pengawasan found: Day ${dayNum} (from ${key})`)
+            }
+        }
+    }
+
+    console.log("📋 Supervision days loaded:", supervisionDays)
+}
+
+async function handleSupervisionDayClick(dayNumber, element) {
+    if (!currentProject) {
+        alert("Silakan pilih No. Ulok terlebih dahulu.")
+        return
+    }
+
     if (supervisionDays[dayNumber]) {
         // Sudah ada pengawasan, tanyakan apakah ingin dihapus
         const confirmDelete = confirm(`Hapus pengawasan?\n\nHari: ${dayNumber}\n\nApakah Anda yakin?`)
         if (confirmDelete) {
-            delete supervisionDays[dayNumber]
-            element.classList.remove("supervision-active")
-            renderChart() // Re-render to remove the marker
+            // Send to API with day 0 to remove (or implement delete endpoint)
+            try {
+                const payload = {
+                    nomor_ulok: currentProject.ulokClean || currentProject.ulok.split("-").slice(0, -1).join("-"),
+                    lingkup_pekerjaan: currentProject.work.toUpperCase(),
+                    pengawasan_day: 0, // Send 0 to indicate removal
+                    remove_day: dayNumber // Indicate which day to remove
+                }
+
+                console.log("📤 Removing supervision:", payload)
+
+                const response = await fetch(ENDPOINTS.pengawasanInsert, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                })
+
+                const result = await response.json()
+
+                if (response.ok) {
+                    delete supervisionDays[dayNumber]
+                    element.classList.remove("supervision-active")
+                    renderChart()
+                    console.log("✅ Supervision removed successfully")
+                } else {
+                    throw new Error(result.message || "Gagal menghapus pengawasan")
+                }
+            } catch (error) {
+                console.error("❌ Error removing supervision:", error)
+                alert("Gagal menghapus pengawasan: " + error.message)
+            }
         }
     } else {
         // Belum ada pengawasan, tanyakan apakah ingin diterapkan
         const confirmAdd = confirm(`Terapkan pengawasan?\n\nHari: ${dayNumber}\n\nApakah Anda yakin?`)
         if (confirmAdd) {
-            supervisionDays[dayNumber] = true
-            element.classList.add("supervision-active")
-            renderChart() // Re-render to add the marker
+            try {
+                const payload = {
+                    nomor_ulok: currentProject.ulokClean || currentProject.ulok.split("-").slice(0, -1).join("-"),
+                    lingkup_pekerjaan: currentProject.work.toUpperCase(),
+                    pengawasan_day: dayNumber
+                }
+
+                console.log("📤 Sending supervision:", payload)
+
+                const response = await fetch(ENDPOINTS.pengawasanInsert, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                })
+
+                const result = await response.json()
+
+                if (response.ok) {
+                    supervisionDays[dayNumber] = true
+                    element.classList.add("supervision-active")
+                    renderChart()
+                    alert("✅ Pengawasan berhasil diterapkan!")
+                    console.log("✅ Supervision added successfully")
+                } else {
+                    throw new Error(result.message || "Gagal menyimpan pengawasan")
+                }
+            } catch (error) {
+                console.error("❌ Error adding supervision:", error)
+                alert("Gagal menyimpan pengawasan: " + error.message)
+            }
         }
     }
 }
