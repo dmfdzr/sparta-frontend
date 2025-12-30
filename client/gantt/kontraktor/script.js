@@ -1157,23 +1157,24 @@ function renderChart() {
     const totalChartWidth = totalDaysToRender * DAY_WIDTH;
     const projectStartDate = new Date(currentProject.startDate);
 
+    // Render Header
     let html = '<div class="chart-header">';
     html += '<div class="task-column">Tahapan</div>';
     html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
-
     for (let i = 0; i < totalDaysToRender; i++) {
         const currentDate = new Date(projectStartDate);
         currentDate.setDate(projectStartDate.getDate() + i);
-        const isSunday = currentDate.getDay() === 0;
+
         const dayNumber = i + 1;
 
         html += `
-            <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
-                <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
-            </div>
-        `;
+                <div class="day-header" 
+                    style="width: ${DAY_WIDTH}px; box-sizing: border-box;">
+                    <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
+                </div>
+            `;
     }
-    html += '</div></div>';
+    html += "</div></div>";
     html += '<div class="chart-body">';
 
     currentTasks.forEach(task => {
