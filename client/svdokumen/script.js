@@ -2,10 +2,13 @@
 // KONFIGURASI & STATE
 // ============================================
 const BASE_URL = "https://penyimpanan-dokumen-s8p6.onrender.com"; // Sesuaikan jika perlu
+const DASHBOARD_URL = "../../dashboard/pic/index.html"; // URL Dashboard Utama
+const LOGIN_URL = "../../auth/pic/login.html"; // URL Login Utama
+
 const CATEGORIES = ["fotoAsal", "fotoRenovasi", "me", "sipil", "sketsaAwal", "pendukung"];
 
 const state = {
-    user: JSON.parse(localStorage.getItem("user")) || null,
+    user: null, // Akan diisi dari Session/Local Storage
     docs: [],
     currentPage: 1,
     rowsPerPage: 5,
@@ -18,61 +21,60 @@ const state = {
 // INISIALISASI
 // ============================================
 document.addEventListener("DOMContentLoaded", () => {
-    initApp();
+    // 1. Cek Integrasi Auth
+    checkAuthIntegration();
+    
+    // 2. Setup Event Listeners
     setupEventListeners();
     setupNumberInputs();
+
+    // 3. Tombol Kembali ke Dashboard
+    const backBtn = document.getElementById('backToDashboardBtn');
+    if(backBtn) {
+        backBtn.addEventListener('click', () => {
+            window.location.href = DASHBOARD_URL;
+        });
+    }
 });
 
-function initApp() {
-    if (state.user) {
-        showDashboard();
-    } else {
-        showLogin();
-        checkOperationalHours();
+function checkAuthIntegration() {
+    // Mencoba mengambil data user dari sessionStorage (prioritas) atau localStorage
+    // Ini mengasumsikan auth/pic menyimpan data user dengan key 'user' atau 'user_data'
+    // Sesuaikan key ini dengan apa yang disimpan oleh login_script.js di auth/pic
+    const storedUser = sessionStorage.getItem("user") || localStorage.getItem("user");
+
+    if (!storedUser) {
+        alert("Sesi Anda telah berakhir atau Anda belum login. Silakan login kembali.");
+        window.location.href = LOGIN_URL;
+        return;
     }
-}
-
-// ============================================
-// AUTHENTICATION
-// ============================================
-async function handleLogin(e) {
-    e.preventDefault();
-    const username = document.getElementById("username").value.trim().toLowerCase();
-    const password = document.getElementById("password").value.trim().toUpperCase();
-    const alertBox = document.getElementById("loginAlert");
-
-    setLoading(true);
-    alertBox.classList.add("hidden");
 
     try {
-        const res = await fetch(`${BASE_URL}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
+        state.user = JSON.parse(storedUser);
+        
+        // Update UI dengan data user
+        const welcomeMsg = document.getElementById("userWelcome");
+        if(welcomeMsg) welcomeMsg.textContent = `Halo, ${state.user.username || state.user.nama || 'User'}`;
 
-        if (data.ok) {
-            state.user = data.user;
-            localStorage.setItem("user", JSON.stringify(state.user));
-            showDashboard();
-            showToast("Login Berhasil!");
-        } else {
-            throw new Error(data.detail || "Login Gagal");
-        }
-    } catch (err) {
-        alertBox.textContent = err.message;
-        alertBox.classList.remove("hidden");
-    } finally {
-        setLoading(false);
+        // Lanjut load data
+        checkOperationalHours();
+        fetchDocuments();
+
+    } catch (e) {
+        console.error("Gagal memparsing data user", e);
+        alert("Terjadi kesalahan data sesi. Silakan login ulang.");
+        localStorage.removeItem("user");
+        sessionStorage.removeItem("user");
+        window.location.href = LOGIN_URL;
     }
 }
 
 function handleLogout() {
     if (confirm("Yakin ingin logout?")) {
-        localStorage.removeItem("user");
-        state.user = null;
-        window.location.reload();
+        // Hapus sesi
+        sessionStorage.clear();
+        localStorage.removeItem("user"); // Bersihkan jika ada di local
+        window.location.href = LOGIN_URL;
     }
 }
 
@@ -87,9 +89,11 @@ function checkOperationalHours() {
         if (hour < 6 || hour >= 18) {
             timeInfo.textContent = "⚠️ Di luar jam operasional (06:00 - 18:00 WIB)";
             timeInfo.style.color = "red";
+            timeInfo.style.backgroundColor = "#fee2e2";
         } else {
             timeInfo.textContent = "✅ Jam Operasional Aktif";
             timeInfo.style.color = "green";
+            timeInfo.style.backgroundColor = "#dcfce7";
         }
     };
     updateTime();
@@ -102,8 +106,9 @@ function checkOperationalHours() {
 async function fetchDocuments() {
     setLoading(true);
     try {
-        const userCabang = state.user.cabang === "HEAD OFFICE" ? "" : state.user.cabang;
-        // Jika HEAD OFFICE, ambil semua (cabang kosong), jika tidak, filter by cabang
+        // Menggunakan data cabang dari user yang login
+        const userCabang = (state.user.cabang === "HEAD OFFICE" || !state.user.cabang) ? "" : state.user.cabang;
+        
         let url = `${BASE_URL}/documents`;
         if (userCabang) url += `?cabang=${encodeURIComponent(userCabang)}`;
 
@@ -147,6 +152,9 @@ function renderTable() {
     }
 
     currentData.forEach((row, index) => {
+        const canEdit = state.user.jabatan && (state.user.jabatan.includes("COORDINATOR") || state.user.jabatan.includes("MANAGER") || state.user.jabatan.includes("SUPPORT"));
+        const canDelete = state.user.jabatan && state.user.jabatan.includes("COORDINATOR");
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${start + index + 1}</td>
@@ -156,9 +164,8 @@ function renderTable() {
             <td>${row.waktu_upload || "-"}</td>
             <td>
                 <a href="${row.folder_link}" target="_blank" class="action-btn btn-link">📂 Drive</a>
-                <button class="action-btn btn-edit" onclick="openEditForm('${row.kode_toko}')">✏️ Edit</button>
-                ${state.user.jabatan.includes("COORDINATOR") ? 
-                    `<button class="action-btn btn-del" onclick="deleteDocument('${row.kode_toko}')">🗑️ Hapus</button>` : ''}
+                ${canEdit ? `<button class="action-btn btn-edit" onclick="openEditForm('${row.kode_toko}')">✏️ Edit</button>` : ''}
+                ${canDelete ? `<button class="action-btn btn-del" onclick="deleteDocument('${row.kode_toko}')">🗑️ Hapus</button>` : ''}
             </td>
         `;
         tbody.appendChild(tr);
@@ -193,167 +200,133 @@ function handleFileSelect(e, category) {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    // Pastikan array category ada
     if (!state.filesToUpload[category]) state.filesToUpload[category] = [];
 
     files.forEach(file => {
         const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-            const base64 = reader.result; // "data:image/jpeg;base64,....."
-            
-            // Simpan ke state
+        reader.onload = (ev) => {
             state.filesToUpload[category].push({
-                filename: file.name,
-                type: file.type,
-                data: base64, // Penting! Kirim ini ke backend
-                category: category
+                name: file.name,
+                data: ev.target.result.split(",")[1], // Base64 content
+                type: file.type
             });
-
             renderPreviews(category);
         };
+        reader.readAsDataURL(file);
     });
-    
-    // Reset input agar bisa pilih file sama lagi jika perlu
-    e.target.value = "";
 }
 
 function renderPreviews(category) {
     const container = document.getElementById(`preview-${category}`);
     container.innerHTML = "";
-
-    // 1. Render Existing Files (File Lama)
-    const existing = state.existingFiles[category] || [];
-    existing.forEach((file, idx) => {
-        const el = document.createElement("div");
-        el.className = "file-preview";
-        el.style.background = "#e0f2fe"; // Pembeda warna
-        el.innerHTML = `
-            <a href="${file.url}" target="_blank">🔗 ${file.name}</a>
-            `;
-        container.appendChild(el);
+    
+    // Preview file baru
+    (state.filesToUpload[category] || []).forEach((file, idx) => {
+        const div = document.createElement("div");
+        div.className = "file-item new-file";
+        div.innerHTML = `<span>📄 ${file.name}</span> <span class="remove" onclick="removeFile('${category}', ${idx})">❌</span>`;
+        container.appendChild(div);
     });
 
-    // 2. Render New Files (File Baru)
-    const newFiles = state.filesToUpload[category] || [];
-    newFiles.forEach((file, idx) => {
-        const el = document.createElement("div");
-        el.className = "file-preview";
-        el.innerHTML = `
-            <span>📄 ${file.filename}</span>
-            <button type="button" class="btn-remove-file" onclick="removeNewFile('${category}', ${idx})">×</button>
-        `;
-        container.appendChild(el);
-    });
+    // Preview file existing (saat edit)
+    if (state.isEditing && state.existingFiles[category]) {
+        state.existingFiles[category].forEach(file => {
+            const div = document.createElement("div");
+            div.className = "file-item existing-file";
+            div.innerHTML = `<span>✅ ${file.name}</span>`; // Tidak bisa dihapus parsial di mode ini (opsional)
+            container.appendChild(div);
+        });
+    }
 }
 
-function removeNewFile(category, index) {
+function removeFile(category, index) {
     state.filesToUpload[category].splice(index, 1);
     renderPreviews(category);
 }
 
-function resetForm() {
-    document.getElementById("storeForm").reset();
-    state.filesToUpload = {};
-    state.existingFiles = {};
+// ============================================
+// CRUD OPERATIONS
+// ============================================
+window.openAddForm = () => {
+    resetForm();
     state.isEditing = false;
-    document.getElementById("editModeKode").value = "";
-    document.getElementById("formTitle").textContent = "Form Dokumen Toko";
-    document.getElementById("kodeToko").disabled = false;
-    
-    // Kosongkan preview
-    CATEGORIES.forEach(cat => {
-        const el = document.getElementById(`preview-${cat}`);
-        if(el) el.innerHTML = "";
-    });
-}
+    document.getElementById("formModal").classList.remove("hidden");
+    generateUploadFields();
+};
 
-// Populate form untuk Edit
 window.openEditForm = (kodeToko) => {
     const doc = state.docs.find(d => d.kode_toko === kodeToko);
     if (!doc) return;
 
     resetForm();
     state.isEditing = true;
+    
     document.getElementById("formTitle").textContent = `Edit Toko: ${doc.nama_toko}`;
     document.getElementById("editModeKode").value = doc.kode_toko;
-    
-    // Isi field
     document.getElementById("kodeToko").value = doc.kode_toko;
-    document.getElementById("kodeToko").disabled = true; // Primary key tidak boleh ubah
+    document.getElementById("kodeToko").disabled = true; // PK tidak boleh ganti
     document.getElementById("namaToko").value = doc.nama_toko;
-    document.getElementById("cabangInput").value = doc.cabang;
-    document.getElementById("luasSales").value = formatNumber(doc.luas_sales);
-    document.getElementById("luasParkir").value = formatNumber(doc.luas_parkir);
-    document.getElementById("luasGudang").value = formatNumber(doc.luas_gudang);
 
-    // Parsing file links dari string spreadsheet
-    // Format: "category|filename|url, category|filename|url"
-    if (doc.file_links) {
-        const links = doc.file_links.split(", ");
-        links.forEach(link => {
-            const parts = link.split("|");
-            if (parts.length >= 3) {
-                const [cat, name, url] = parts;
-                const cleanCat = cat.trim();
-                if (!state.existingFiles[cleanCat]) state.existingFiles[cleanCat] = [];
-                state.existingFiles[cleanCat].push({ name, url });
-            }
-        });
-    }
+    document.getElementById("formModal").classList.remove("hidden");
+    generateUploadFields();
 
-    // Render ulang semua preview
-    CATEGORIES.forEach(cat => renderPreviews(cat));
-
-    showForm();
+    // Load existing files mapping (mockup logic, sesuaikan dengan API response struktur file)
+    // Di sini kita asumsikan server mengembalikan list file per kategori jika ada endpoint detail
+    // Untuk sekarang kita hanya reset upload field
 };
 
-async function handleSave(e) {
-    e.preventDefault();
-    setLoading(true);
+window.closeForm = () => {
+    document.getElementById("formModal").classList.add("hidden");
+};
 
-    const kodeToko = document.getElementById("kodeToko").value;
+function resetForm() {
+    state.filesToUpload = {};
+    state.existingFiles = {};
+    state.isEditing = false;
+    document.getElementById("editModeKode").value = "";
+    document.getElementById("formTitle").textContent = "Form Dokumen Toko";
+    document.getElementById("kodeToko").disabled = false;
+    document.getElementById("uploadForm").reset();
     
-    // Kumpulkan semua file baru dari state
-    let allFiles = [];
-    Object.keys(state.filesToUpload).forEach(cat => {
-        allFiles = [...allFiles, ...state.filesToUpload[cat]];
-    });
+    const container = document.getElementById("uploadContainer");
+    if(container) container.innerHTML = "";
+}
+
+document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    const kodeToko = document.getElementById("kodeToko").value.trim().toUpperCase();
+    const namaToko = document.getElementById("namaToko").value.trim();
+    
+    if (!kodeToko || !namaToko) {
+        showToast("Kode dan Nama Toko wajib diisi!");
+        return;
+    }
 
     const payload = {
         kode_toko: kodeToko,
-        nama_toko: document.getElementById("namaToko").value,
-        cabang: document.getElementById("cabangInput").value,
-        luas_sales: document.getElementById("luasSales").value,
-        luas_parkir: document.getElementById("luasParkir").value,
-        luas_gudang: document.getElementById("luasGudang").value,
-        files: allFiles // Array of {category, filename, data(base64)}
+        nama_toko: namaToko,
+        cabang: state.user.cabang, // Ambil cabang dari user yang login
+        files: state.filesToUpload
     };
 
+    const endpoint = state.isEditing ? `${BASE_URL}/update` : `${BASE_URL}/upload`;
+
+    setLoading(true);
     try {
-        let url = `${BASE_URL}/save-document-base64/`;
-        let method = "POST";
-
-        if (state.isEditing) {
-            url = `${BASE_URL}/document/${kodeToko}`;
-            method = "PUT";
-        }
-
-        const res = await fetch(url, {
-            method: method,
+        const res = await fetch(endpoint, {
+            method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
-        
-        const json = await res.json();
-        
-        if (json.ok) {
+        const result = await res.json();
+
+        if (result.ok) {
             showToast("Data berhasil disimpan!");
-            resetForm();
-            showListView();
-            fetchDocuments(); // Refresh data
+            closeForm();
+            fetchDocuments();
         } else {
-            throw new Error(json.message || "Gagal menyimpan");
+            throw new Error(result.detail || "Gagal menyimpan data");
         }
     } catch (err) {
         console.error(err);
@@ -361,63 +334,32 @@ async function handleSave(e) {
     } finally {
         setLoading(false);
     }
-}
+});
 
 window.deleteDocument = async (kodeToko) => {
-    if (!confirm(`Hapus data toko ${kodeToko}? Data di Drive juga akan terhapus.`)) return;
+    if (!confirm(`Hapus data toko ${kodeToko}? Data di Drive tidak akan terhapus otomatis.`)) return;
 
     setLoading(true);
     try {
-        const res = await fetch(`${BASE_URL}/document/${kodeToko}`, {
-            method: "DELETE"
-        });
-        const json = await res.json();
-        if (json.ok) {
-            showToast("Data dihapus.");
+        const res = await fetch(`${BASE_URL}/delete?kode_toko=${kodeToko}`, { method: "DELETE" });
+        const result = await res.json();
+        
+        if (result.ok) {
+            showToast("Data berhasil dihapus");
             fetchDocuments();
         } else {
-            alert("Gagal hapus: " + json.detail);
+            showToast("Gagal menghapus data");
         }
     } catch (err) {
-        alert("Error server");
+        showToast("Error jaringan");
     } finally {
         setLoading(false);
     }
 };
 
 // ============================================
-// HELPER & UTILS
+// UTILS
 // ============================================
-function showLogin() {
-    document.getElementById("loginSection").classList.remove("hidden");
-    document.getElementById("dashboardSection").classList.add("hidden");
-}
-
-function showDashboard() {
-    document.getElementById("loginSection").classList.add("hidden");
-    document.getElementById("dashboardSection").classList.remove("hidden");
-    document.getElementById("userWelcome").textContent = `Halo, ${state.user.nama}`;
-    showListView();
-    fetchDocuments();
-    generateUploadFields();
-}
-
-function showListView() {
-    document.getElementById("listView").classList.remove("hidden");
-    document.getElementById("formView").classList.add("hidden");
-}
-
-function showForm() {
-    document.getElementById("listView").classList.add("hidden");
-    document.getElementById("formView").classList.remove("hidden");
-}
-
-function setLoading(bool) {
-    const modal = document.getElementById("loadingModal");
-    if (bool) modal.classList.remove("hidden");
-    else modal.classList.add("hidden");
-}
-
 function showToast(msg) {
     const toast = document.getElementById("toast");
     toast.textContent = msg;
@@ -425,63 +367,33 @@ function showToast(msg) {
     setTimeout(() => toast.classList.add("hidden"), 3000);
 }
 
-function formatCategoryName(str) {
-    // fotoAsal -> Foto Asal
-    return str.replace(/([A-Z])/g, ' $1').replace(/^./, function(str){ return str.toUpperCase(); });
+function setLoading(isLoading) {
+    const modal = document.getElementById("loadingModal");
+    if (isLoading) modal.classList.remove("hidden");
+    else modal.classList.add("hidden");
 }
 
-function formatNumber(val) {
-    if (!val) return "";
-    return val.toString(); // Sederhana, bisa ditambah logic ribuan jika perlu
+function formatCategoryName(name) {
+    // camelCase to Normal Text
+    const result = name.replace(/([A-Z])/g, " $1");
+    return result.charAt(0).toUpperCase() + result.slice(1);
 }
 
 function setupEventListeners() {
-    // Login & Logout
-    document.getElementById("loginForm").addEventListener("submit", handleLogin);
-    document.getElementById("logoutBtn").addEventListener("click", handleLogout);
-    
-    // Toggle Password
-    document.getElementById("togglePassword").addEventListener("click", () => {
-        const input = document.getElementById("password");
-        input.type = input.type === "password" ? "text" : "password";
-    });
-
-    // Navigasi View
-    document.getElementById("btnAdd").addEventListener("click", () => {
-        resetForm();
-        showForm();
-    });
-    document.getElementById("btnBack").addEventListener("click", showListView);
-    document.getElementById("btnCancel").addEventListener("click", showListView);
-    
-    // Form Submit
-    document.getElementById("storeForm").addEventListener("submit", handleSave);
-
-    // Search & Pagination
-    document.getElementById("searchInput").addEventListener("input", () => {
-        state.currentPage = 1;
-        renderTable();
-    });
-    document.getElementById("prevPage").addEventListener("click", () => {
-        if (state.currentPage > 1) {
-            state.currentPage--;
-            renderTable();
+    // Close modal on click outside
+    window.onclick = (event) => {
+        const modal = document.getElementById("formModal");
+        if (event.target == modal) {
+            closeForm();
         }
-    });
-    document.getElementById("nextPage").addEventListener("click", () => {
-        state.currentPage++;
-        renderTable();
-    });
+    };
 }
 
 function setupNumberInputs() {
-    // Auto format angka (sederhana: izinkan angka dan koma)
-    document.querySelectorAll(".number-input").forEach(input => {
-        input.addEventListener("input", (e) => {
-            let val = e.target.value;
-            // Hanya angka dan koma
-            val = val.replace(/[^0-9,]/g, "");
-            e.target.value = val;
-        });
-    });
+    // Helper jika ada input angka
 }
+
+window.changePage = (delta) => {
+    state.currentPage += delta;
+    renderTable();
+};
