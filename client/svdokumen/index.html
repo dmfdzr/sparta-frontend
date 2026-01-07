@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penyimpanan Dokumen Alfamart</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="shortcut icon" href="https://upload.wikimedia.org/wikipedia/commons/9/9e/Alfamart_logo.svg" type="image/x-icon">
+</head>
+<body>
+
+    <div id="toast" class="toast hidden">Pesan Notifikasi</div>
+
+    <div id="loadingModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="loader"></div>
+            <p>Memproses data...</p>
+        </div>
+    </div>
+
+    <section id="loginSection" class="hidden">
+        <div class="login-container">
+            <div class="login-box">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/9/9e/Alfamart_logo.svg" alt="Alfamart Logo" class="login-logo">
+                <h2>Portal Dokumen</h2>
+                <p class="subtitle">Building Process Support</p>
+                
+                <div id="loginAlert" class="alert hidden"></div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Email SAT (Username)</label>
+                        <input type="text" id="username" placeholder="Contoh: user.name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Cabang (Password)</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" placeholder="Kode Cabang" required>
+                            <span id="togglePassword" class="eye-icon">👁️</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary full-width">LOGIN</button>
+                </form>
+                <p id="timeInfo" class="time-info"></p>
+            </div>
+        </div>
+    </section>
+
+    <section id="dashboardSection" class="hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>Building Process</h1>
+                    <span id="userWelcome">Halo, User</span>
+                </div>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </header>
+
+        <main class="container">
+            <div id="listView">
+                <div class="toolbar">
+                    <button id="btnAdd" class="btn-primary">+ Tambah Dokumen</button>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Cari Kode / Nama Toko...">
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Kode Toko</th>
+                                <th>Nama Toko</th>
+                                <th>Cabang</th>
+                                <th>Tanggal Update</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <button id="prevPage" disabled>&laquo; Sebelumnya</button>
+                    <span id="pageInfo">Halaman 1</span>
+                    <button id="nextPage">Selanjutnya &raquo;</button>
+                </div>
+            </div>
+
+            <div id="formView" class="hidden">
+                <div class="form-header">
+                    <button id="btnBack" class="btn-secondary">&larr; Kembali</button>
+                    <h2 id="formTitle">Form Dokumen Toko</h2>
+                </div>
+
+                <form id="storeForm" class="store-form">
+                    <input type="hidden" id="editModeKode" value="">
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Kode Toko *</label>
+                            <input type="text" id="kodeToko" required placeholder="Contoh: T001">
+                        </div>
+                        <div class="form-group">
+                            <label>Nama Toko *</label>
+                            <input type="text" id="namaToko" required placeholder="Nama Toko">
+                        </div>
+                        <div class="form-group">
+                            <label>Cabang *</label>
+                            <input type="text" id="cabangInput" required placeholder="HEAD OFFICE / CIKOKOL / dll">
+                        </div>
+                        <div class="form-group">
+                            <label>Luas Sales (m²)</label>
+                            <input type="text" id="luasSales" class="number-input" placeholder="0,00">
+                        </div>
+                        <div class="form-group">
+                            <label>Luas Parkir (m²)</label>
+                            <input type="text" id="luasParkir" class="number-input" placeholder="0,00">
+                        </div>
+                        <div class="form-group">
+                            <label>Luas Gudang (m²)</label>
+                            <input type="text" id="luasGudang" class="number-input" placeholder="0,00">
+                        </div>
+                    </div>
+
+                    <div class="upload-section">
+                        <h3>Unggah Dokumen</h3>
+                        <div id="uploadContainer">
+                            </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="btnCancel" class="btn-secondary">Batal</button>
+                        <button type="submit" class="btn-save">Simpan Data</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </section>
+    <script src="script.js"></script>
+</body>
+</html>
