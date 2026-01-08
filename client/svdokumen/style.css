@@ -49,60 +49,110 @@ body {
 
 /* === HEADER & DASHBOARD === */
 .app-header {
-    /* Gradasi Merah Alfamart Persis RAB */
+    /* Style Persis RAB: Gradasi Merah & Centered Layout */
     background: linear-gradient(135deg, var(--alfamart-red) 0%, var(--alfamart-red-dark) 100%);
     color: white; 
-    padding: 1.25rem 2rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 1rem 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    
+    /* Layout Centering */
+    position: relative; /* Penting untuk absolute positioning anak-anaknya */
+    display: flex;
+    justify-content: center; /* Judul di tengah */
+    align-items: center;
+    min-height: 80px;
 }
 
 .header-content {
-    display: flex; 
-    justify-content: space-between; 
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    justify-content: center; /* Pastikan konten utama di tengah */
     align-items: center;
-    max-width: 1200px; 
-    margin: 0 auto;
 }
 
-.header-left h1 { 
+/* Bagian Kiri: User Info (Diposisikan Absolute di Kiri) */
+.header-left {
+    position: absolute;
+    left: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Judul Utama: Di Tengah Halaman */
+.header-left h1 {
     font-size: 1.5rem; 
-    font-weight: 800; 
-    letter-spacing: -0.025em;
+    font-weight: 700; 
     text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 0;
+    line-height: 1.2;
 }
 
+/* Teks User Welcome */
 .header-left span { 
-    font-size: 0.9rem; 
-    font-weight: 500; 
+    font-size: 0.85rem; 
+    font-weight: 400; 
     opacity: 0.9; 
-    display: block;
     margin-top: 2px;
 }
 
+/* Bagian Kanan: Tombol (Diposisikan Absolute di Kanan) */
 .header-right {
+    position: absolute;
+    right: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     gap: 12px;
     align-items: center;
 }
 
-/* Tombol Logout & Back di Header */
+/* Tombol Logout & Back Style RAB */
 .btn-logout, #backToDashboardBtn {
     background: rgba(255, 255, 255, 0.15); 
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 0.6rem 1.2rem; 
+    padding: 0.5rem 1rem; 
     border-radius: 6px;
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer; 
     transition: all 0.2s ease;
     backdrop-filter: blur(4px);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
 }
 
 .btn-logout:hover, #backToDashboardBtn:hover { 
     background: rgba(255, 255, 255, 0.25); 
     transform: translateY(-1px);
+}
+
+/* RESPONSIVE: Agar tidak bertumpuk di HP */
+@media (max-width: 768px) {
+    .app-header {
+        flex-direction: column;
+        height: auto;
+        padding: 1.5rem;
+        gap: 1rem;
+    }
+
+    .header-left, .header-right {
+        position: static; /* Matikan absolute di HP */
+        transform: none;
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .header-left h1 {
+        font-size: 1.25rem;
+    }
 }
 
 /* === MAIN CONTAINER === */
