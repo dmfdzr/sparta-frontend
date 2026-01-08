@@ -1006,6 +1006,7 @@ async function initializePage() {
         checkAndPopulateRejectedData(); 
     });
 
+    /*
     document.getElementById('lokasi_manual')?.addEventListener('input', function(e) {
         const fullUlok = document.getElementById('lokasi').value.replace(/-/g, '');
         if (fullUlok.length === 12) {
@@ -1015,6 +1016,7 @@ async function initializePage() {
             }
         }
     });
+    */
 
     // 4. Saat Lingkup Pekerjaan berubah
     lingkupPekerjaanSelect.addEventListener("change", () => {
