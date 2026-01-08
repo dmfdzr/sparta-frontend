@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penyimpanan Dokumen Alfamart</title>
+    <title>Penyimpanan Dokumen Toko</title>
+    <link rel="icon" href="../assets/favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
-    <link rel="shortcut icon" href="https://upload.wikimedia.org/wikipedia/commons/9/9e/Alfamart_logo.svg" type="image/x-icon">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 <body>
 
@@ -18,87 +21,53 @@
         </div>
     </div>
 
-    <section id="dashboardSection">
-        <header class="app-header">
-            <div class="header-content">
-                <div class="header-left">
-                    <h1>Building Process</h1>
-                    <span id="userWelcome">Memuat data user...</span>
-                </div>
-                <div class="header-right">
-                    <button id="backToDashboardBtn" class="btn-secondary">⬅ Kembali ke Dashboard</button>
-                    <button onclick="handleLogout()" class="btn-logout">Logout</button>
-                </div>
-            </div>
+    <header>
+        <a href="#">
+            <img src="../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo"/>
+        </a>
+        <h1>Penyimpanan Dokumen</h1>
         </header>
 
-        <div class="container">
-            <div class="toolbar">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Cari Kode / Nama Toko..." onkeyup="renderTable()">
-                </div>
-                <div class="actions">
-                    <button class="btn-primary" onclick="openAddForm()">+ Tambah Dokumen</button>
-                    <span id="timeInfo" class="time-info-badge">Memuat Jam...</span>
-                </div>
+    <div class="container">
+        
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+            <div style="flex: 2;">
+                <label for="searchInput" style="font-weight: 600; display: block; margin-bottom: 0.5rem; color: #4a5568;">Cari Dokumen</label>
+                <input type="text" id="searchInput" placeholder="Cari nama dokumen...">
             </div>
-
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>Kode Toko</th>
-                            <th>Nama Toko</th>
-                            <th>Cabang</th>
-                            <th>Waktu Upload</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        </tbody>
-                </table>
-            </div>
-
-            <div class="pagination">
-                <button id="prevPage" onclick="changePage(-1)">Sebelumnya</button>
-                <span id="pageInfo">Halaman 1</span>
-                <button id="nextPage" onclick="changePage(1)">Selanjutnya</button>
+            <div style="flex: 1; min-width: 200px;">
+                <label for="roleFilter" style="font-weight: 600; display: block; margin-bottom: 0.5rem; color: #4a5568;">Filter Role</label>
+                <select id="roleFilter">
+                    <option value="">Semua Role</option>
+                    <option value="Kontraktor">Kontraktor</option>
+                    <option value="PIC">PIC</option>
+                </select>
             </div>
         </div>
-    </section>
 
-    <div id="formModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="formTitle">Form Dokumen Toko</h3>
-                <button class="close-btn" onclick="closeForm()">×</button>
-            </div>
-            <div class="modal-body">
-                <form id="uploadForm">
-                    <input type="hidden" id="editModeKode">
-                    
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Kode Toko</label>
-                            <input type="text" id="kodeToko" required placeholder="Contoh: T123">
-                        </div>
-                        <div class="form-group">
-                            <label>Nama Toko</label>
-                            <input type="text" id="namaToko" required placeholder="Contoh: ALFAMART RAYA">
-                        </div>
-                    </div>
-
-                    <div id="uploadContainer" class="upload-grid">
-                        </div>
-
-                    <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="closeForm()">Batal</button>
-                        <button type="submit" class="btn-save">Simpan Data</button>
-                    </div>
-                </form>
-            </div>
+        <h2 class="text-lg font-semibold mb-4 text-gray-700">Daftar Dokumen Tersimpan</h2>
+        
+        <div class="table-container">
+            <table id="docTable">
+                <thead>
+                    <tr>
+                        <th style="width: 5%; text-align: center;">No</th>
+                        <th>Nama Dokumen</th>
+                        <th>Diunggah Oleh</th>
+                        <th>Role</th>
+                        <th>Tanggal</th>
+                        <th style="text-align: center;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="docTableBody">
+                    </tbody>
+            </table>
         </div>
+        
+        <div id="emptyMessage" class="hidden" style="text-align: center; padding: 2rem; color: #718096;">
+            Tidak ada dokumen yang ditemukan.
+        </div>
+
     </div>
 
     <script src="script.js"></script>
