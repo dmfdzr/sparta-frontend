@@ -1,7 +1,7 @@
 // ============================================
 // KONFIGURASI & STATE
 // ============================================
-const BASE_URL = "https://penyimpanan-dokumen-s8p6.onrender.com"; // Sesuaikan jika perlu
+const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; // Sesuaikan jika perlu
 const DASHBOARD_URL = "../../dashboard/pic/index.html"; // URL Dashboard Utama
 const LOGIN_URL = "../../auth/pic/login.html"; // URL Login Utama
 
