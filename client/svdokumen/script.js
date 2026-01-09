@@ -327,33 +327,60 @@ function updateCabangFilterOptions() {
 function renderUploadSections() {
     const container = document.getElementById("upload-container");
     container.innerHTML = "";
-
-    UPLOAD_CATEGORIES.forEach(cat => {
-        const section = document.createElement("div");
-        section.className = "upload-group";
-        section.innerHTML = `
-            <label>${cat.label}</label>
-            
-            <div id="existing-${cat.key}" class="existing-files-list"></div>
-
-            <input type="file" id="file-${cat.key}" multiple accept="image/*,.pdf">
-            <div class="file-preview" id="preview-${cat.key}"></div>
-        `;
-        container.appendChild(section);
-
-        // Event listener untuk preview nama file yang dipilih
-        const input = section.querySelector(`#file-${cat.key}`);
-        input.addEventListener("change", (e) => {
-            const previewDiv = document.getElementById(`preview-${cat.key}`);
-            previewDiv.innerHTML = "";
-            Array.from(e.target.files).forEach(file => {
-                const p = document.createElement("p");
-                p.textContent = `📄 ${file.name} (Ready to upload)`;
-                p.style.color = "green";
-                p.style.fontSize = "0.85rem";
-                previewDiv.appendChild(p);
-            });
+    const groups = [
+        {
+            title: "Foto",
+            keys: ["fotoAsal", "fotoRenovasi"]
+        },
+        {
+            title: "Gambar",
+            keys: ["me", "sipil", "sketsaAwal"]
+        },
+        {
+            title: "Dokumen",
+            keys: ["pendukung"]
+        }
+    ];
+    groups.forEach(group => {
+        const groupWrapper = document.createElement("div");
+        groupWrapper.className = "upload-section-group";
+        const groupTitle = document.createElement("h4");
+        groupTitle.className = "upload-section-title";
+        groupTitle.innerHTML = `📂 ${group.title}`;
+        groupWrapper.appendChild(groupTitle);
+        const gridDiv = document.createElement("div");
+        gridDiv.className = "upload-grid";
+        group.keys.forEach(key => {
+            const cat = UPLOAD_CATEGORIES.find(c => c.key === key);
+            if (!cat) return;
+            const section = document.createElement("div");
+            section.className = "upload-group"; // Class lama tetap dipakai untuk styling input
+            section.innerHTML = `
+                <label class="upload-label">${cat.label}</label>
+                <div id="existing-${cat.key}" class="existing-files-list"></div>
+                <input type="file" id="file-${cat.key}" multiple accept="image/*,.pdf" style="margin-top: auto;">
+                <div class="file-preview" id="preview-${cat.key}"></div>
+            `;
+            gridDiv.appendChild(section);
         });
+        groupWrapper.appendChild(gridDiv);
+        container.appendChild(groupWrapper);
+    });
+    UPLOAD_CATEGORIES.forEach(cat => {
+        const input = document.getElementById(`file-${cat.key}`);
+        if (input) {
+            input.addEventListener("change", (e) => {
+                const previewDiv = document.getElementById(`preview-${cat.key}`);
+                previewDiv.innerHTML = "";
+                Array.from(e.target.files).forEach(file => {
+                    const p = document.createElement("p");
+                    p.textContent = `📄 ${file.name} (Ready)`;
+                    p.style.color = "green";
+                    p.style.fontSize = "0.85rem";
+                    previewDiv.appendChild(p);
+                });
+            });
+        }
     });
 }
 
