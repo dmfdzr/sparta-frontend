@@ -26,7 +26,6 @@ body {
 
 /* === HEADER === */
 header {
-    /* Background Gradient Merah Alfamart */
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
     text-align: center;
@@ -37,7 +36,6 @@ header {
     justify-content: center;
     position: relative;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    /* Menimpa style sticky lama jika perlu */
     top: auto; 
     z-index: 100;
 }
@@ -54,30 +52,45 @@ header {
 header h1 {
     margin: 0;
     font-size: 1.75rem;
-    line-height: 1.2; /* Merapatkan baris jika judul panjang */
-}
-
-.header-content-center {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 5px; /* Jarak antara Judul dan User Info */
+    line-height: 1.2;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
 }
 
 .user-info {
-    margin-top: 10px;
     display: inline-block;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #fff;
-    letter-spacing: 0.5px;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(4px);
-    padding: 6px 20px;
+    padding: 8px 24px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--neutral-700);
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
     border-radius: 50px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    animation: slideDown 0.4s ease-out;
+}
+
+.user-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary); /* Border jadi merah saat hover */
+    color: var(--primary);
+    transition: all 0.3s ease;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.user-greeting-wrapper {
+    text-align: center;
+    margin-top: 20px;       /* Jarak dari bawah header */
+    margin-bottom: -10px;   /* Mengurangi jarak ke container di bawahnya */
+    position: relative;
+    z-index: 10;
 }
 
 .btn-back-header {
