@@ -250,7 +250,7 @@ function renderTable() {
 
     // Tampilkan pesan jika data kosong
     if (totalDocs === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px;">Tidak ada data ditemukan</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px;">Tidak ada data ditemukan</td></tr>`;
         return;
     }
 
@@ -258,17 +258,21 @@ function renderTable() {
     filteredDocuments.forEach((doc, index) => {
         const row = document.createElement("tr");
 
-        // Pastikan kita mengakses field dengan aman (gunakan || "-")
+        // Pastikan kita mengakses field dengan aman
         const kode = doc.kode_toko || doc.store_code || "-";
         const nama = doc.nama_toko || doc.store_name || "-";
         const cabang = doc.cabang || "-";
+        const driveLink = doc.folder_link || doc.folder_drive || doc["folder link"] || "";
+        const linkHtml = driveLink 
+            ? `<a href="${driveLink}" target="_blank" style="text-decoration: none; color: #007bff; font-weight: 500;">Buka Folder</a>` 
+            : `<span style="color: #aaa;">-</span>`;
 
         row.innerHTML = `
             <td>${index + 1}</td>
             <td>${kode}</td>
             <td>${nama}</td>
             <td>${cabang}</td>
-            <td>
+            <td>${linkHtml}</td>  <td>
                 <button class="btn-action btn-edit" onclick='handleEditClick(${JSON.stringify(doc).replace(/'/g, "&apos;")})'>Edit</button>
             </td>
         `;
