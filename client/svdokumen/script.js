@@ -423,45 +423,68 @@ async function handleFormSubmit(e) {
     document.getElementById("error-msg").textContent = "";
 
     try {
-        const formData = new FormData();
+        // 1. Siapkan Data Dasar
+        const payload = {
+            kode_toko: document.getElementById("kodeToko").value,
+            nama_toko: document.getElementById("namaToko").value,
+            luas_sales: document.getElementById("luasSales").value,
+            luas_parkir: document.getElementById("luasParkir").value,
+            luas_gudang: document.getElementById("luasGudang").value,
+            cabang: currentUser.cabang || "",
+            pic_name: currentUser.email || "",
+            files: [] // Kita akan isi ini dengan file base64
+        };
 
-        // 1. Append Data Teks
-        formData.append("kode_toko", document.getElementById("kodeToko").value);
-        formData.append("nama_toko", document.getElementById("namaToko").value);
-        formData.append("luas_sales", document.getElementById("luasSales").value);
-        formData.append("luas_parkir", document.getElementById("luasParkir").value);
-        formData.append("luas_gudang", document.getElementById("luasGudang").value);
+        // 2. Helper Function untuk Convert File ke Base64
+        const fileToBase64 = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        };
 
-        // Data user yang menginput (penting untuk backend)
-        formData.append("cabang", currentUser.cabang || "");
-        formData.append("pic_name", currentUser.email || "");
-
-        // 2. Append Files (Loop per kategori)
-        let hasFile = false;
+        // 3. Loop Categories dan Proses File
+        const filePromises = [];
+        
         UPLOAD_CATEGORIES.forEach(cat => {
             const input = document.getElementById(`file-${cat.key}`);
             if (input && input.files.length > 0) {
                 Array.from(input.files).forEach(file => {
-                    formData.append(cat.key, file); // Key harus sesuai dengan backend (fotoAsal, dll)
-                    hasFile = true;
+                    // Tambahkan proses convert ke antrian
+                    const promise = fileToBase64(file).then(base64String => {
+                        payload.files.push({
+                            category: cat.key,
+                            filename: file.name,
+                            type: file.type,
+                            data: base64String // String base64 lengkap
+                        });
+                    });
+                    filePromises.push(promise);
                 });
             }
         });
 
-        // 3. Tentukan URL & Method
+        // Tunggu semua file selesai dikonversi
+        await Promise.all(filePromises);
+
+        // 4. Tentukan URL & Method
         let url = `${BASE_URL}/api/doc/save`;
         let method = "POST";
 
         if (isEditing && currentEditId) {
             url = `${BASE_URL}/api/doc/update/${currentEditId}`;
-            method = "PUT"; // Backend seringnya pakai PUT untuk update
+            method = "PUT";
         }
 
-        // 4. Kirim Request
-        // Note: Jangan set 'Content-Type': 'multipart/form-data' manual, fetch akan set otomatis boundary-nya
+        // 5. Kirim Request sebagai JSON
         const res = await fetch(url, {
             method: method,
-            body: formData
+            headers: {
+                "Content-Type": "application/json" // Header Wajib untuk request.get_json()
+            },
+            body: JSON.stringify(payload)
         });
 
         const result = await res.json();
@@ -472,7 +495,7 @@ async function handleFormSubmit(e) {
 
         // Sukses
         showModal("modal-success");
-        showTable(); // Kembali ke tabel
+        showTable();
 
     } catch (err) {
         console.error(err);
