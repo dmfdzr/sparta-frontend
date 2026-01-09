@@ -372,12 +372,33 @@ function renderUploadSections() {
             input.addEventListener("change", (e) => {
                 const previewDiv = document.getElementById(`preview-${cat.key}`);
                 previewDiv.innerHTML = "";
-                Array.from(e.target.files).forEach(file => {
-                    const p = document.createElement("p");
-                    p.textContent = `📄 ${file.name} (Ready)`;
-                    p.style.color = "green";
-                    p.style.fontSize = "0.85rem";
-                    previewDiv.appendChild(p);
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+                files.forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            const img = document.createElement("img");
+                            img.src = event.target.result;
+                            img.className = "preview-thumb";
+                            img.title = file.name;
+                            previewDiv.appendChild(img);
+                        }
+                        
+                        reader.readAsDataURL(file);
+                    }
+                    else {
+                        const fileBlock = document.createElement("div");
+                        fileBlock.className = "preview-file-item";
+                        let icon = "📄";
+                        if(file.type.includes('pdf')) icon = "📕";
+                        else if(file.type.includes('sheet') || file.type.includes('excel')) icon = "📊";
+                        fileBlock.innerHTML = `
+                            <span class="preview-file-icon">${icon}</span>
+                            <span class="preview-file-name">${file.name}</span>
+                        `;
+                        previewDiv.appendChild(fileBlock);
+                    }
                 });
             });
         }
