@@ -129,12 +129,21 @@ function showForm(data = null) {
     if (data) {
         // === MODE EDIT ===
         isEditing = true;
-        currentEditId = data._id; // Pastikan backend kirim _id
+        // PERBAIKAN 1: Tangkap ID baik format _id (Mongo asli) atau id (String)
+        currentEditId = data._id || data.id; 
+        
+        console.log("Mode Edit Aktif. ID:", currentEditId); // Debugging
+
         title.textContent = `Edit Data Toko: ${data.nama_toko}`;
 
         // Isi Text Inputs
         document.getElementById("kodeToko").value = data.kode_toko || "";
+        // Jika kode toko tidak boleh diubah saat edit, bisa di-disable:
+        // document.getElementById("kodeToko").readOnly = true; 
+        
         document.getElementById("namaToko").value = data.nama_toko || "";
+        
+        // Format angka untuk tampilan (pakai koma)
         document.getElementById("luasSales").value = formatDecimalInput(data.luas_sales);
         document.getElementById("luasParkir").value = formatDecimalInput(data.luas_parkir);
         document.getElementById("luasGudang").value = formatDecimalInput(data.luas_gudang);
@@ -148,6 +157,7 @@ function showForm(data = null) {
         isEditing = false;
         currentEditId = null;
         title.textContent = "Tambah Data Toko Baru";
+        document.getElementById("kodeToko").readOnly = false;
     }
 }
 
@@ -475,17 +485,29 @@ async function handleFormSubmit(e) {
     document.getElementById("error-msg").textContent = "";
 
     try {
+        // Helper: Ubah format "100,50" menjadi "100.50" agar diterima backend (Float)
+        const cleanNumber = (val) => {
+            if (!val) return 0;
+            // Hapus titik ribuan (jika ada), ganti koma desimal jadi titik
+            // Contoh: "1.200,50" -> "1200.50"
+            let str = val.toString().replace(/\./g, "").replace(",", ".");
+            return parseFloat(str) || 0;
+        };
+
         // 1. Siapkan Data Dasar
         const payload = {
             kode_toko: document.getElementById("kodeToko").value,
             nama_toko: document.getElementById("namaToko").value,
-            luas_sales: document.getElementById("luasSales").value,
-            luas_parkir: document.getElementById("luasParkir").value,
-            luas_gudang: document.getElementById("luasGudang").value,
+            // PERBAIKAN 2: Kirim angka dengan format titik (float), bukan koma
+            luas_sales: cleanNumber(document.getElementById("luasSales").value),
+            luas_parkir: cleanNumber(document.getElementById("luasParkir").value),
+            luas_gudang: cleanNumber(document.getElementById("luasGudang").value),
             cabang: currentUser.cabang || "",
             pic_name: currentUser.email || "",
-            files: [] // Kita akan isi ini dengan file base64
+            files: [] 
         };
+
+        console.log("Payload sebelum file:", payload); // Debugging
 
         // 2. Helper Function untuk Convert File ke Base64
         const fileToBase64 = (file) => {
@@ -504,13 +526,12 @@ async function handleFormSubmit(e) {
             const input = document.getElementById(`file-${cat.key}`);
             if (input && input.files.length > 0) {
                 Array.from(input.files).forEach(file => {
-                    // Tambahkan proses convert ke antrian
                     const promise = fileToBase64(file).then(base64String => {
                         payload.files.push({
                             category: cat.key,
                             filename: file.name,
                             type: file.type,
-                            data: base64String // String base64 lengkap
+                            data: base64String 
                         });
                     });
                     filePromises.push(promise);
@@ -525,16 +546,20 @@ async function handleFormSubmit(e) {
         let url = `${BASE_URL}/api/doc/save`;
         let method = "POST";
 
+        // PERBAIKAN 3: Pastikan ID ada sebelum masuk mode PUT
         if (isEditing && currentEditId) {
             url = `${BASE_URL}/api/doc/update/${currentEditId}`;
             method = "PUT";
+            console.log("Melakukan UPDATE ke:", url);
+        } else if (isEditing && !currentEditId) {
+            throw new Error("ID Dokumen hilang. Silakan refresh halaman dan coba lagi.");
         }
 
-        // 5. Kirim Request sebagai JSON
+        // 5. Kirim Request
         const res = await fetch(url, {
             method: method,
             headers: {
-                "Content-Type": "application/json" // Header Wajib untuk request.get_json()
+                "Content-Type": "application/json"
             },
             body: JSON.stringify(payload)
         });
@@ -542,6 +567,7 @@ async function handleFormSubmit(e) {
         const result = await res.json();
 
         if (!res.ok) {
+            console.error("Server Error:", result);
             throw new Error(result.detail || result.message || "Gagal menyimpan data");
         }
 
@@ -550,7 +576,7 @@ async function handleFormSubmit(e) {
         showTable();
 
     } catch (err) {
-        console.error(err);
+        console.error("Submission Error:", err);
         document.getElementById("error-msg").textContent = err.message;
         showModal("modal-error");
     } finally {
