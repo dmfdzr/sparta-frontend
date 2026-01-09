@@ -59,7 +59,6 @@ function initApp() {
     // Navigasi
     document.getElementById("btn-add-new").addEventListener("click", () => showForm());
     document.getElementById("btn-back").addEventListener("click", () => showTable());
-    document.getElementById("btn-logout").addEventListener("click", () => showModal("modal-logout"));
     
     // Modal Actions
     document.getElementById("cancel-logout").addEventListener("click", () => hideModal("modal-logout"));
