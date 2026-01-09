@@ -164,22 +164,42 @@ async function fetchDocuments() {
     showLoading(true);
     try {
         let url = `${BASE_URL}/api/doc/list`;
-        // Jika user bukan HO, backend mungkin butuh query param cabang, atau filter otomatis dari token/session
+        
+        // Cek filter cabang user
         if (currentUser.cabang && currentUser.cabang.toLowerCase() !== "head office") {
             url += `?cabang=${encodeURIComponent(currentUser.cabang)}`;
         }
 
+        console.log("Fetching URL:", url); // Debug URL
+
         const res = await fetch(url);
-        if (!res.ok) throw new Error("Gagal mengambil data");
+        if (!res.ok) throw new Error(`Gagal mengambil data (Status: ${res.status})`);
         
-        const data = await res.json();
-        allDocuments = Array.isArray(data) ? data : []; // Pastikan array
+        const rawData = await res.json();
+        console.log("Response Backend:", rawData); // Cek isi data di Console Browser (F12)
+
+        // === PERBAIKAN UTAMA DISINI ===
+        // Kode ini akan mengecek apakah data langsung array, atau dibungkus object
+        if (Array.isArray(rawData)) {
+            allDocuments = rawData;
+        } else if (rawData.data && Array.isArray(rawData.data)) {
+            allDocuments = rawData.data; // Jika formatnya { data: [...] }
+        } else if (rawData.documents && Array.isArray(rawData.documents)) {
+            allDocuments = rawData.documents; // Jika formatnya { documents: [...] }
+        } else {
+            allDocuments = [];
+            console.warn("Format data tidak dikenali. Pastikan backend mengirim Array.");
+        }
         
-        // Jalankan search awal (tanpa query) untuk populate tabel
+        // Jalankan search awal untuk menampilkan tabel
         handleSearch(""); 
     } catch (err) {
-        console.error(err);
-        showToast("Error loading data: " + err.message);
+        console.error("Error Fetching:", err);
+        showToast("Gagal memuat data: " + err.message);
+        
+        // Pastikan tabel kosong jika error, jangan biarkan loading berputar
+        allDocuments = [];
+        renderTable(); 
     } finally {
         showLoading(false);
     }
@@ -209,17 +229,17 @@ function renderTable() {
     const tbody = document.getElementById("table-body");
     tbody.innerHTML = "";
 
-    // Logic Pagination
     const totalDocs = filteredDocuments.length;
     const totalPages = Math.ceil(totalDocs / rowsPerPage);
     
-    // Cegah error jika halaman kosong
+    // Tampilkan pesan jika data kosong
     if (totalDocs === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Tidak ada data ditemukan</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px;">Tidak ada data ditemukan (Cek Console F12 jika error)</td></tr>`;
         renderPaginationControls(0);
         return;
     }
 
+    // Logic Pagination
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
     const pageDocs = filteredDocuments.slice(startIndex, endIndex);
@@ -229,15 +249,22 @@ function renderTable() {
     pageDocs.forEach((doc, index) => {
         const row = document.createElement("tr");
         
+        // Pastikan kita mengakses field dengan aman (gunakan || "-")
+        // Sesuaikan nama field (kode_toko, nama_toko) dengan output di Console
+        const kode = doc.kode_toko || doc.store_code || "-";
+        const nama = doc.nama_toko || doc.store_name || "-";
+        const cabang = doc.cabang || "-";
+        const tglUpdate = doc.updated_at ? new Date(doc.updated_at).toLocaleDateString("id-ID") : "-";
+
         // Kolom Cabang (Hanya tampil untuk HO)
-        const cellCabang = isHO ? `<td>${doc.cabang || "-"}</td>` : "";
+        const cellCabang = isHO ? `<td>${cabang}</td>` : "";
         
         row.innerHTML = `
             <td>${startIndex + index + 1}</td>
-            <td>${doc.kode_toko}</td>
-            <td>${doc.nama_toko}</td>
+            <td>${kode}</td>
+            <td>${nama}</td>
             ${cellCabang}
-            <td>${doc.updated_at ? new Date(doc.updated_at).toLocaleDateString("id-ID") : "-"}</td>
+            <td>${tglUpdate}</td>
             <td>
                 <button class="btn-action btn-edit" onclick='handleEditClick(${JSON.stringify(doc).replace(/'/g, "&apos;")})'>Edit</button>
             </td>
@@ -245,7 +272,6 @@ function renderTable() {
         tbody.appendChild(row);
     });
 
-    // Jika HO, pastikan header tabel kolom cabang muncul
     if (isHO) {
         document.querySelectorAll(".col-cabang").forEach(el => el.style.display = "table-cell");
     }
