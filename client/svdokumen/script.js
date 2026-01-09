@@ -1,9 +1,9 @@
 // ==========================================
 // 1. CONFIG & AUTHENTICATION
 // ==========================================
-const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; 
+const BASE_URL = "https://sparta-backend-5hdj.onrender.com";
 let currentUser = null;
-let allDocuments = []; 
+let allDocuments = [];
 let filteredDocuments = [];
 let isEditing = false;
 let currentEditId = null;
@@ -30,24 +30,24 @@ document.addEventListener("DOMContentLoaded", () => {
 function checkAuth() {
     const isAuthenticated = sessionStorage.getItem("authenticated");
     if (isAuthenticated !== "true") {
-        window.location.href = "../login.html"; 
+        window.location.href = "../login.html";
         return;
     }
 
     currentUser = {
         email: sessionStorage.getItem("loggedInUserEmail"),
-        cabang: sessionStorage.getItem("loggedInUserCabang"), 
+        cabang: sessionStorage.getItem("loggedInUserCabang"),
         role: sessionStorage.getItem("userRole")
     };
 
-    if (document.getElementById("user-name")) 
+    if (document.getElementById("user-name"))
         document.getElementById("user-name").textContent = currentUser.email || "User";
     if (document.getElementById("user-branch"))
         document.getElementById("user-branch").textContent = currentUser.cabang || "Cabang";
 
     if (currentUser.cabang?.toLowerCase() === "head office") {
         const colCabang = document.querySelector(".col-cabang");
-        if(colCabang) colCabang.style.display = "table-cell";
+        if (colCabang) colCabang.style.display = "table-cell";
         document.getElementById("filter-cabang").style.display = "block";
     }
 }
@@ -59,7 +59,7 @@ function initApp() {
     // Navigasi
     document.getElementById("btn-add-new").addEventListener("click", () => showForm());
     document.getElementById("btn-back").addEventListener("click", () => showTable());
-    
+
     // Modal Actions
     document.getElementById("cancel-logout").addEventListener("click", () => hideModal("modal-logout"));
     document.getElementById("confirm-logout").addEventListener("click", handleLogout);
@@ -68,7 +68,7 @@ function initApp() {
 
     // Form Handling
     document.getElementById("store-form").addEventListener("submit", handleFormSubmit);
-    
+
     // Format Input Angka (Live formatting)
     document.querySelectorAll(".input-decimal").forEach(input => {
         input.addEventListener("input", (e) => {
@@ -106,7 +106,7 @@ function showForm(data = null) {
     document.getElementById("view-form").style.display = "block";
     const title = document.getElementById("form-title");
     const form = document.getElementById("store-form");
-    
+
     // Reset form & error
     form.reset();
     document.getElementById("error-msg").textContent = "";
@@ -117,7 +117,7 @@ function showForm(data = null) {
         isEditing = true;
         currentEditId = data._id; // Pastikan backend kirim _id
         title.textContent = `Edit Data Toko: ${data.nama_toko}`;
-        
+
         // Isi Text Inputs
         document.getElementById("kodeToko").value = data.kode_toko || "";
         document.getElementById("namaToko").value = data.nama_toko || "";
@@ -147,7 +147,7 @@ function hideModal(id) {
 
 function showLoading(show) {
     const loader = document.getElementById("loading-overlay");
-    if(loader) loader.style.display = show ? "flex" : "none";
+    if (loader) loader.style.display = show ? "flex" : "none";
 }
 
 function showToast(message) {
@@ -164,7 +164,7 @@ async function fetchDocuments() {
     showLoading(true);
     try {
         let url = `${BASE_URL}/api/doc/list`;
-        
+
         // Cek filter cabang user
         if (currentUser.cabang && currentUser.cabang.toLowerCase() !== "head office") {
             url += `?cabang=${encodeURIComponent(currentUser.cabang)}`;
@@ -174,7 +174,7 @@ async function fetchDocuments() {
 
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Gagal mengambil data (Status: ${res.status})`);
-        
+
         const rawData = await res.json();
         console.log("Response Backend:", rawData); // Cek isi data di Console Browser (F12)
 
@@ -182,6 +182,8 @@ async function fetchDocuments() {
         // Kode ini akan mengecek apakah data langsung array, atau dibungkus object
         if (Array.isArray(rawData)) {
             allDocuments = rawData;
+        } else if (rawData.items && Array.isArray(rawData.items)) {
+            allDocuments = rawData.items; // Jika formatnya { ok: true, items: [...] }
         } else if (rawData.data && Array.isArray(rawData.data)) {
             allDocuments = rawData.data; // Jika formatnya { data: [...] }
         } else if (rawData.documents && Array.isArray(rawData.documents)) {
@@ -190,16 +192,16 @@ async function fetchDocuments() {
             allDocuments = [];
             console.warn("Format data tidak dikenali. Pastikan backend mengirim Array.");
         }
-        
+
         // Jalankan search awal untuk menampilkan tabel
-        handleSearch(""); 
+        handleSearch("");
     } catch (err) {
         console.error("Error Fetching:", err);
         showToast("Gagal memuat data: " + err.message);
-        
+
         // Pastikan tabel kosong jika error, jangan biarkan loading berputar
         allDocuments = [];
-        renderTable(); 
+        renderTable();
     } finally {
         showLoading(false);
     }
@@ -231,7 +233,7 @@ function renderTable() {
 
     const totalDocs = filteredDocuments.length;
     const totalPages = Math.ceil(totalDocs / rowsPerPage);
-    
+
     // Tampilkan pesan jika data kosong
     if (totalDocs === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px;">Tidak ada data ditemukan (Cek Console F12 jika error)</td></tr>`;
@@ -248,7 +250,7 @@ function renderTable() {
 
     pageDocs.forEach((doc, index) => {
         const row = document.createElement("tr");
-        
+
         // Pastikan kita mengakses field dengan aman (gunakan || "-")
         // Sesuaikan nama field (kode_toko, nama_toko) dengan output di Console
         const kode = doc.kode_toko || doc.store_code || "-";
@@ -258,7 +260,7 @@ function renderTable() {
 
         // Kolom Cabang (Hanya tampil untuk HO)
         const cellCabang = isHO ? `<td>${cabang}</td>` : "";
-        
+
         row.innerHTML = `
             <td>${startIndex + index + 1}</td>
             <td>${kode}</td>
@@ -280,7 +282,7 @@ function renderTable() {
 }
 
 // Global function agar bisa dipanggil dari onclick HTML string
-window.handleEditClick = function(doc) {
+window.handleEditClick = function (doc) {
     showForm(doc);
 };
 
@@ -303,17 +305,17 @@ function renderPaginationControls(totalPages) {
     const btnPrev = document.createElement("button");
     btnPrev.textContent = "Previous";
     btnPrev.disabled = currentPage === 1;
-    btnPrev.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); }};
-    
+    btnPrev.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+
     // Info Halaman
     const spanInfo = document.createElement("span");
     spanInfo.textContent = ` Page ${currentPage} of ${totalPages} `;
-    
+
     // Tombol Next
     const btnNext = document.createElement("button");
     btnNext.textContent = "Next";
     btnNext.disabled = currentPage === totalPages;
-    btnNext.onclick = () => { if (currentPage < totalPages) { currentPage++; renderTable(); }};
+    btnNext.onclick = () => { if (currentPage < totalPages) { currentPage++; renderTable(); } };
 
     paginationContainer.appendChild(btnPrev);
     paginationContainer.appendChild(spanInfo);
@@ -362,7 +364,7 @@ function renderExistingFiles(fileLinksString) {
     if (!fileLinksString) return;
 
     const entries = fileLinksString.split(",").map(s => s.trim()).filter(Boolean);
-    
+
     entries.forEach(entry => {
         // Parsing logika (disamakan dengan React)
         const parts = entry.split("|");
@@ -383,7 +385,7 @@ function renderExistingFiles(fileLinksString) {
 
         // Cari container yang sesuai kategori
         const container = document.getElementById(`existing-${category}`) || document.getElementById("existing-pendukung");
-        
+
         if (container) {
             const fileItem = document.createElement("div");
             fileItem.className = "existing-file-item";
@@ -407,10 +409,10 @@ function resetPreviews() {
 function formatDecimalInput(value) {
     if (!value) return "";
     let str = value.toString().replace(/[^0-9]/g, ""); // Hanya angka
-    
+
     // Logic: 2 angka terakhir adalah desimal
     if (str.length <= 2) return "0," + str.padStart(2, "0");
-    
+
     const before = str.slice(0, -2);
     const after = str.slice(-2);
     // Tambahkan titik ribuan (opsional) - sederhana tanpa titik dulu untuk value input
@@ -427,14 +429,14 @@ async function handleFormSubmit(e) {
 
     try {
         const formData = new FormData();
-        
+
         // 1. Append Data Teks
         formData.append("kode_toko", document.getElementById("kodeToko").value);
         formData.append("nama_toko", document.getElementById("namaToko").value);
         formData.append("luas_sales", document.getElementById("luasSales").value);
         formData.append("luas_parkir", document.getElementById("luasParkir").value);
         formData.append("luas_gudang", document.getElementById("luasGudang").value);
-        
+
         // Data user yang menginput (penting untuk backend)
         formData.append("cabang", currentUser.cabang || "");
         formData.append("pic_name", currentUser.email || "");
@@ -501,7 +503,7 @@ function setupAutoLogout() {
         if (idleTime >= 30) { // 30 Menit
             handleLogout();
         }
-    }, 60000); 
+    }, 60000);
 
     ['mousemove', 'keypress', 'click', 'scroll'].forEach(evt => {
         document.addEventListener(evt, () => idleTime = 0);
