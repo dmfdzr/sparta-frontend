@@ -134,7 +134,8 @@ function showForm(data = null) {
     if (data) {
         // === MODE EDIT ===
         isEditing = true;
-        currentEditId = data._id || data.id || data.doc_id; // Support berbagai nama field ID
+        // Backend tidak kirim _id, gunakan kode_toko sebagai identifier
+        currentEditId = data._id || data.id || data.doc_id || data.kode_toko;
         console.log("Edit Mode - currentEditId:", currentEditId, "Data:", data); // Debug
         title.textContent = `Edit Data Toko: ${data.nama_toko}`;
 
