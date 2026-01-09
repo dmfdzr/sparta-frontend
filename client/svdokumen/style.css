@@ -60,6 +60,16 @@ header h1 {
     text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+.user-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-size: 0.95rem; 
+    font-weight: 500;
+}
+
 /* Style Tombol Kembali (Pengganti Logout) */
 .btn-back-header {
     position: absolute;
