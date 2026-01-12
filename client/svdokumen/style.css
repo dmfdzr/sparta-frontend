@@ -206,6 +206,8 @@ header h1 {
 .table td:nth-child(5), /* Link Folder */
 .table td:last-child    /* Aksi */ {
     text-align: center;
+    white-space: nowrap;
+    padding: 14px 20px;
 }
 
 .table tr:hover {
