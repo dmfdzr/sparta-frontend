@@ -8,52 +8,24 @@
     --border-color: #e2e8f0;
 }
 
-/* ================= ANIMATIONS ================= */
+/* ================= ANIMATIONS (Tetap Sama) ================= */
 @keyframes logoSlideIn {
-    0% {
-        opacity: 0;
-        transform: translateX(-100px) rotate(-20deg);
-    }
-    60% {
-        opacity: 1;
-        transform: translateX(10px) rotate(5deg);
-    }
-    80% {
-        transform: translateX(-5px) rotate(-2deg);
-    }
-    100% {
-        opacity: 1;
-        transform: translateX(0) rotate(0deg);
-    }
+    0% { opacity: 0; transform: translateX(-100px) rotate(-20deg); }
+    60% { opacity: 1; transform: translateX(10px) rotate(5deg); }
+    80% { transform: translateX(-5px) rotate(-2deg); }
+    100% { opacity: 1; transform: translateX(0) rotate(0deg); }
 }
 
 @keyframes logoPopOut {
-    0% {
-        opacity: 0;
-        transform: scale(0) rotate(-180deg);
-    }
-    60% {
-        opacity: 1;
-        transform: scale(1.2) rotate(10deg);
-    }
-    80% {
-        transform: scale(0.9) rotate(-5deg);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1) rotate(0deg);
-    }
+    0% { opacity: 0; transform: scale(0) rotate(-180deg); }
+    60% { opacity: 1; transform: scale(1.2) rotate(10deg); }
+    80% { transform: scale(0.9) rotate(-5deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
 @keyframes fadeInSlide {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* ================= BASE STYLES ================= */
@@ -104,7 +76,7 @@ body {
 
 /* ================= CONTENT CONTAINER ================= */
 .container {
-    max-width: 1000px;
+    max-width: 1200px; /* Diperlebar sedikit agar 3 card muat lega */
     margin: 2rem auto;
     padding: 2rem;
     flex: 1;
@@ -129,91 +101,111 @@ body {
     margin-top: 0;
 }
 
-/* ================= MENU GRID ================= */
+/* ================= MENU GRID (MODIFIKASI UTAMA) ================= */
 .menu-container {
     display: grid;
-    /* Membuat kolom responsif: minimal 250px, jika layar lebar dibagi rata */
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    /* Default Mobile: 1 Kolom */
+    grid-template-columns: 1fr; 
     gap: 2rem;
-    justify-content: center; /* Agar kartu berada di tengah jika jumlahnya sedikit */
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+/* Tampilan Tablet & Desktop: Paksa jadi 3 Kolom */
+@media (min-width: 768px) {
+    .menu-container {
+        /* Ini membuat layout strictly 3 kolom */
+        grid-template-columns: repeat(3, 1fr); 
+    }
 }
 
 /* ================= MENU ITEM CARD ================= */
 .menu-item {
-    display: flex;           /* Menggunakan Flexbox agar konten rata tengah */
+    display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: center; /* Konten vertikal rata tengah */
     
     background-color: var(--card-background);
-    padding: 2rem 1.5rem;
-    border-radius: 12px;
+    padding: 2.5rem 1.5rem; /* Padding diperbesar sedikit */
+    border-radius: 16px;
     text-decoration: none;
     color: inherit;
     border: 1px solid var(--border-color);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-    height: 100%; /* Agar tinggi kartu seragam */
+    
+    /* Agar tinggi card seragam dan terlihat kokoh */
+    height: 100%; 
+    min-height: 280px; /* Tinggi minimum agar kotak terlihat proporsional */
     box-sizing: border-box;
 }
 
 .menu-item:hover {
     transform: translateY(-8px);
-    box-shadow: 0 15px 30px rgba(185, 28, 28, 0.2); /* Bayangan merah halus */
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     border-color: #fca5a5;
 }
 
 .menu-item h3 {
     text-align: center;
-    font-size: 1.25rem;
+    font-size: 1.35rem; /* Font judul sedikit diperbesar */
     font-weight: 700;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.75rem 0;
     color: var(--text-color);
 }
 
 .menu-item p {
     text-align: center;
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: var(--subtle-text-color);
     line-height: 1.5;
     margin: 0;
+    max-width: 250px; /* Membatasi lebar teks agar tidak terlalu melebar */
 }
 
-/* --- LOGIC UNTUK ICON --- */
-
-/* Style untuk ikon tunggal (Manual & About) */
+/* --- ICONS --- */
+/* Icon tunggal */
 .menu-item > img {
     display: block;
-    margin-bottom: 1.5rem;
-    height: 80px;
+    margin-bottom: 2rem;
+    height: 90px; /* Ukuran icon diperbesar sedikit agar seimbang dengan card */
     width: auto;
     object-fit: contain;
     transition: transform 0.3s ease;
 }
 
-/* Style KHUSUS untuk ikon berjejer (Login Card) */
+/* Icon berjejer (Login) */
 .card-icons {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px; /* Jarak antar ikon */
-    margin-bottom: 1.5rem;
+    gap: 15px;
+    margin-bottom: 2rem;
 }
 
 .card-icons img {
-    height: 65px; /* Ukuran sedikit lebih kecil agar muat berdua */
+    height: 75px; /* Disesuaikan agar pas berdua */
     width: auto;
     transition: transform 0.3s ease;
 }
 
-/* Efek saat kartu di-hover, ikon ikut bergerak */
 .menu-item:hover img {
     transform: scale(1.1);
 }
 
-/* State Disabled (Opsional) */
-.menu-item.disabled {
-    background-color: #f7fafc;
-    cursor: not-allowed;
-    opacity: 0.6;
+/* Responsive Mobile Header Adjustment */
+@media (max-width: 600px) {
+    .main-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    .header-logo, .building-logo {
+        margin: 0.5rem 0;
+        height: 50px;
+    }
+    .main-header h1 {
+        margin: 0.5rem 0;
+        font-size: 1.5rem;
+    }
 }
