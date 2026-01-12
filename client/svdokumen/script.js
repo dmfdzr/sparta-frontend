@@ -321,8 +321,8 @@ function renderExistingFiles(fileLinksString) {
             
             let deleteBtnHtml = "";
             if (!isHeadOffice) {
-                // Perbaikan: URL kita trim untuk konsistensi
-                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${url.trim()}', '${name}')">🗑 Hapus</button>`;
+                // Perbaikan: Pastikan URL dikirim dengan benar ke fungsi
+                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${url}', '${name}')">🗑 Hapus</button>`;
             }
 
             fileItem.innerHTML = `
@@ -336,13 +336,11 @@ function renderExistingFiles(fileLinksString) {
 
 window.markFileForDeletion = function(btnElement, fileUrl, fileName) {
     if (confirm(`Hapus file "${fileName}"?\nFile akan hilang permanen setelah Anda klik tombol Simpan.`)) {
-        // Simpan URL yang akan dihapus
-        deletedFilesList.push(fileUrl);
+        // Hapus spasi jika ada, untuk memastikan match nanti akurat
+        deletedFilesList.push(fileUrl.trim());
         
         const parent = btnElement.closest(".existing-file-item");
         if (parent) parent.style.display = "none";
-        
-        console.log("List Delete:", deletedFilesList);
     }
 };
 
@@ -450,11 +448,10 @@ function renderTable() {
 }
 
 window.handleEditClick = function(idOrCode) {
-    // Kita gunakan String() untuk memastikan perbandingan aman (misal "123" vs 123)
     const doc = allDocuments.find(d => 
-        String(d._id) === String(idOrCode) || 
-        String(d.id) === String(idOrCode) || 
-        String(d.kode_toko) === String(idOrCode)
+        (d._id && d._id === idOrCode) || 
+        (d.id && d.id === idOrCode) || 
+        (d.kode_toko && d.kode_toko === idOrCode)
     );
     
     if(doc) {
@@ -490,7 +487,7 @@ function updateCabangFilterOptions() {
 }
 
 // ==========================================
-// 5. SUBMIT HANDLER (PERBAIKAN UTAMA: TYPE SAFE)
+// 5. SUBMIT HANDLER (PERBAIKAN UTAMA)
 // ==========================================
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -498,48 +495,55 @@ async function handleFormSubmit(e) {
     document.getElementById("error-msg").textContent = "";
 
     try {
-        // --- LOGIC REKONSTRUKSI FILE ---
+        // --- LOGIC REKONSTRUKSI FILE EXISTING ---
+        // Tujuan: Mengirim kembali semua file lama KECUALI yang di dalam 'deletedFilesList'
         let preservedFileLinks = "";
 
         if (isEditing && currentEditId) {
-            // PERBAIKAN 1: Gunakan String() untuk pencarian data asli agar Type Safe
-            // Sebelumnya `===` gagal karena id database (int) vs currentEditId (string)
-            const editIdStr = String(currentEditId);
-            
+            // 1. Cari data dokumen asli saat ini
             const originalDoc = allDocuments.find(d => 
-                String(d._id || "") === editIdStr || 
-                String(d.id || "") === editIdStr || 
-                String(d.kode_toko || "") === editIdStr
+                (d._id && d._id === currentEditId) || 
+                (d.id && d.id === currentEditId) || 
+                (d.kode_toko && d.kode_toko === currentEditId)
             );
 
             if (originalDoc && originalDoc.file_links) {
+                // 2. Pecah string menjadi array individual
                 const rawEntries = originalDoc.file_links.split(",");
                 
-                // PERBAIKAN 2: Logika Filter yang lebih 'loose' tapi aman
-                // Kita cek apakah entry string tersebut *mengandung* salah satu URL yg dihapus
+                // 3. Filter dengan parsing URL yang ketat
                 const keptEntries = rawEntries.filter(entryString => {
-                    if (!entryString.trim()) return false;
+                    // Bersihkan whitespace
+                    const cleanEntry = entryString.trim();
+                    if(!cleanEntry) return false;
 
-                    // Cek apakah entry ini mengandung URL yang ada di daftar hapus?
-                    const isDeleted = deletedFilesList.some(delUrl => entryString.includes(delUrl));
+                    // Parse entry untuk mendapatkan URL saja
+                    // Format: "Category | Name | URL" atau "Name | URL" atau "URL"
+                    const parts = cleanEntry.split("|");
+                    let entryUrl = "";
+                    
+                    if (parts.length === 3) entryUrl = parts[2].trim();
+                    else if (parts.length === 2) entryUrl = parts[1].trim();
+                    else entryUrl = cleanEntry; // Fallback jika cuma URL
 
-                    // Jika deleted = true (ketemu), maka buang (return false)
-                    // Jika deleted = false (tidak ketemu), maka simpan (return true)
+                    // Cek apakah URL ini ada di daftar hapus?
+                    // Kita gunakan includes() pada array deletedFilesList
+                    const isDeleted = deletedFilesList.includes(entryUrl);
+
+                    // Jika deleted = true, kita return false (buang dari list)
+                    // Jika deleted = false, kita return true (simpan entry asli)
                     return !isDeleted;
                 });
                 
+                // 4. Gabungkan kembali array yang tersisa menjadi string
                 preservedFileLinks = keptEntries.join(",");
                 
-                // Debugging Logs untuk memastikan data tidak kosong
-                console.log("=== DEBUG PRESERVATION ===");
-                console.log("Original ID:", currentEditId);
-                console.log("Doc Found:", !!originalDoc);
-                console.log("Deleted List:", deletedFilesList);
-                console.log("Result Preserved:", preservedFileLinks);
-            } else {
-                console.warn("WARNING: Dokumen asli tidak ditemukan di memori saat Edit. Resiko data hilang.");
+                console.log("Original Files:", originalDoc.file_links);
+                console.log("Deleted Request:", deletedFilesList);
+                console.log("Preserved Files:", preservedFileLinks);
             }
         }
+        // --------------------------------------------------------
 
         const payload = {
             kode_toko: document.getElementById("kodeToko").value,
@@ -551,7 +555,7 @@ async function handleFormSubmit(e) {
             pic_name: currentUser.email || "",
             files: [],
             deleted_files: deletedFilesList,
-            file_links: preservedFileLinks // Kirim hasil rekonstruksi
+            file_links: preservedFileLinks // Kirim string hasil rekonstruksi
         };
 
         const fileToBase64 = (file) => {
