@@ -212,8 +212,8 @@ function renderUploadSections(isReadOnly = false) {
 
     const groups = [
         { title: "Foto (JPG, JPEG, PNG)", keys: ["fotoAsal", "fotoRenovasi"] },
-        { title: "Gambar (PDF, Gambar)", keys: ["me", "sipil", "sketsaAwal"] },
-        { title: "Dokumen (PDF, Gambar)", keys: ["pendukung"] }
+        { title: "Gambar (PDF, JPG, JPEG, PNG, Autocad)", keys: ["me", "sipil", "sketsaAwal"] },
+        { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["pendukung"] }
     ];
 
     groups.forEach(group => {
