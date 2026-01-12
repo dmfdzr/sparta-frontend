@@ -7,13 +7,12 @@ let allDocuments = [];
 let filteredDocuments = [];
 let isEditing = false;
 let currentEditId = null;
-let deleteTargetCode = null; // State untuk target delete
 
 // === STATE MANAGEMENT UNTUK FILE ===
 let newFilesBuffer = {};
-let deletedFilesList = [];
-let originalFileLinks = "";
-let existingFilesFromUI = [];
+let deletedFilesList = []; // Sekarang menyimpan { category, filename, url }
+let originalFileLinks = ""; // Simpan file_links asli saat edit
+let existingFilesFromUI = []; // Backup: track file dari UI rendering
 
 const UPLOAD_CATEGORIES = [
     { key: "fotoAsal", label: "Foto Toko Existing" },
@@ -70,29 +69,21 @@ function initApp() {
     if (btnAddNew) btnAddNew.addEventListener("click", () => showForm());
     document.getElementById("btn-back").addEventListener("click", () => showTable());
 
-    // Modal Actions General
+    // Modal Actions
     document.getElementById("cancel-logout").addEventListener("click", () => hideModal("modal-logout"));
     document.getElementById("confirm-logout").addEventListener("click", handleLogout);
     document.getElementById("btn-close-error").addEventListener("click", () => hideModal("modal-error"));
     document.getElementById("btn-close-success").addEventListener("click", () => hideModal("modal-success"));
 
-    // === MODAL ACTIONS DELETE (BARU) ===
-    // Pastikan ID ini ada di HTML
-    const btnCancelDelete = document.getElementById("btn-cancel-delete");
-    const btnConfirmDelete = document.getElementById("btn-confirm-delete");
-    
-    if (btnCancelDelete) btnCancelDelete.addEventListener("click", () => hideModal("modal-delete"));
-    if (btnConfirmDelete) btnConfirmDelete.addEventListener("click", executeDelete);
-
     // Form Handling
     document.getElementById("store-form").addEventListener("submit", handleFormSubmit);
 
-    // Auto-Capitalize Input Logic
     const uppercaseFields = ['kodeToko', 'namaToko'];
     uppercaseFields.forEach(id => {
         const input = document.getElementById(id);
         if (input) {
             input.addEventListener('input', function() {
+                // Memaksa value menjadi uppercase dan menjaga posisi kursor agar nyaman
                 const start = this.selectionStart;
                 const end = this.selectionEnd;
                 this.value = this.value.toUpperCase();
@@ -133,9 +124,10 @@ function resetFormState() {
         newFilesBuffer[cat.key] = [];
     });
     deletedFilesList = [];
-    originalFileLinks = ""; 
-    existingFilesFromUI = []; 
+    originalFileLinks = ""; // Reset file_links asli
+    existingFilesFromUI = []; // Reset backup tracking
 
+    // Reset UI Elements
     document.querySelectorAll(".file-preview").forEach(el => el.innerHTML = "");
     document.querySelectorAll(".existing-files-list").forEach(el => el.innerHTML = "");
     document.querySelectorAll("input[type='file']").forEach(el => el.value = "");
@@ -148,14 +140,18 @@ function showTable() {
     document.getElementById("view-table").style.display = "block";
     document.getElementById("view-form").style.display = "none";
     resetFormState();
+
     isEditing = false;
     currentEditId = null;
+
+    // Refresh data saat kembali ke tabel
     fetchDocuments();
 }
 
 function showForm(data = null) {
     document.getElementById("view-table").style.display = "none";
     document.getElementById("view-form").style.display = "block";
+
     resetFormState();
 
     const title = document.getElementById("form-title");
@@ -171,6 +167,7 @@ function showForm(data = null) {
     if (data) {
         // === MODE EDIT ===
         isEditing = true;
+        // Prioritas ID: _id (Mongo), id (SQL), doc_id, kode_toko
         currentEditId = data._id || data.id || data.doc_id || data.kode_toko;
 
         document.getElementById("kodeToko").value = data.kode_toko || "";
@@ -179,7 +176,10 @@ function showForm(data = null) {
         document.getElementById("luasParkir").value = formatDecimalInput(data.luas_parkir);
         document.getElementById("luasGudang").value = formatDecimalInput(data.luas_gudang);
 
+        // PENTING: Simpan file_links asli SEKARANG, bukan saat submit
         originalFileLinks = data.file_links || "";
+        console.log("Original File Links saved:", originalFileLinks);
+
         if (data.file_links) {
             renderExistingFiles(data.file_links);
         }
@@ -190,7 +190,7 @@ function showForm(data = null) {
             if (btnSave) btnSave.style.display = "none";
         } else {
             title.textContent = `Edit Data Toko: ${data.nama_toko}`;
-            document.getElementById("kodeToko").disabled = true; // Kode biasanya tidak boleh diubah saat edit
+            document.getElementById("kodeToko").disabled = true;
         }
     } else {
         // === MODE TAMBAH ===
@@ -206,6 +206,7 @@ function showForm(data = null) {
 function renderUploadSections(isReadOnly = false) {
     const container = document.getElementById("upload-container");
     if (!container) return;
+
     container.innerHTML = "";
 
     const groups = [
@@ -225,17 +226,21 @@ function renderUploadSections(isReadOnly = false) {
         group.keys.forEach(key => {
             const cat = UPLOAD_CATEGORIES.find(c => c.key === key);
             if (!cat) return;
+
             if (!newFilesBuffer[key]) newFilesBuffer[key] = [];
 
             const section = document.createElement("div");
             section.className = "upload-group";
+
             const displayInput = isReadOnly ? "none" : "block";
 
             section.innerHTML = `
                 <label class="upload-label">${cat.label}</label>
                 <div id="existing-${cat.key}" class="existing-files-list"></div>
+                
                 <input type="file" id="file-${cat.key}" multiple accept="image/*,.pdf" 
                        style="margin-top: auto; display: ${displayInput};">
+                
                 <div class="file-preview" id="preview-${cat.key}"></div>
             `;
             gridDiv.appendChild(section);
@@ -251,12 +256,14 @@ function renderUploadSections(isReadOnly = false) {
                 input.addEventListener("change", (e) => {
                     const files = Array.from(e.target.files);
                     if (files.length === 0) return;
+
                     files.forEach(f => {
                         const isDuplicate = newFilesBuffer[cat.key].some(existing => existing.name === f.name);
                         if (!isDuplicate) {
                             newFilesBuffer[cat.key].push(f);
                         }
                     });
+
                     updatePreviewUI(cat.key);
                     input.value = "";
                 });
@@ -271,6 +278,7 @@ function updatePreviewUI(categoryKey) {
     previewDiv.innerHTML = "";
 
     const files = newFilesBuffer[categoryKey];
+
     files.forEach((file, index) => {
         const wrapper = document.createElement("div");
         wrapper.className = "preview-wrapper";
@@ -295,10 +303,11 @@ function updatePreviewUI(categoryKey) {
             const docEl = document.createElement("div");
             docEl.className = "preview-file-item";
             let icon = "📄";
-            if (file.type.includes('pdf')) icon = "📑";
+            if (file.type.includes('pdf')) icon = "📕";
             docEl.innerHTML = `<span class="preview-file-icon">${icon}</span> <span class="preview-file-name">${file.name}</span>`;
             wrapper.appendChild(docEl);
         }
+
         wrapper.appendChild(btnRemove);
         previewDiv.appendChild(wrapper);
     });
@@ -308,7 +317,10 @@ function renderExistingFiles(fileLinksString) {
     if (!fileLinksString) return;
     const entries = fileLinksString.split(",").map(s => s.trim()).filter(Boolean);
     const isHeadOffice = currentUser.cabang?.toLowerCase() === "head office";
+
+    // BACKUP: Simpan entries asli ke existingFilesFromUI
     existingFilesFromUI = [...entries];
+    console.log("Rendered existing files (backup):", existingFilesFromUI);
 
     entries.forEach(entry => {
         const parts = entry.split("|");
@@ -328,16 +340,20 @@ function renderExistingFiles(fileLinksString) {
         }
 
         const container = document.getElementById(`existing-${category}`) || document.getElementById("existing-pendukung");
+
         if (container) {
             const fileItem = document.createElement("div");
             fileItem.className = "existing-file-item";
+
             let deleteBtnHtml = "";
             if (!isHeadOffice) {
+                // Kirim category, name, dan url untuk delete
                 const safeCategory = category.replace(/'/g, "\\'");
                 const safeName = name.replace(/'/g, "\\'");
                 const safeUrl = url.trim().replace(/'/g, "\\'");
-                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${safeCategory}', '${safeName}', '${safeUrl}')">🗑️ Hapus</button>`;
+                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${safeCategory}', '${safeName}', '${safeUrl}')">🗑 Hapus</button>`;
             }
+
             fileItem.innerHTML = `
                 <a href="${url}" target="_blank" class="file-link">📎 ${name}</a>
                 ${deleteBtnHtml}
@@ -348,16 +364,33 @@ function renderExistingFiles(fileLinksString) {
 }
 
 window.markFileForDeletion = function (btnElement, category, fileName, fileUrl) {
+    // Validasi URL tidak kosong atau invalid
     if (!fileUrl || fileUrl === "#" || fileUrl.trim() === "") {
-        alert("URL file tidak valid.");
+        alert("URL file tidak valid, tidak dapat dihapus.");
         return;
     }
+
     if (confirm(`Hapus file "${fileName}"?\nFile akan hilang permanen setelah Anda klik tombol Simpan.`)) {
-        const deleteItem = { category: category.trim(), filename: fileName.trim(), url: fileUrl.trim() };
-        const isDuplicate = deletedFilesList.some(item => item.url === deleteItem.url && item.filename === deleteItem.filename);
-        if (!isDuplicate) deletedFilesList.push(deleteItem);
+        // Simpan object untuk dikirim ke backend dengan flag deleted: true
+        const deleteItem = {
+            category: category.trim(),
+            filename: fileName.trim(),
+            url: fileUrl.trim()
+        };
+
+        // Cegah duplikasi
+        const isDuplicate = deletedFilesList.some(item =>
+            item.url === deleteItem.url && item.filename === deleteItem.filename
+        );
+
+        if (!isDuplicate) {
+            deletedFilesList.push(deleteItem);
+        }
+
         const parent = btnElement.closest(".existing-file-item");
         if (parent) parent.style.display = "none";
+
+        console.log("List Delete:", deletedFilesList);
     }
 };
 
@@ -371,10 +404,20 @@ async function fetchDocuments() {
         if (currentUser.cabang && currentUser.cabang.toLowerCase() !== "head office") {
             url += `?cabang=${encodeURIComponent(currentUser.cabang)}`;
         }
+
+        console.log("Fetching from URL:", url);
+
         const res = await fetch(url);
         if (!res.ok) throw new Error("Gagal mengambil data dari server");
+
         const rawData = await res.json();
-        
+        console.log("Data received:", rawData);
+
+        // DEBUG: Cek apakah file_links ada di response
+        if (Array.isArray(rawData) && rawData.length > 0) {
+            console.log("Sample file_links from first doc:", rawData[0]?.file_links);
+        }
+
         if (Array.isArray(rawData)) {
             allDocuments = rawData;
         } else if (rawData.items && Array.isArray(rawData.items)) {
@@ -386,9 +429,11 @@ async function fetchDocuments() {
         }
 
         updateCabangFilterOptions();
+
         const searchInput = document.getElementById("search-input");
         const keyword = searchInput ? searchInput.value : "";
         handleSearch(keyword);
+
     } catch (err) {
         console.error("Error fetching:", err);
         showToast("Gagal memuat data: " + err.message);
@@ -401,6 +446,7 @@ async function fetchDocuments() {
 
 function handleSearch(keyword) {
     if (typeof keyword !== 'string') keyword = "";
+
     const term = keyword.toLowerCase();
     const filterSelect = document.getElementById("filter-cabang");
     const filterCabang = filterSelect ? filterSelect.value : "";
@@ -409,10 +455,12 @@ function handleSearch(keyword) {
         const kode = (doc.kode_toko || "").toString().toLowerCase();
         const nama = (doc.nama_toko || "").toString().toLowerCase();
         const cabang = (doc.cabang || "").toString();
+
         const matchText = kode.includes(term) || nama.includes(term);
         const matchCabang = filterCabang === "" || cabang === filterCabang;
         return matchText && matchCabang;
     });
+
     filteredDocuments.reverse();
     renderTable();
 }
@@ -420,6 +468,7 @@ function handleSearch(keyword) {
 function renderTable() {
     const tbody = document.getElementById("table-body");
     if (!tbody) return;
+
     tbody.innerHTML = "";
 
     if (filteredDocuments.length === 0) {
@@ -433,22 +482,11 @@ function renderTable() {
 
     filteredDocuments.forEach((doc, index) => {
         const row = document.createElement("tr");
+
         const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "";
         const linkHtml = folderUrl
             ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">📂 Buka Folder</a>`
             : `<span style="color: #999;">-</span>`;
-
-        // === LOGIC BUTTON DELETE ===
-        // Hanya muncul jika BUKAN Head Office
-        let deleteButtonHtml = "";
-        if (!isHeadOffice) {
-            deleteButtonHtml = `
-                <button class="btn-action btn-delete" 
-                    onclick="prepareDelete('${doc.kode_toko}', '${doc.nama_toko}')">
-                    Hapus
-                </button>
-            `;
-        }
 
         row.innerHTML = `
             <td>${index + 1}</td>
@@ -458,77 +496,20 @@ function renderTable() {
             <td>${linkHtml}</td>
             <td>
                 <button class="btn-action ${actionClass}" onclick="handleEditClick('${doc._id || doc.id || doc.kode_toko}')">${actionLabel}</button>
-                ${deleteButtonHtml} 
             </td>
         `;
         tbody.appendChild(row);
     });
 }
 
-// === NEW: LOGIC DELETE DATA ===
-window.prepareDelete = function(kodeToko, namaToko) {
-    deleteTargetCode = kodeToko;
-    
-    // Update teks di modal biar informatif
-    const targetNameEl = document.getElementById("delete-target-name");
-    const targetCodeEl = document.getElementById("delete-target-code");
-    
-    if (targetNameEl) targetNameEl.textContent = namaToko;
-    if (targetCodeEl) targetCodeEl.textContent = kodeToko;
-    
-    showModal("modal-delete");
-};
-
-async function executeDelete() {
-    if (!deleteTargetCode) return;
-    
-    showLoading(true);
-    hideModal("modal-delete"); // Tutup modal konfirmasi
-    
-    try {
-        // === FIX ENDPOINT SESUAI REQUEST ===
-        // Endpoint: /api/doc/delete/<kode_toko>
-        const url = `${BASE_URL}/api/doc/delete/${encodeURIComponent(deleteTargetCode)}`; 
-        
-        const res = await fetch(url, {
-            method: "DELETE",
-            headers: { 
-                "Content-Type": "application/json" 
-            }
-        });
-
-        // Handle response jika text kosong atau JSON
-        let result;
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            result = await res.json();
-        } else {
-            result = { message: await res.text() };
-        }
-
-        if (!res.ok) throw new Error(result.message || result.detail || "Gagal menghapus data");
-
-        showToast("Data toko berhasil dihapus");
-        
-        // Refresh tabel
-        fetchDocuments();
-
-    } catch (err) {
-        console.error("Delete Error:", err);
-        document.getElementById("error-msg").textContent = "Gagal hapus: " + err.message;
-        showModal("modal-error");
-    } finally {
-        showLoading(false);
-        deleteTargetCode = null; // Reset state
-    }
-}
-
 window.handleEditClick = function (idOrCode) {
+    // Kita gunakan String() untuk memastikan perbandingan aman (misal "123" vs 123)
     const doc = allDocuments.find(d =>
         String(d._id) === String(idOrCode) ||
         String(d.id) === String(idOrCode) ||
         String(d.kode_toko) === String(idOrCode)
     );
+
     if (doc) {
         showForm(doc);
     } else {
@@ -539,21 +520,30 @@ window.handleEditClick = function (idOrCode) {
 function updateCabangFilterOptions() {
     const select = document.getElementById("filter-cabang");
     if (!select) return;
+
     const currentValue = select.value;
     const cabangSet = new Set();
-    allDocuments.forEach(doc => { if (doc.cabang) cabangSet.add(doc.cabang); });
+
+    allDocuments.forEach(doc => {
+        if (doc.cabang) cabangSet.add(doc.cabang);
+    });
+
     select.innerHTML = '<option value="">Semua Cabang</option>';
+
     Array.from(cabangSet).sort().forEach(cabang => {
         const option = document.createElement("option");
         option.value = cabang;
         option.textContent = cabang;
         select.appendChild(option);
     });
-    if (currentValue && cabangSet.has(currentValue)) select.value = currentValue;
+
+    if (currentValue && cabangSet.has(currentValue)) {
+        select.value = currentValue;
+    }
 }
 
 // ==========================================
-// 5. SUBMIT HANDLER
+// 5. SUBMIT HANDLER (PERBAIKAN UTAMA: TYPE SAFE)
 // ==========================================
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -561,6 +551,7 @@ async function handleFormSubmit(e) {
     document.getElementById("error-msg").textContent = "";
 
     try {
+        // === PAYLOAD SETUP ===
         const payload = {
             kode_toko: document.getElementById("kodeToko").value,
             nama_toko: document.getElementById("namaToko").value,
@@ -569,13 +560,23 @@ async function handleFormSubmit(e) {
             luas_gudang: document.getElementById("luasGudang").value,
             cabang: currentUser.cabang || "",
             pic_name: currentUser.email || "",
-            files: []
+            files: [] // Array untuk file baru dan file yang dihapus
         };
 
+        console.log("=== DEBUG SUBMIT ===");
+        console.log("Is Editing:", isEditing);
+        console.log("Deleted Files List:", deletedFilesList);
+
+        // === TAMBAHKAN FILE YANG DIHAPUS (dengan flag deleted: true) ===
         deletedFilesList.forEach(item => {
-            payload.files.push({ category: item.category, filename: item.filename, deleted: true });
+            payload.files.push({
+                category: item.category,
+                filename: item.filename,
+                deleted: true
+            });
         });
 
+        // === KONVERSI FILE BARU KE BASE64 ===
         const fileToBase64 = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -586,6 +587,7 @@ async function handleFormSubmit(e) {
         };
 
         const filePromises = [];
+
         UPLOAD_CATEGORIES.forEach(cat => {
             const filesInBuffer = newFilesBuffer[cat.key] || [];
             filesInBuffer.forEach(file => {
@@ -603,8 +605,18 @@ async function handleFormSubmit(e) {
 
         await Promise.all(filePromises);
 
+        console.log("Payload files count:", payload.files.length);
+        console.log("Payload files:", payload.files.map(f => ({
+            category: f.category,
+            filename: f.filename,
+            deleted: f.deleted || false,
+            hasData: !!f.data
+        })));
+
+        // === KIRIM KE SERVER ===
         let url = `${BASE_URL}/api/doc/save`;
         let method = "POST";
+
         if (isEditing && currentEditId) {
             url = `${BASE_URL}/api/doc/update/${currentEditId}`;
             method = "PUT";
@@ -617,6 +629,8 @@ async function handleFormSubmit(e) {
         });
 
         const result = await res.json();
+        console.log("Server response:", result);
+
         if (!res.ok) throw new Error(result.detail || result.message || "Gagal menyimpan data");
 
         showModal("modal-success");
@@ -646,7 +660,9 @@ function formatDecimalInput(value) {
 function showModal(id) { document.getElementById(id).style.display = "flex"; }
 function hideModal(id) {
     document.getElementById(id).style.display = "none";
-    if (id === "modal-success") showTable();
+    if (id === "modal-success") {
+        showTable();
+    }
 }
 
 function showLoading(show) {
