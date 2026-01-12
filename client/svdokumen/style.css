@@ -168,34 +168,107 @@ header h1 {
 }
 
 /* === TABLE STYLES === */
-.table-container { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.table-container {
+    overflow-x: auto;
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 1px #e5e5e5; /* Halus border luar table */
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0; /* Hapus margin bawah agar pas di container */
+}
 
 .table th {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
-    text-align: left;
-    padding: 12px;
-    font-weight: 700;
-    border-bottom: 2px solid #dc2626;
+    text-align: center; /* REQUEST: Judul kolom rata tengah */
+    padding: 14px 16px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    border-bottom: 2px solid #991b1b;
 }
 
-.table td { padding: 12px; border-bottom: 1px solid #eee; }
-.table tr:hover { background-color: #f9f9f9; }
+/* Mengatur alignment isi tabel */
+.table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+    color: var(--neutral-700);
+}
+
+/* Kolom No, Kode, Cabang, dan Aksi sebaiknya rata tengah isinya juga */
+.table td:nth-child(1), /* No */
+.table td:nth-child(2), /* Kode */
+.table td:nth-child(4), /* Cabang */
+.table td:nth-child(5), /* Link Folder */
+.table td:last-child    /* Aksi */ {
+    text-align: center;
+}
+
+.table tr:hover {
+    background-color: #fff1f2; /* Highlight merah sangat muda saat hover baris */
+}
+
+/* === TOMBOL AKSI YANG LEBIH NYAMAN === */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px; /* Jarak antar tombol diatur di sini, bukan margin inline */
+}
 
 .btn-action {
-    background: none;
-    padding: 4px 10px;
-    border-radius: 4px;
-    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px; /* Padding lebih besar biar enak diklik */
+    border-radius: 6px;
     font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-.btn-edit { border: 1px solid #007bff; color: #007bff; }
-.btn-edit:hover { background: #007bff; color: white; }
+/* Style Tombol Edit/Lihat (Soft Blue/Green) */
+.btn-edit {
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid transparent;
+}
+.btn-edit:hover {
+    background-color: #2563eb;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+}
 
-.btn-view { border: 1px solid #28a745; color: #28a745; }
-.btn-view:hover { background: #28a745; color: white; }
+/* Style Tombol View (Untuk Head Office) */
+.btn-view {
+    background-color: #f0fdf4;
+    color: #16a34a;
+}
+.btn-view:hover {
+    background-color: #16a34a;
+    color: white;
+}
+
+/* Style Tombol Hapus (Soft Red) */
+.btn-delete {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid transparent;
+}
+.btn-delete:hover {
+    background-color: #dc2626;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.2);
+}
 
 /* === FORM === */
 .btn-text {

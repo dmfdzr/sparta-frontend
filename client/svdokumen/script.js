@@ -496,7 +496,7 @@ function renderTable() {
             deleteBtnHtml = `
                 <button class="btn-action btn-delete" 
                         onclick="handleDeleteClick('${doc.kode_toko}')" 
-                        style="margin-left: 8px;">
+                        title = "Hapus Data">
                     Hapus
                 </button>`;
         }
