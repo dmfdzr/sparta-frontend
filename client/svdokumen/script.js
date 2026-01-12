@@ -191,6 +191,7 @@ function showForm(data = null) {
         } else {
             title.textContent = `Edit Data Toko: ${data.nama_toko}`;
             document.getElementById("kodeToko").disabled = true;
+            document.getElementById("namaToko").disabled = true;
         }
     } else {
         // === MODE TAMBAH ===
