@@ -18,7 +18,7 @@ const UPLOAD_CATEGORIES = [
     { key: "me", label: "Gambar ME" },
     { key: "sipil", label: "Gambar Sipil" },
     { key: "sketsaAwal", label: "Sketsa Awal (Layout)" },
-    { key: "pendukung", label: "Dokumen Pendukung (NIOI, SLO, dll)" },
+    { key: "pendukung", label: "Dokumen Pendukung (NIDI, SLO, dll)" },
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
