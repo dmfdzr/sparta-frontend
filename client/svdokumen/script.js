@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function checkAuth() {
     const isAuthenticated = sessionStorage.getItem("authenticated");
     if (isAuthenticated !== "true") {
-        window.location.href = "../login.html";
+        window.location.href = "sparta-alfamart.vercel.app";
         return;
     }
 
@@ -614,7 +614,7 @@ async function handleFormSubmit(e) {
 // ==========================================
 function handleLogout() {
     sessionStorage.clear();
-    window.location.href = "../login.html";
+    window.location.href = "sparta-alfamart.vercel.app";
 }
 
 let idleTime = 0;
