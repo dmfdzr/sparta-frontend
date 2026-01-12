@@ -355,6 +355,18 @@ input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cur
 
 .file-link:hover { text-decoration: underline; }
 
+.btn-delete {
+    border: 1px solid #dc2626; /* Merah */
+    color: #dc2626;
+    transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+    background: #dc2626;
+    color: white;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
 /* Tombol Hapus Existing File (Trash Icon/Text) */
 .btn-delete-existing {
     background: none;

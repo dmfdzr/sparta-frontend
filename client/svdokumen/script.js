@@ -239,7 +239,7 @@ function renderUploadSections(isReadOnly = false) {
                 <div id="existing-${cat.key}" class="existing-files-list"></div>
                 
                 <input type="file" id="file-${cat.key}" multiple accept="image/*,.pdf" 
-                       style="margin-top: auto; display: ${displayInput};">
+                        style="margin-top: auto; display: ${displayInput};">
                 
                 <div class="file-preview" id="preview-${cat.key}"></div>
             `;
@@ -485,8 +485,20 @@ function renderTable() {
 
         const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "";
         const linkHtml = folderUrl
-            ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">📂 Buka Folder</a>`
+            ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">唐 Buka Folder</a>`
             : `<span style="color: #999;">-</span>`;
+
+        // Logika Tombol Hapus: Hanya muncul jika bukan Head Office
+        let deleteBtnHtml = "";
+        if (!isHeadOffice) {
+            // Kita pass kode_toko secara spesifik karena endpoint membutuhkannya
+            deleteBtnHtml = `
+                <button class="btn-action btn-delete" 
+                        onclick="handleDeleteClick('${doc.kode_toko}')" 
+                        style="margin-left: 8px;">
+                    Hapus
+                </button>`;
+        }
 
         row.innerHTML = `
             <td>${index + 1}</td>
@@ -496,6 +508,7 @@ function renderTable() {
             <td>${linkHtml}</td>
             <td>
                 <button class="btn-action ${actionClass}" onclick="handleEditClick('${doc._id || doc.id || doc.kode_toko}')">${actionLabel}</button>
+                ${deleteBtnHtml}
             </td>
         `;
         tbody.appendChild(row);
@@ -514,6 +527,49 @@ window.handleEditClick = function (idOrCode) {
         showForm(doc);
     } else {
         console.error("Dokumen tidak ditemukan untuk ID:", idOrCode);
+    }
+};
+
+window.handleDeleteClick = async function (kode_toko) {
+
+    if (!kode_toko) {
+        alert("Kode Toko tidak valid.");
+        return;
+    }
+
+    const isConfirmed = confirm(`Apakah Anda yakin ingin menghapus data toko dengan Kode: ${kode_toko}? Data yang dihapus tidak dapat dikembalikan.`);
+    if (!isConfirmed) return;
+
+    showLoading(true);
+
+    try {
+
+        const url = `${BASE_URL}/api/doc/delete/${encodeURIComponent(kode_toko)}`;
+        
+        const res = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+            throw new Error(result.message || result.detail || "Gagal menghapus data.");
+        }
+
+        showToast("Data berhasil dihapus");
+        
+        await fetchDocuments();
+
+    } catch (err) {
+        console.error("Delete Error:", err);
+        // Tampilkan modal error yang sudah ada di script.js
+        document.getElementById("error-msg").textContent = err.message;
+        showModal("modal-error");
+    } finally {
+        showLoading(false);
     }
 };
 
