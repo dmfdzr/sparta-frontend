@@ -18,18 +18,29 @@
     <main class="container">
       <div class="welcome-message">
         <h2>System for Property Administration, Reporting, Tracking & Approval</h2>
+        <p>Selamat datang di Portal SPARTA. Silakan pilih menu di bawah ini.</p>
       </div>
 
       <nav class="menu-container">
-        <a href="/auth/kontraktor/login.html" class="menu-item">
-          <img src="/assets/worker.png" alt="kontraktor>"/>
-          <h3>KONTRAKTOR</h3>
-          <p>Masuk sebagai kontraktor</p>
+        <a href="/auth/login.html" class="menu-item">
+            <div class="card-icons">
+                <img src="/assets/worker.png" alt="Kontraktor" title="Kontraktor"/>
+                <img src="/assets/scientist.png" alt="SAT/PIC" title="SAT/PIC"/>
+            </div>
+            <h3>Masuk Halaman Dashboard</h3>
+            <p>Login SPARTA</p>
         </a>
-        <a href="/auth/pic/login.html" class="menu-item">
-          <img src="/assets/scientist.png" alt="PIC"/>
-          <h3>SAT</h3>
-          <p>Masuk sebagai SAT</p>
+
+        <a href="#" class="menu-item" onclick="alert('Fitur User Manual belum tersedia.')">
+            <img src="/assets/manual.png" alt="User Manual" onerror="this.src='/assets/worker.png'"/>
+            <h3>User Manual</h3>
+            <p>Panduan penggunaan sistem & alur kerja</p>
+        </a>
+
+        <a href="#" class="menu-item" onclick="alert('Halaman About belum tersedia.')">
+            <img src="/assets/about.png" alt="Tentang SPARTA" onerror="this.src='/assets/scientist.png'"/>
+            <h3>Tentang SPARTA</h3>
+            <p>Informasi versi dan pengembang aplikasi</p>
         </a>
       </nav>
     </main>
