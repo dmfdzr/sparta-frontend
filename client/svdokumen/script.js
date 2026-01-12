@@ -342,7 +342,7 @@ window.markFileForDeletion = function(btnElement, fileUrl, fileName) {
 };
 
 // ==========================================
-// 4. DATA FETCHING & TABLE (DIPERBAIKI)
+// 4. DATA FETCHING & TABLE
 // ==========================================
 async function fetchDocuments() {
     showLoading(true);
@@ -360,26 +360,21 @@ async function fetchDocuments() {
         const rawData = await res.json();
         console.log("Data received:", rawData);
 
-        // === PERBAIKAN UTAMA DI SINI ===
-        // Backend Anda mengembalikan object dengan key 'items', bukan array langsung.
         if (Array.isArray(rawData)) {
             allDocuments = rawData;
         } else if (rawData.items && Array.isArray(rawData.items)) {
-            // Ini untuk menangkap format { items: [...] } seperti di console log Anda
             allDocuments = rawData.items;
         } else if (rawData.data && Array.isArray(rawData.data)) {
             allDocuments = rawData.data;
         } else {
             allDocuments = [];
-            console.warn("Format data tidak dikenali. Diharapkan Array atau Object dengan key 'items'/'data'.");
+            console.warn("Format data tidak dikenali.");
         }
 
         updateCabangFilterOptions();
         
-        // Ambil value search, pastikan string
         const searchInput = document.getElementById("search-input");
         const keyword = searchInput ? searchInput.value : "";
-        
         handleSearch(keyword);
 
     } catch (err) {
@@ -393,14 +388,12 @@ async function fetchDocuments() {
 }
 
 function handleSearch(keyword) {
-    // Safety check jika keyword undefined
     if (typeof keyword !== 'string') keyword = "";
     
     const term = keyword.toLowerCase();
     const filterSelect = document.getElementById("filter-cabang");
     const filterCabang = filterSelect ? filterSelect.value : "";
 
-    // Filtering
     filteredDocuments = allDocuments.filter(doc => {
         const kode = (doc.kode_toko || "").toString().toLowerCase();
         const nama = (doc.nama_toko || "").toString().toLowerCase();
@@ -408,13 +401,10 @@ function handleSearch(keyword) {
 
         const matchText = kode.includes(term) || nama.includes(term);
         const matchCabang = filterCabang === "" || cabang === filterCabang;
-        
         return matchText && matchCabang;
     });
 
-    // SORTING: Tampilkan data terbaru paling atas
     filteredDocuments.reverse(); 
-
     renderTable();
 }
 
@@ -455,9 +445,7 @@ function renderTable() {
     });
 }
 
-// Helper agar onclick bisa membaca fungsi ini
 window.handleEditClick = function(idOrCode) {
-    // Cari dokumen berdasarkan ID atau Kode
     const doc = allDocuments.find(d => 
         (d._id && d._id === idOrCode) || 
         (d.id && d.id === idOrCode) || 
@@ -497,7 +485,7 @@ function updateCabangFilterOptions() {
 }
 
 // ==========================================
-// 5. SUBMIT HANDLER
+// 5. SUBMIT HANDLER (DIPERBAIKI)
 // ==========================================
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -505,6 +493,35 @@ async function handleFormSubmit(e) {
     document.getElementById("error-msg").textContent = "";
 
     try {
+        // --- 1. HITUNG FILE EXISTING YANG *TIDAK* DIHAPUS ---
+        // Masalah "semua terhapus" terjadi karena kita tidak mengirim sisa file lama ke backend.
+        // Di sini kita rekonstruksi string `file_links` hanya dengan file yang AMAN.
+        let preservedFileLinks = "";
+
+        if (isEditing && currentEditId) {
+            // Cari data asli dokumen dari memori
+            const originalDoc = allDocuments.find(d => 
+                (d._id && d._id === currentEditId) || 
+                (d.id && d.id === currentEditId) || 
+                (d.kode_toko && d.kode_toko === currentEditId)
+            );
+
+            if (originalDoc && originalDoc.file_links) {
+                // Split string menjadi array
+                const entries = originalDoc.file_links.split(",");
+                
+                // Filter: Hanya ambil entry yang URL-nya TIDAK ada di deletedFilesList
+                const keptEntries = entries.filter(entry => {
+                    const isDeleted = deletedFilesList.some(delUrl => entry.includes(delUrl));
+                    return !isDeleted; // True = Simpan, False = Buang
+                });
+                
+                // Gabungkan kembali jadi string
+                preservedFileLinks = keptEntries.join(",");
+            }
+        }
+        // --------------------------------------------------------
+
         const payload = {
             kode_toko: document.getElementById("kodeToko").value,
             nama_toko: document.getElementById("namaToko").value,
@@ -514,7 +531,8 @@ async function handleFormSubmit(e) {
             cabang: currentUser.cabang || "",
             pic_name: currentUser.email || "",
             files: [],
-            deleted_files: deletedFilesList 
+            deleted_files: deletedFilesList,
+            file_links: preservedFileLinks // <--- PERBAIKAN: Kirim sisa file yang tidak dihapus
         };
 
         const fileToBase64 = (file) => {
