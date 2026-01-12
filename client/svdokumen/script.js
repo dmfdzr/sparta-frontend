@@ -329,6 +329,7 @@ function renderExistingFiles(fileLinksString) {
         let name = "File";
         let url = "#";
 
+        // Logic parsing nama file
         if (parts.length === 3) {
             category = parts[0].trim();
             name = parts[1].trim();
@@ -346,17 +347,32 @@ function renderExistingFiles(fileLinksString) {
             const fileItem = document.createElement("div");
             fileItem.className = "existing-file-item";
 
+            // Tentukan Ikon berdasarkan ekstensi (simple logic)
+            let iconCode = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`; // Default File Icon
+            
+            if (url.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/)) {
+                iconCode = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+            }
+
             let deleteBtnHtml = "";
             if (!isHeadOffice) {
-                // Kirim category, name, dan url untuk delete
                 const safeCategory = category.replace(/'/g, "\\'");
                 const safeName = name.replace(/'/g, "\\'");
                 const safeUrl = url.trim().replace(/'/g, "\\'");
-                deleteBtnHtml = `<button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${safeCategory}', '${safeName}', '${safeUrl}')">🗑 Hapus</button>`;
+                
+                // Menggunakan icon trash SVG untuk tombol hapus
+                deleteBtnHtml = `
+                <button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${safeCategory}', '${safeName}', '${safeUrl}')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Hapus
+                </button>`;
             }
 
             fileItem.innerHTML = `
-                <a href="${url}" target="_blank" class="file-link">📎 ${name}</a>
+                <a href="${url}" target="_blank" class="file-link">
+                    <div class="file-icon-placeholder">${iconCode}</div>
+                    <span title="${name}">${name}</span>
+                </a>
                 ${deleteBtnHtml}
             `;
             container.appendChild(fileItem);

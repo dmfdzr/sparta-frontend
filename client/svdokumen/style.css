@@ -529,6 +529,110 @@ input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cur
     border-color: #94a3b8;
 }
 
+/* =========================================
+   STYLE LIST FILE EXISTING (MODERN CARD LOOK)
+   ========================================= */
+
+.existing-files-list {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* Jarak antar file lebih lega */
+}
+
+.existing-file-item {
+    background: #ffffff;
+    border: 1px solid #e2e8f0; /* Border abu sangat muda */
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efek Hover pada Kartu File */
+.existing-file-item:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Garis aksen kiri (opsional, untuk penanda visual) */
+.existing-file-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #3b82f6; /* Biru soft */
+    border-radius: 4px 0 0 4px;
+}
+
+.file-link {
+    text-decoration: none;
+    color: #334155; /* Warna teks Slate-700 (lebih enak di mata daripada hitam pekat) */
+    font-weight: 500;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 100px); /* Sisa space dikurangi tombol hapus */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.file-link:hover {
+    color: #2563eb; /* Biru saat hover */
+    text-decoration: none;
+}
+
+/* Ikon File (Bisa dari SVG atau Unicode yang distyle) */
+.file-icon-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: #eff6ff;
+    color: #3b82f6;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+/* Style Tombol Hapus Existing (Lebih Elegan) */
+.btn-delete-existing {
+    background-color: #fff1f2; /* Latar merah sangat muda */
+    color: #e11d48; /* Merah rose */
+    border: 1px solid transparent;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+}
+
+.btn-delete-existing:hover {
+    background-color: #e11d48;
+    color: white;
+    box-shadow: 0 2px 4px rgba(225, 29, 72, 0.3);
+}
+
+.btn-delete-existing:active {
+    transform: scale(0.98);
+}
+
 #kodeToko, 
 #namaToko {
     text-transform: uppercase;
