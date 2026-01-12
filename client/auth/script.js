@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const eyeOpen = document.getElementById("eyeOpen");
     const eyeSlashed = document.getElementById("eyeSlashed");
 
+    // Fitur Toggle Password (Mata)
     if (togglePassword) {
         togglePassword.addEventListener("click", () => {
             const type = passwordInput.type === "password" ? "text" : "password";
@@ -43,14 +44,14 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
 
         const username = loginForm.username.value;
-        const password = passwordInput.value; // Ini adalah 'cabang' di mata backend
+        const password = passwordInput.value; // Password = Kode Cabang
 
         loginMessage.textContent = "Logging in...";
         loginMessage.className = "login-message";
         loginMessage.style.display = "block";
 
         try {
-            // Mengirim payload sesuai spesifikasi backend (email & cabang)
+            // Kirim request ke backend
             const response = await fetch(PYTHON_API_LOGIN_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -68,15 +69,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 loginMessage.className = "login-message success";
 
                 sessionStorage.setItem("authenticated", "true");
+
                 sessionStorage.setItem("loggedInUserEmail", username);
-                sessionStorage.setItem("userRole", userRole); // PENTING: Ini kunci untuk filter menu nanti
+                sessionStorage.setItem("userRole", userRole); 
+                sessionStorage.setItem("loggedInUserCabang", password); 
 
                 setTimeout(() => {
-                    // 3. Arahkan SEMUA role ke satu file dashboard yang sama
+                    // Arahkan ke dashboard utama
                     window.location.href = "/dashboard/index.html";
                 }, 900);
 
             } else {
+                // Handle Login Gagal
                 if (result.message === "Invalid credentials") {
                     loginMessage.textContent = "Email benar, tetapi password salah.";
                 } else {
