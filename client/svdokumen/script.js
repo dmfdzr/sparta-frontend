@@ -78,6 +78,20 @@ function initApp() {
     // Form Handling
     document.getElementById("store-form").addEventListener("submit", handleFormSubmit);
 
+    const uppercaseFields = ['kodeToko', 'namaToko'];
+    uppercaseFields.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('input', function() {
+                // Memaksa value menjadi uppercase dan menjaga posisi kursor agar nyaman
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.toUpperCase();
+                this.setSelectionRange(start, end);
+            });
+        }
+    });
+
     // Live Formatting Input Angka
     document.querySelectorAll(".input-decimal").forEach(input => {
         input.addEventListener("input", (e) => {

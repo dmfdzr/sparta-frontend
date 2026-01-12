@@ -397,4 +397,10 @@ input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cur
     width: 50px; height: 50px;
     animation: spin 1s linear infinite;
 }
+
+#kodeToko, 
+#namaToko {
+    text-transform: uppercase;
+}
+
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
