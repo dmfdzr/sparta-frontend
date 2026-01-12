@@ -352,24 +352,28 @@ async function fetchDocuments() {
             url += `?cabang=${encodeURIComponent(currentUser.cabang)}`;
         }
 
-        console.log("Fetching from URL:", url); // Debugging
+        console.log("Fetching from URL:", url);
 
         const res = await fetch(url);
         if (!res.ok) throw new Error("Gagal mengambil data dari server");
         
         const rawData = await res.json();
-        console.log("Data received:", rawData); // Debugging
+        console.log("Data received:", rawData);
 
-        // NORMALISASI DATA
+        // === PERBAIKAN UTAMA DI SINI ===
+        // Backend Anda mengembalikan object dengan key 'items', bukan array langsung.
         if (Array.isArray(rawData)) {
             allDocuments = rawData;
+        } else if (rawData.items && Array.isArray(rawData.items)) {
+            // Ini untuk menangkap format { items: [...] } seperti di console log Anda
+            allDocuments = rawData.items;
         } else if (rawData.data && Array.isArray(rawData.data)) {
             allDocuments = rawData.data;
         } else {
             allDocuments = [];
+            console.warn("Format data tidak dikenali. Diharapkan Array atau Object dengan key 'items'/'data'.");
         }
 
-        // UPDATE UI
         updateCabangFilterOptions();
         
         // Ambil value search, pastikan string
@@ -400,18 +404,15 @@ function handleSearch(keyword) {
     filteredDocuments = allDocuments.filter(doc => {
         const kode = (doc.kode_toko || "").toString().toLowerCase();
         const nama = (doc.nama_toko || "").toString().toLowerCase();
-        const cabang = (doc.cabang || "").toString(); // Jangan toLowerCase jika filterCabang case sensitive
+        const cabang = (doc.cabang || "").toString(); 
 
         const matchText = kode.includes(term) || nama.includes(term);
-        // Jika filter kosong, match semua. Jika tidak, harus sama persis.
         const matchCabang = filterCabang === "" || cabang === filterCabang;
         
         return matchText && matchCabang;
     });
 
-    // SORTING: Tampilkan data terbaru paling atas (reverse index atau berdasarkan ID)
-    // Asumsi: Data baru ada di akhir array dari backend, kita balik (reverse)
-    // Atau jika ada field created_at, gunakan itu. Default: reverse array.
+    // SORTING: Tampilkan data terbaru paling atas
     filteredDocuments.reverse(); 
 
     renderTable();
@@ -435,7 +436,6 @@ function renderTable() {
     filteredDocuments.forEach((doc, index) => {
         const row = document.createElement("tr");
         
-        // Safety check untuk link
         const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "";
         const linkHtml = folderUrl 
             ? `<a href="${folderUrl}" target="_blank" style="text-decoration: none; color: #007bff; font-weight:500;">📂 Buka Folder</a>` 
@@ -482,7 +482,6 @@ function updateCabangFilterOptions() {
         if (doc.cabang) cabangSet.add(doc.cabang); 
     });
 
-    // Jangan reset total jika user sedang memilih, tapi ini refresh data.
     select.innerHTML = '<option value="">Semua Cabang</option>';
     
     Array.from(cabangSet).sort().forEach(cabang => {
@@ -492,7 +491,6 @@ function updateCabangFilterOptions() {
         select.appendChild(option);
     });
 
-    // Restore value if exists
     if (currentValue && cabangSet.has(currentValue)) {
         select.value = currentValue;
     }
@@ -565,8 +563,6 @@ async function handleFormSubmit(e) {
         if (!res.ok) throw new Error(result.detail || result.message || "Gagal menyimpan data");
 
         showModal("modal-success");
-        // Kita tidak panggil showTable() di sini agar modal tampil dulu
-        // Nanti user klik "OK" di modal, baru tutup modal & showTable
 
     } catch (err) {
         console.error(err);
@@ -582,7 +578,6 @@ async function handleFormSubmit(e) {
 // ==========================================
 function formatDecimalInput(value) {
     if (!value) return "";
-    // Pastikan input jadi string
     let str = value.toString().replace(/[^0-9]/g, "");
     if (str.length === 0) return "";
     if (str.length <= 2) return "0," + str.padStart(2, "0");
@@ -594,8 +589,6 @@ function formatDecimalInput(value) {
 function showModal(id) { document.getElementById(id).style.display = "flex"; }
 function hideModal(id) { 
     document.getElementById(id).style.display = "none";
-    
-    // Jika modal success ditutup, kembali ke table
     if (id === "modal-success") {
         showTable();
     }
