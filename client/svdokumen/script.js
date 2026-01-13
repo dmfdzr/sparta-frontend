@@ -84,7 +84,7 @@ function initApp() {
     uppercaseFields.forEach(id => {
         const input = document.getElementById(id);
         if (input) {
-            input.addEventListener('input', function() {
+            input.addEventListener('input', function () {
                 // Memaksa value menjadi uppercase dan menjaga posisi kursor agar nyaman
                 const start = this.selectionStart;
                 const end = this.selectionEnd;
@@ -215,7 +215,7 @@ function renderUploadSections(isReadOnly = false) {
     const groups = [
         { title: "Foto (JPG, JPEG, PNG)", keys: ["fotoAsal", "fotoRenovasi"] },
         { title: "Gambar (PDF, JPG, JPEG, PNG, Autocad)", keys: ["me", "sipil", "sketsaAwal"] },
-        { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["spk", "rab","pendukung"] }
+        { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["spk", "rab", "pendukung"] }
     ];
 
     groups.forEach(group => {
@@ -364,7 +364,7 @@ function renderExistingFiles(fileLinksString) {
 
             // Tentukan Ikon berdasarkan ekstensi (simple logic)
             let iconCode = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`; // Default File Icon
-            
+
             if (url.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/)) {
                 iconCode = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
             }
@@ -374,7 +374,7 @@ function renderExistingFiles(fileLinksString) {
                 const safeCategory = category.replace(/'/g, "\\'");
                 const safeName = name.replace(/'/g, "\\'");
                 const safeUrl = url.trim().replace(/'/g, "\\'");
-                
+
                 // Menggunakan icon trash SVG untuk tombol hapus
                 deleteBtnHtml = `
                 <button type="button" class="btn-delete-existing" onclick="markFileForDeletion(this, '${safeCategory}', '${safeName}', '${safeUrl}')">
@@ -504,8 +504,8 @@ function renderTable() {
     const totalCountVal = document.getElementById("total-count-val");
 
     if (totalBadge && totalCountVal) {
-        totalBadge.style.display = "flex"; 
-        totalCountVal.textContent = filteredDocuments.length; 
+        totalBadge.style.display = "flex";
+        totalCountVal.textContent = filteredDocuments.length;
     }
     if (!tbody) return;
 
@@ -572,29 +572,29 @@ function renderPagination() {
     if (!container) return;
 
     const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
-    
+
     // Jika tidak ada data atau cuma 1 halaman, sembunyikan pagination tapi tetap rapi
     if (totalPages <= 1) {
         container.style.display = "none";
         return;
     }
-    
+
     container.style.display = "flex";
-    
+
     // Update Info Halaman
     const pageInfo = document.getElementById("page-info");
-    if(pageInfo) pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
+    if (pageInfo) pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
 
     // Update State Tombol Prev
     const btnPrev = document.getElementById("btn-prev");
-    if(btnPrev) {
+    if (btnPrev) {
         btnPrev.disabled = currentPage === 1;
         btnPrev.onclick = () => changePage(currentPage - 1);
     }
 
     // Update State Tombol Next
     const btnNext = document.getElementById("btn-next");
-    if(btnNext) {
+    if (btnNext) {
         btnNext.disabled = currentPage === totalPages;
         btnNext.onclick = () => changePage(currentPage + 1);
     }
@@ -603,7 +603,7 @@ function renderPagination() {
 function changePage(newPage) {
     const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
     if (newPage < 1 || newPage > totalPages) return;
-    
+
     currentPage = newPage;
     renderTable();
 }
@@ -638,7 +638,7 @@ window.handleDeleteClick = async function (kode_toko) {
     try {
 
         const url = `${BASE_URL}/api/doc/delete/${encodeURIComponent(kode_toko)}`;
-        
+
         const res = await fetch(url, {
             method: "DELETE",
             headers: {
@@ -653,7 +653,7 @@ window.handleDeleteClick = async function (kode_toko) {
         }
 
         showToast("Data berhasil dihapus");
-        
+
         await fetchDocuments();
 
     } catch (err) {
@@ -708,6 +708,7 @@ async function handleFormSubmit(e) {
             luas_parkir: document.getElementById("luasParkir").value,
             luas_gudang: document.getElementById("luasGudang").value,
             cabang: currentUser.cabang || "",
+            email: currentUser.email || "",
             pic_name: currentUser.email || "",
             last_edit: currentUser.email || "",
             files: [] // Array untuk file baru dan file yang dihapus
