@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'BRANCH BUILDING & MAINTENANCE MANAGER': [
             'menu-spk', 'menu-pengawasan', 'menu-opname', 
             'menu-tambahspk', 'menu-gantt', 'menu-dokumentasi', 
-            'menu-svdokumen', 'menu-sp' // <-- SAYA TAMBAHKAN INI AGAR MENU SP MUNCUL
+            'menu-svdokumen', 'menu-sp'
         ],
         'BRANCH BUILDING COORDINATOR': [
             'menu-dokumentasi', 'menu-svdokumen','menu-gantt', 'menu-opname'
