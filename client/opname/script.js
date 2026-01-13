@@ -1,6 +1,6 @@
 /* ======================== CONSTANTS & UTILS ======================== */
 // Ganti URL ini dengan URL backend yang sesuai jika perlu
-const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"; 
+const API_BASE_URL = "https://opnamebnm-mgbe.onrender.com"; 
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 Jam
 
 // Format Rupiah
