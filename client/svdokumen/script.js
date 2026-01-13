@@ -74,8 +74,6 @@ function initApp() {
     document.getElementById("btn-back").addEventListener("click", () => showTable());
 
     // Modal Actions
-    document.getElementById("cancel-logout").addEventListener("click", () => hideModal("modal-logout"));
-    document.getElementById("confirm-logout").addEventListener("click", handleLogout);
     document.getElementById("btn-close-error").addEventListener("click", () => hideModal("modal-error"));
     document.getElementById("btn-close-success").addEventListener("click", () => hideModal("modal-success"));
 
