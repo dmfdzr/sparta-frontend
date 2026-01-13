@@ -502,7 +502,7 @@ function renderTable() {
     tbody.innerHTML = "";
 
     if (filteredDocuments.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: #666;">Tidak ada data ditemukan</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #666;">Tidak ada data ditemukan</td></tr>`;
         return;
     }
 
@@ -530,11 +530,16 @@ function renderTable() {
                 </button>`;
         }
 
+        const timestamp = doc.timestamp || "-";
+        const editor = doc.last_edit || "-";
+
         row.innerHTML = `
             <td>${index + 1}</td>
             <td>${doc.kode_toko || "-"}</td>
             <td><b>${doc.nama_toko || "-"}</b></td>
             <td>${doc.cabang || "-"}</td>
+            <td style="font-size: 0.85rem; color: #555;">${timestamp}</td>
+            <td style="font-size: 0.85rem; color: #555;">${editor}</td>
             <td>${linkHtml}</td>
             <td>
                 <button class="btn-action ${actionClass}" onclick="handleEditClick('${doc._id || doc.id || doc.kode_toko}')">${actionLabel}</button>

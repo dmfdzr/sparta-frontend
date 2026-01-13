@@ -203,11 +203,17 @@ header h1 {
 .table td:nth-child(1), /* No */
 .table td:nth-child(2), /* Kode */
 .table td:nth-child(4), /* Cabang */
-.table td:nth-child(5), /* Link Folder */
+.table td:nth-child(5), /* Waktu (Baru) */
+.table td:nth-child(6), /* Editor (Baru) */
+.table td:nth-child(7), /* Link Folder (Geser dari 5 ke 7) */
 .table td:last-child    /* Aksi */ {
     text-align: center;
     white-space: nowrap;
     padding: 14px 20px;
+}
+
+.table td:nth-child(3) {
+    min-width: 200px;
 }
 
 .table tr:hover {
