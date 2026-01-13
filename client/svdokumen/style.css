@@ -811,6 +811,71 @@ input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cur
     flex-shrink: 0;
 }
 
+/* === CUSTOM TOOLTIP === */
+.tooltip {
+    position: relative;
+    cursor: help;
+}
+
+/* Tooltip Body (Kotak Hitam) */
+.tooltip::before {
+    content: attr(data-tooltip); /* Mengambil teks dari atribut data-tooltip */
+    position: absolute;
+    bottom: 125%; /* Muncul di atas elemen */
+    left: 50%;
+    transform: translateX(-50%);
+    
+    background-color: #1e293b; /* Warna latar gelap (Slate-800) */
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: normal; /* Izinkan text membungkus jika terlalu panjang */
+    width: max-content;
+    max-width: 250px; /* Batasi lebar agar tidak melebar ke seluruh layar */
+    text-align: center;
+    line-height: 1.4;
+    
+    /* Efek muncul */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease, bottom 0.2s ease;
+    pointer-events: none; /* Agar tidak mengganggu klik */
+    z-index: 100;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Segitiga Kecil di Bawah Tooltip */
+.tooltip::after {
+    content: "";
+    position: absolute;
+    bottom: 115%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #1e293b transparent transparent transparent; /* Panah warna sama dengan background */
+    
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease, bottom 0.2s ease;
+    z-index: 100;
+}
+
+/* Saat Hover: Tampilkan */
+.tooltip:hover::before {
+    opacity: 1;
+    visibility: visible;
+    bottom: 115%; /* Sedikit animasi naik */
+}
+
+.tooltip:hover::after {
+    opacity: 1;
+    visibility: visible;
+    bottom: 105%; /* Sedikit animasi naik */
+}
+
 /* Style Tombol Hapus Existing (Lebih Elegan) */
 .btn-delete-existing {
     background-color: #fff1f2; /* Latar merah sangat muda */
