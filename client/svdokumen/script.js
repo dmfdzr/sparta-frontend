@@ -498,6 +498,35 @@ function handleSearch(keyword) {
     renderTable();
 }
 
+// Fungsi Helper: Cek Kelengkapan Dokumen
+function checkDocumentCompleteness(fileLinksString) {
+    const mandatoryCategories = [
+        "fotoAsal", 
+        "fotoRenovasi", 
+        "me", 
+        "sipil", 
+        "sketsaAwal", 
+        "spk", 
+        "rab"
+    ];
+
+    if (!fileLinksString) {
+        return { complete: false, missingCount: mandatoryCategories.length, missingList: mandatoryCategories };
+    }
+
+    const uploadedLower = fileLinksString.toLowerCase();
+
+    const missing = mandatoryCategories.filter(catKey => {
+        return !uploadedLower.includes(catKey.toLowerCase());
+    });
+
+    return {
+        complete: missing.length === 0,
+        missingCount: missing.length,
+        missingList: missing
+    };
+}
+
 function renderTable() {
     const tbody = document.getElementById("table-body");
     const totalBadge = document.getElementById("total-records");
@@ -545,9 +574,19 @@ function renderTable() {
 
         const timestamp = doc.timestamp || "-";
         const editor = doc.last_edit || doc.pic_name || "-";
-
-        // Perbaikan Nomor Urut: (Index loop + 1) + (Index awal halaman)
         const realNumber = index + 1 + startIndex;
+
+        const docStatus = checkDocumentCompleteness(doc.file_links);
+        let statusBadgeHtml = "";
+
+        if (!docStatus.complete) {
+            statusBadgeHtml = `
+                <div class="doc-status-badge" title="Kurang: ${docStatus.missingList.join(', ')}">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    Belum Lengkap (${docStatus.missingCount} item)
+                </div>
+            `;
+        }
 
         row.innerHTML = `
             <td>${realNumber}</td>
