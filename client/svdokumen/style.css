@@ -201,34 +201,93 @@ header h1 {
 
 /* === TABLE STYLES === */
 .table-container {
-    overflow-x: auto;
+    width: 100%;
     border-radius: var(--radius);
-    box-shadow: 0 0 0 1px #e5e5e5; /* Halus border luar table */
+    box-shadow: 0 0 0 1px #e5e5e5;
+    background: white;
 }
 
 .table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 0; /* Hapus margin bawah agar pas di container */
+    margin-bottom: 0;
+    table-layout: fixed;
 }
 
 .table th {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
-    text-align: center; /* REQUEST: Judul kolom rata tengah */
-    padding: 14px 16px;
+    text-align: center;
+    padding: 12px 8px;
     font-weight: 600;
-    font-size: 0.95rem;
-    white-space: nowrap;
+    font-size: 0.9rem;
     border-bottom: 2px solid #991b1b;
+    white-space: normal; 
+    word-wrap: break-word;
+    vertical-align: middle;
+}
+
+/* 1. No */
+.table th:nth-child(1), .table td:nth-child(1) {
+    width: 5%;
+    text-align: center;
+}
+
+/* 2. Kode Toko */
+.table th:nth-child(2), .table td:nth-child(2) {
+    width: 10%;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* 3. Nama Toko (Berikan porsi terbesar) */
+.table th:nth-child(3), .table td:nth-child(3) {
+    width: 20%; 
+    text-align: left; /* Nama toko lebih enak dibaca rata kiri */
+}
+
+/* 4. Cabang */
+.table th:nth-child(4), .table td:nth-child(4) {
+    width: 10%;
+    text-align: center;
+}
+
+/* 5. Waktu Update */
+.table th:nth-child(5), .table td:nth-child(5) {
+    width: 10%;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+/* 6. Terakhir Diedit */
+.table th:nth-child(6), .table td:nth-child(6) {
+    width: 10%;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+/* 7. Folder Drive */
+.table th:nth-child(7), .table td:nth-child(7) {
+    width: 10%;
+    text-align: center;
+}
+
+/* 8. Aksi (Butuh ruang untuk tombol) */
+.table th:nth-child(8), .table td:nth-child(8) {
+    width: 25%;
+    text-align: center;
 }
 
 /* Mengatur alignment isi tabel */
 .table td {
-    padding: 14px 16px;
+    padding: 10px 8px;
     border-bottom: 1px solid #eee;
     vertical-align: middle;
     color: var(--neutral-700);
+    font-size: 0.9rem;
+    white-space: normal; 
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Kolom No, Kode, Cabang, dan Aksi sebaiknya rata tengah isinya juga */
@@ -255,23 +314,15 @@ header h1 {
 /* === TOMBOL AKSI YANG LEBIH NYAMAN === */
 .action-buttons {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    align-items: center;
-    gap: 8px; /* Jarak antar tombol diatur di sini, bukan margin inline */
+    gap: 6px;
 }
 
 .btn-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 16px; /* Padding lebih besar biar enak diklik */
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
 }
 
 .btn-action + .btn-action {
