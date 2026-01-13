@@ -23,7 +23,7 @@ const UPLOAD_CATEGORIES = [
     { key: "sipil", label: "Gambar Sipil" },
     { key: "sketsaAwal", label: "Sketsa Awal (Layout)" },
     { key: "spk", label: "Dokumen SPK" },
-    { key: "rab", label: "Dokumen RAB" },
+    { key: "rab", label: "Dokumen RAB & Penawaran" },
     { key: "pendukung", label: "Dokumen Pendukung (NIDI, SLO, dll)" },
 ];
 
