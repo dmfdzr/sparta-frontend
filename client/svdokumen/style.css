@@ -225,10 +225,14 @@ header h1 {
     white-space: nowrap; /* Header tetap satu baris agar rapi */
 }
 
-.table th:nth-child(3), 
-.table td:nth-child(3) {
-    min-width: 250px; /* Minimal lebar kolom nama toko */
+.table th:nth-child(3) {
     text-align: center;
+    min-width: 250px;
+}
+
+.table td:nth-child(3) {
+    text-align: left;
+    min-width: 250px; /* Lebar minimal disamakan dengan header */
 }
 
 .table th:last-child, 
