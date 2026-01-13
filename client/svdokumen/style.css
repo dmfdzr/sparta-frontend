@@ -782,25 +782,33 @@ input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cur
     flex-shrink: 0;
 }
 
-/* === STATUS DOKUMEN (NEW) === */
+/* === STATUS DOKUMEN BADGE === */
 .doc-status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    margin-top: 6px;
-    padding: 4px 8px;
-    background-color: #fff7ed; /* Oranye sangat muda */
-    border: 1px solid #fdba74; /* Border oranye soft */
-    color: #c2410c; /* Teks oranye tua */
-    border-radius: 4px;
+    gap: 6px;
+    padding: 6px 10px;
+    background-color: #fff1f2; /* Background Merah Muda Soft */
+    border: 1px solid #fecdd3; /* Border Merah Muda */
+    color: #e11d48;            /* Teks Merah Rose */
+    border-radius: 6px;
     font-size: 0.75rem;
     font-weight: 600;
-    max-width: fit-content;
+    width: fit-content;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+    cursor: help; /* Kursor berubah tanda tanya saat di-hover */
+}
+
+.doc-status-badge:hover {
+    background-color: #ffe4e6;
+    border-color: #fda4af;
 }
 
 .doc-status-badge svg {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
 }
 
 /* Style Tombol Hapus Existing (Lebih Elegan) */
