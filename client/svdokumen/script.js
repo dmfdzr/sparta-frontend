@@ -22,6 +22,8 @@ const UPLOAD_CATEGORIES = [
     { key: "me", label: "Gambar ME" },
     { key: "sipil", label: "Gambar Sipil" },
     { key: "sketsaAwal", label: "Sketsa Awal (Layout)" },
+    { key: "spk", label: "Dokumen SPK" },
+    { key: "rab", label: "Dokumen RAB" },
     { key: "pendukung", label: "Dokumen Pendukung (NIDI, SLO, dll)" },
 ];
 
@@ -215,7 +217,7 @@ function renderUploadSections(isReadOnly = false) {
     const groups = [
         { title: "Foto (JPG, JPEG, PNG)", keys: ["fotoAsal", "fotoRenovasi"] },
         { title: "Gambar (PDF, JPG, JPEG, PNG, Autocad)", keys: ["me", "sipil", "sketsaAwal"] },
-        { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["pendukung"] }
+        { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["spk", "rab","pendukung"] }
     ];
 
     groups.forEach(group => {
