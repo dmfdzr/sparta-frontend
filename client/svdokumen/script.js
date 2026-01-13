@@ -544,7 +544,7 @@ function renderTable() {
         }
 
         const timestamp = doc.timestamp || "-";
-        const editor = doc.last_edit || "-";
+        const editor = doc.last_edit || doc.pic_name || "-";
 
         // Perbaikan Nomor Urut: (Index loop + 1) + (Index awal halaman)
         const realNumber = index + 1 + startIndex;
@@ -709,6 +709,7 @@ async function handleFormSubmit(e) {
             luas_gudang: document.getElementById("luasGudang").value,
             cabang: currentUser.cabang || "",
             pic_name: currentUser.email || "",
+            last_edit: currentUser.email || "",
             files: [] // Array untuk file baru dan file yang dihapus
         };
 
