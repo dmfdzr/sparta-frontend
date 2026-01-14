@@ -1,98 +1,21 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Building & Maintenance - Opname</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-</head>
-<body>
-    <div id="app">
-        <div id="loading-screen" class="loading-screen">
-            <div style="font-size: 48px; margin-bottom: 16px;">🏪</div>
-            <h2 style="color: var(--alfamart-red);">Memuat Data...</h2>
-        </div>
-
-        <div id="login-view" class="login-wrapper d-none">
-            <div class="login-card">
-                <a href="../../dashboard/index.html" class="btn-back-link">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                    Kembali
-                </a>
-                
-                <div class="login-header">
-                    <img src="../../assets/Alfamart-Emblem.png" alt="Logo Alfamart" style="height: 40px; margin-bottom: 1rem;">
-                    <h1>Building & Maintenance</h1>
-                    <h3>Masuk Opname</h3>
-                </div>
-
-                <form id="form-login">
-                    <div class="form-group" style="text-align: left; margin-bottom: 1rem;">
-                        <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Email / NIK</label>
-                        <input type="text" id="login-email" class="form-input" placeholder="Masukkan ID Anda" required>
-                    </div>
-                    <div class="form-group" style="text-align: left; margin-bottom: 1.5rem;">
-                        <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Kata Sandi</label>
-                        <input type="password" id="login-password" class="form-input" placeholder="Masukkan kata sandi" required>
-                    </div>
-                    <button type="submit" class="btn-login">Login</button>
-                </form>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Building & Maintenance - Opname</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="style.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    </head>
+    <body>
+        <div id="app">
+            <div class="loading-screen">
+                <div style="font-size: 48px; margin-bottom: 16px; color: var(--alfamart-red);">🏪</div>
+                <h2 style="color: var(--alfamart-red);">Loading...</h2>
             </div>
         </div>
-
-        <div id="opname-view" class="d-none">
-            <header class="app-header">
-                <div style="position: absolute; left: 20px;">
-                    <img src="../../assets/Alfamart-Emblem.png" alt="Logo" style="height: 40px; filter: brightness(0) invert(1);">
-                </div>
-                <h1>Stock Opname Toko</h1>
-                <a href="#" id="btn-logout" class="header-logout">Keluar</a>
-            </header>
-
-            <main class="container">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="color: var(--alfamart-red);">Daftar Opname</h2>
-                        <button id="btn-add" class="btn btn-primary">+ Opname Baru</button>
-                    </div>
-
-                    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-                        <input type="text" class="form-input" placeholder="Cari Toko..." style="max-width: 300px;">
-                    </div>
-
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th class="text-center" width="5%">No</th>
-                                    <th>Kode Toko</th>
-                                    <th>Nama Toko</th>
-                                    <th class="text-center">Tanggal</th>
-                                    <th class="text-center">Status</th>
-                                    <th class="text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="table-body">
-                                <tr>
-                                    <td class="text-center" colspan="6" style="padding: 2rem; color: #666;">
-                                        Belum ada data opname.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </main>
-        </div>
-    </div>
-    
-    <script src="script.js"></script>
-</body>
+        <script src="script.js"></script>
+    </body>
 </html>
