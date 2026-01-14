@@ -3,7 +3,7 @@
    ========================================================================== */
 const CONFIG = {
     // Menggunakan URL backend yang tertera di file OpnameForm.js
-    API_BASE_URL: "https://sparta-backend-5hdj.onrender.com", 
+    API_BASE_URL: "https://opnamebnm-mgbe.onrender.com", 
     INACTIVITY_LIMIT_MS: 60 * 60 * 1000, // 1 Jam
     // Mock stores data karena file StoreSelectionPage tidak tersedia lengkap
     // Di produksi, ini harusnya fetch dari API
