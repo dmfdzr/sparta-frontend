@@ -1,60 +1,191 @@
-/* ======================== CONSTANTS & UTILS ======================== */
-const API_BASE_URL = "https://opnamebnm-mgbe.onrender.com"; 
-const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 Jam
-
-// Format Rupiah
-const formatRupiah = (number) => {
-    const numericValue = Number(number) || 0;
-    return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    }).format(numericValue);
+/* ==========================================================================
+   APP CONFIGURATION & STATE MANAGEMENT
+   ========================================================================== */
+const CONFIG = {
+    // Menggunakan URL backend yang tertera di file OpnameForm.js
+    API_BASE_URL: "https://sparta-backend-5hdj.onrender.com", 
+    INACTIVITY_LIMIT_MS: 60 * 60 * 1000, // 1 Jam
+    // Mock stores data karena file StoreSelectionPage tidak tersedia lengkap
+    // Di produksi, ini harusnya fetch dari API
 };
 
-// Convert string/number to clean number
-const toNumInput = (v) => {
-    if (v === null || v === undefined) return 0;
-    const s = String(v).trim().replace(",", ".");
-    const n = Number(s);
-    return Number.isFinite(n) ? n : 0;
-};
-
-const toNumID = (v) => {
-    if (v === null || v === undefined) return 0;
-    const s = String(v).trim();
-    const cleaned = s.replace(/[^\d,.-]/g, "");
-    const normalized = cleaned.replace(/\./g, "").replace(",", ".");
-    const n = Number(normalized);
-    return Number.isFinite(n) ? n : 0;
-};
-
-/* ======================== STATE MANAGEMENT ======================== */
+// Global State (pengganti useState/useContext)
 const AppState = {
     user: null,
     loading: true,
-    activeView: 'dashboard',
+    view: 'login', // login, dashboard, store-selection, opname, etc.
+    idleTimer: null,
+    
+    // Data Context
     selectedStore: null,
     selectedUlok: null,
     selectedLingkup: null,
     opnameItems: [],
-    stores: [],
-    uloks: [],
-    idleTimer: null,
+    
+    // UI Helpers
+    showPassword: false
 };
 
-/* ======================== AUTH SYSTEM ======================== */
+/* ==========================================================================
+   UTILITY FUNCTIONS
+   ========================================================================== */
+
+const Utils = {
+    formatRupiah: (number) => {
+        const numericValue = Number(number) || 0;
+        return new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(numericValue);
+    },
+
+    toNumInput: (v) => {
+        if (v === null || v === undefined) return 0;
+        const s = String(v).trim().replace(",", ".");
+        const n = Number(s);
+        return Number.isFinite(n) ? n : 0;
+    },
+
+    toNumID: (v) => {
+        if (v === null || v === undefined) return 0;
+        const s = String(v).trim();
+        const cleaned = s.replace(/[^\d,.-]/g, "");
+        const normalized = cleaned.replace(/\./g, "").replace(",", ".");
+        const n = Number(normalized);
+        return Number.isFinite(n) ? n : 0;
+    },
+
+    // Session Management (LocalStorage/SessionStorage logic from AuthContext)
+    saveSession: (user) => {
+        sessionStorage.setItem("user", JSON.stringify(user));
+        // Remove from local storage as per original code cleanup
+        try { localStorage.removeItem("user"); } catch {}
+    },
+
+    getSession: () => {
+        const saved = sessionStorage.getItem("user");
+        return saved ? JSON.parse(saved) : null;
+    },
+
+    clearSession: () => {
+        sessionStorage.removeItem("user");
+        localStorage.removeItem("user");
+    }
+};
+
+/* ==========================================================================
+   API SERVICE
+   ========================================================================== */
+const API = {
+    async login(username, password) {
+        // Time Validation (06:00 - 18:00 WIB)
+        const now = new Date();
+        const wibTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+        const hour = wibTime.getHours();
+        
+        if (hour < 6 || hour >= 24) { // Logic from source says < 6 or >= 24 (midnite)
+             const currentTime = wibTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+             throw new Error(`Sesi Anda telah berakhir.\nLogin hanya 06.00–18.00 WIB.\nSekarang pukul ${currentTime} WIB.`);
+        }
+
+        const res = await fetch(`${CONFIG.API_BASE_URL}/api/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Login failed");
+        return data;
+    },
+
+    async fetchUloks(kodeToko) {
+        const res = await fetch(`${CONFIG.API_BASE_URL}/api/uloks?kode_toko=${kodeToko}`);
+        return res.json();
+    },
+
+    async fetchOpnameItems(kodeToko, noUlok, lingkup) {
+        let url = `${CONFIG.API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(kodeToko)}&no_ulok=${encodeURIComponent(noUlok)}`;
+        if (lingkup) url += `&lingkup=${encodeURIComponent(lingkup)}`;
+        
+        // Fallback logic mimic from OpnameForm.js
+        try {
+            let res = await fetch(url);
+            let data = await res.json();
+            
+            // Logic handling if empty array returned (try specific lingkups)
+            if (!Array.isArray(data) || data.length === 0) {
+                 if(!lingkup) {
+                    // Try ME
+                    let resME = await fetch(url + `&lingkup=ME`);
+                    let dataME = await resME.json();
+                    if(Array.isArray(dataME) && dataME.length > 0) return { data: dataME, detectedLingkup: 'ME' };
+                    
+                    // Try SIPIL
+                    let resSipil = await fetch(url + `&lingkup=SIPIL`);
+                    let dataSipil = await resSipil.json();
+                    return { data: dataSipil, detectedLingkup: 'SIPIL' };
+                 }
+            }
+            return { data, detectedLingkup: lingkup };
+        } catch (e) {
+            console.error("Fetch Opname Error", e);
+            return { data: [], detectedLingkup: null };
+        }
+    },
+
+    async uploadFile(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch(`${CONFIG.API_BASE_URL}/api/upload`, {
+            method: "POST",
+            body: formData,
+        });
+        if(!res.ok) throw new Error("Upload failed");
+        return res.json();
+    },
+
+    async submitItem(itemData) {
+        const res = await fetch(`${CONFIG.API_BASE_URL}/api/opname/item/submit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(itemData),
+        });
+        if(!res.ok) throw new Error("Submit failed");
+        return res.json();
+    },
+
+    async checkStatus(ulok, lingkup) {
+        const res = await fetch(`https://sparta-backend-5hdj.onrender.com/api/check_status_item_opname?no_ulok=${ulok}&lingkup_pekerjaan=${lingkup}`);
+        return res.json();
+    },
+
+    async lockOpname(payload) {
+        const res = await fetch(`https://sparta-backend-5hdj.onrender.com/api/opname_locked`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if(!res.ok) throw new Error(json.message);
+        return json;
+    }
+};
+
+/* ==========================================================================
+   AUTH CONTROLLER
+   ========================================================================== */
 const Auth = {
     init: () => {
-        const savedUser = sessionStorage.getItem("user");
-        if (savedUser) {
-            try {
-                AppState.user = JSON.parse(savedUser);
-                Auth.startIdleTimer();
-            } catch {
-                sessionStorage.removeItem("user");
-            }
+        const user = Utils.getSession();
+        if (user) {
+            AppState.user = user;
+            Auth.startIdleTimer();
+            Auth.attachActivityListeners();
+            AppState.view = 'dashboard';
+        } else {
+            AppState.view = 'login';
         }
         AppState.loading = false;
         Render.app();
@@ -62,515 +193,606 @@ const Auth = {
 
     login: async (username, password) => {
         try {
-            const now = new Date();
-            const wibTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
-            const hour = wibTime.getHours();
-            
-            if (hour < 6 || hour >= 24) {
-                const currentTime = wibTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-                throw new Error(`Sesi habis. Login 06.00–24.00 WIB. (Saat ini: ${currentTime})`);
-            }
-
-            const res = await fetch(`${API_BASE_URL}/api/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
-            });
-            const userData = await res.json();
-            if (!res.ok) throw new Error(userData.message || "Login failed");
-
+            Render.setLoading(true, "Sedang Login...");
+            const userData = await API.login(username, password);
             AppState.user = userData;
-            sessionStorage.setItem("user", JSON.stringify(userData));
+            Utils.saveSession(userData);
             Auth.startIdleTimer();
+            Auth.attachActivityListeners();
+            AppState.view = 'dashboard';
             Render.app();
-            return { success: true };
         } catch (error) {
-            return { success: false, message: error.message };
+            alert(error.message);
+        } finally {
+            Render.setLoading(false);
         }
     },
 
-    logout: () => {
+    logout: (isAuto = false) => {
         AppState.user = null;
-        sessionStorage.removeItem("user");
+        Utils.clearSession();
         clearTimeout(AppState.idleTimer);
-        AppState.activeView = 'dashboard';
-        AppState.selectedStore = null;
+        AppState.view = 'login';
+        if (isAuto) console.log("Auto-logout by inactivity.");
         Render.app();
     },
 
     startIdleTimer: () => {
         clearTimeout(AppState.idleTimer);
-        AppState.idleTimer = setTimeout(() => Auth.logout(), INACTIVITY_LIMIT_MS);
-        window.onclick = () => { 
-            if(AppState.user) { 
-                clearTimeout(AppState.idleTimer); 
-                AppState.idleTimer = setTimeout(() => Auth.logout(), INACTIVITY_LIMIT_MS); 
-            }
-        };
+        AppState.idleTimer = setTimeout(() => {
+            Auth.logout(true);
+        }, CONFIG.INACTIVITY_LIMIT_MS);
+    },
+
+    onUserActivity: () => {
+        if (AppState.user) Auth.startIdleTimer();
+    },
+
+    attachActivityListeners: () => {
+        const events = ["click", "keydown", "mousemove", "scroll", "touchstart", "wheel"];
+        events.forEach(evt => window.addEventListener(evt, Auth.onUserActivity, { passive: true }));
     }
 };
 
-/* ======================== PDF GENERATOR (Placeholder) ======================== */
-const PDFGenerator = {
-    generateFinalOpnamePDF: async (submissions, selectedStore, selectedUlok) => {
-        if (!window.jspdf) { alert("Library PDF belum dimuat."); return; }
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text("Laporan Opname (Demo)", 10, 10);
-        doc.save(`Opname_${selectedStore.kode_toko}_${selectedUlok}.pdf`);
-    }
-};
-
-/* ======================== RENDERER (VIEW CONTROLLER) ======================== */
+/* ==========================================================================
+   RENDER ENGINE & UI COMPONENTS
+   ========================================================================== */
 const Render = {
     app: () => {
-        const app = document.getElementById('app');
-        app.innerHTML = '';
-
+        const appDiv = document.getElementById('app');
+        
         if (AppState.loading) {
-            app.innerHTML = `
+            appDiv.innerHTML = `
                 <div class="loading-screen">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🏪</div>
-                    <h2 style="color: var(--primary);">Memuat Data...</h2>
+                    <div style="font-size: 48px; margin-bottom: 16px; color: var(--alfamart-red);">🏪</div>
+                    <h2 style="color: var(--alfamart-red);">Loading...</h2>
                 </div>`;
             return;
         }
 
         if (!AppState.user) {
-            Render.login(app);
+            Render.login(appDiv);
             return;
         }
 
-        app.appendChild(Render.header());
-
-        const contentDiv = document.createElement('div');
-        contentDiv.id = 'main-content';
-        app.appendChild(contentDiv);
-
-        switch (AppState.activeView) {
-            case 'dashboard': Render.dashboard(contentDiv); break;
-            case 'store-selection-pic': Render.storeSelection(contentDiv, 'opname'); break;
-            case 'opname': Render.opnameForm(contentDiv); break;
-            case 'final-opname-selection': Render.storeSelection(contentDiv, 'final-opname'); break;
-            case 'final-opname-detail': Render.finalOpnameView(contentDiv); break;
-            case 'store-selection-kontraktor': Render.storeSelection(contentDiv, 'approval'); break;
-            case 'approval-detail': Render.placeholder(contentDiv, "Halaman Approval"); break;
-            case 'history-selection-kontraktor': Render.storeSelection(contentDiv, 'history'); break;
-            case 'history-detail-kontraktor': Render.finalOpnameView(contentDiv); break;
-            default: Render.dashboard(contentDiv);
+        // Router sederhana
+        switch (AppState.view) {
+            case 'dashboard':
+                Render.dashboard(appDiv);
+                break;
+            case 'store-selection':
+                Render.storeSelection(appDiv);
+                break;
+            case 'opname':
+                Render.opnameForm(appDiv);
+                break;
+            default:
+                Render.dashboard(appDiv);
         }
     },
 
-    // --- UPDATED HEADER ---
-    header: () => {
-        const header = document.createElement('header');
-        header.className = 'app-header';
-        
-        // Perbaikan Logo: Menggunakan class header-logo yang filternya sudah dihapus di CSS
-        // Perbaikan Tombol Logout: Ditambahkan SVG icon agar mirip style button 'Dashboard' di svdokumen
-        header.innerHTML = `
-            <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart" class="header-logo" onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('afterbegin', '<b style=\\'position:absolute;left:20px;color:white\\'>ALFAMART</b>')">
-            
-            <div style="text-align:center;">
-                <h1>Stock Opname</h1>
-                <span class="header-user-info">User: ${AppState.user.username} | ${AppState.user.role === 'pic' ? 'PIC' : 'Kontraktor'}</span>
-            </div>
-
-            <button class="header-logout" id="btn-logout">
-                <span>Keluar</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-            </button>
-        `;
-        
-        header.querySelector('#btn-logout').onclick = () => Auth.logout();
-        return header;
+    setLoading: (isLoading, text = "Loading...") => {
+        const btn = document.querySelector('.btn-submit-custom');
+        if(btn) {
+            if(isLoading) {
+                btn.disabled = true;
+                btn.innerText = text;
+            } else {
+                btn.disabled = false;
+                btn.innerText = "Login";
+            }
+        }
     },
 
+    /* --- LOGIN VIEW --- */
     login: (container) => {
         container.innerHTML = `
             <div class="login-wrapper">
-                <div class="login-card">
-                    <div class="login-header">
-                        <img src="../../assets/Alfamart-Emblem.png" style="height:40px; margin-bottom:10px;" alt="Logo">
-                        <h1>Building & Maintenance</h1>
-                        <h3>Opname System Login</h3>
+                <div class="card login-card">
+                    <a href="https://sparta-alfamart.vercel.app/dashboard/pic/index.html" class="btn-back" style="border:none; display:flex; margin-bottom:1rem; padding:0; align-items:center; gap:5px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                        Kembali
+                    </a>
+                    <div style="margin-bottom: 2rem;">
+                        <h1 style="color:var(--alfamart-blue); font-size:1.5rem;">Building & Maintenance</h1>
+                        <h3 style="color:var(--gray-800);">Opname</h3>
                     </div>
-                    <div id="login-error" class="alert-error" style="display:none;"></div>
-                    <form id="login-form">
-                        <div class="form-group-custom">
-                            <label>Username / NIK</label>
-                            <input type="text" id="username" class="input-custom" required placeholder="Masukkan ID Anda">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label class="form-label">Username / Email</label>
+                            <input type="text" id="username" class="form-input" placeholder="Masukkan email Anda" required>
                         </div>
-                        <div class="form-group-custom">
-                            <label>Kata Sandi</label>
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
                             <div class="password-wrapper">
-                                <input type="password" id="password" class="input-custom" required placeholder="Masukkan kata sandi">
-                                <button type="button" class="toggle-password-btn" id="toggle-pw">👁️</button>
+                                <input type="password" id="password" class="form-input" placeholder="Masukkan kata sandi" required>
+                                <button type="button" class="toggle-password-btn" id="togglePass">
+                                    👁️
+                                </button>
                             </div>
                         </div>
-                        <button type="submit" class="btn-submit-custom">Masuk Aplikasi</button>
+                        <button type="submit" class="btn btn-primary btn-submit-custom" style="width:100%;">Login</button>
                     </form>
-                    <div style="margin-top:20px; font-size:0.85rem; color:#94a3b8;">
-                        &copy; 2025 Building & Maintenance Dept.
+                </div>
+            </div>
+        `;
+
+        document.getElementById('loginForm').onsubmit = (e) => {
+            e.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            Auth.login(u, p);
+        };
+
+        document.getElementById('togglePass').onclick = () => {
+            const pInput = document.getElementById('password');
+            pInput.type = pInput.type === 'password' ? 'text' : 'password';
+        };
+    },
+
+    /* --- HEADER COMPONENT --- */
+    header: () => {
+        return `
+            <header style="background:var(--white); border-bottom:1px solid var(--gray-300); padding:1rem; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div style="font-weight:bold; color:var(--alfamart-red);">Opname System</div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <span>Hai, ${AppState.user.name || AppState.user.username}</span>
+                    <button class="btn btn-back" onclick="Auth.logout()">Logout</button>
+                </div>
+            </header>
+        `;
+    },
+
+    /* --- DASHBOARD VIEW --- */
+    dashboard: (container) => {
+        const isPic = AppState.user.role === 'pic';
+        const isKontraktor = AppState.user.role === 'kontraktor';
+
+        let buttonsHtml = '';
+        if (isPic) {
+            buttonsHtml = `
+                <button class="btn btn-primary" style="height:120px; flex-direction:column;" onclick="Handlers.goToStoreSelection('opname')">
+                    <span style="font-size:32px;">📝</span> Input Opname Harian
+                </button>
+                <button class="btn btn-success" style="height:120px; flex-direction:column;" onclick="alert('Fitur Opname Final View belum diporting penuh di demo ini')">
+                    <span style="font-size:32px;">📄</span> Lihat Opname Final
+                </button>
+            `;
+        } else if (isKontraktor) {
+            buttonsHtml = `
+                <button class="btn btn-info" style="height:120px; flex-direction:column;" onclick="alert('Fitur Approval belum diporting penuh di demo ini')">
+                    <span style="font-size:32px;">🔔</span> Persetujuan Opname
+                </button>
+            `;
+        }
+
+        container.innerHTML = `
+            ${Render.header()}
+            <div class="container">
+                <div class="card text-center">
+                    <h2 style="color:var(--alfamart-red);">Selamat Datang, ${AppState.user.kontraktor_username || AppState.user.name}!</h2>
+                    <p style="margin-bottom:32px; color:var(--gray-600);">Silakan pilih menu di bawah ini</p>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:20px;">
+                        ${buttonsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /* --- STORE SELECTION (MOCK) --- */
+    storeSelection: (container) => {
+        // Karena tidak ada API endpoint 'getStores' yang jelas di file, 
+        // kita buat form input manual kode toko atau mock data jika user PIC
+        
+        container.innerHTML = `
+            ${Render.header()}
+            <div class="container">
+                <div class="card">
+                    <div class="d-flex justify-between" style="margin-bottom:20px;">
+                        <button class="btn btn-back" onclick="AppState.view='dashboard'; Render.app();">Kembali</button>
+                        <h2 style="color:var(--alfamart-red);">Pilih Toko</h2>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Masukkan Kode Toko</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="kodeTokoInput" class="form-input" placeholder="Contoh: T123">
+                            <button class="btn btn-primary" id="searchStoreBtn">Cari</button>
+                        </div>
+                        <small style="color:gray;">*Simulasi: Masukkan kode toko apapun untuk lanjut</small>
                     </div>
                 </div>
             </div>
         `;
 
-        const form = document.getElementById('login-form');
-        const pwInput = document.getElementById('password');
-        document.getElementById('toggle-pw').onclick = () => {
-            pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
-        };
-
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = form.querySelector('button[type="submit"]');
-            const errDiv = document.getElementById('login-error');
+        document.getElementById('searchStoreBtn').onclick = () => {
+            const kode = document.getElementById('kodeTokoInput').value;
+            if(!kode) return alert("Kode toko harus diisi");
             
-            btn.disabled = true; 
-            btn.innerHTML = "Memproses...";
-            errDiv.style.display = 'none';
+            // Mock selected store logic
+            AppState.selectedStore = {
+                kode_toko: kode.toUpperCase(),
+                nama_toko: `TOKO ${kode.toUpperCase()}`,
+                alamat: "Alamat Simulasi"
+            };
+            
+            // Reset state opname
+            AppState.selectedUlok = null;
+            AppState.selectedLingkup = null;
+            AppState.opnameItems = [];
+            
+            AppState.view = 'opname';
+            Render.app();
+        };
+    },
 
-            const result = await Auth.login(document.getElementById('username').value, pwInput.value);
-            if (!result.success) {
-                errDiv.innerText = result.message;
-                errDiv.style.display = 'block';
-                btn.disabled = false;
-                btn.innerText = "Masuk Aplikasi";
+    /* --- OPNAME FORM VIEW (Main Logic) --- */
+    opnameForm: async (container) => {
+        container.innerHTML = `
+            ${Render.header()}
+            <div class="container" id="opnameContainer">
+                <div class="card">
+                    <h3 class="text-center">Memuat Data...</h3>
+                </div>
+            </div>
+        `;
+
+        // 1. Jika belum pilih ULOK
+        if (!AppState.selectedUlok) {
+            try {
+                const uloks = await API.fetchUloks(AppState.selectedStore.kode_toko);
+                Render.renderUlokSelection(document.getElementById('opnameContainer'), uloks);
+            } catch (e) {
+                document.getElementById('opnameContainer').innerHTML = `<div class="card">Error: ${e.message} <button class="btn btn-back" onclick="AppState.view='store-selection'; Render.app()">Back</button></div>`;
+            }
+            return;
+        }
+
+        // 2. Jika belum pilih Lingkup
+        if (!AppState.selectedLingkup) {
+            Render.renderLingkupSelection(document.getElementById('opnameContainer'));
+            return;
+        }
+
+        // 3. Render Table Opname
+        // Jika data kosong, fetch dulu
+        if (AppState.opnameItems.length === 0) {
+            const { data, detectedLingkup } = await API.fetchOpnameItems(
+                AppState.selectedStore.kode_toko, 
+                AppState.selectedUlok, 
+                AppState.selectedLingkup
+            );
+            
+            // Mapping data agar sesuai format UI
+            AppState.opnameItems = data.map((task, index) => {
+                const volRab = Utils.toNumInput(task.vol_rab);
+                const volAkhirNum = Utils.toNumInput(task.volume_akhir);
+                const hargaMaterial = Utils.toNumID(task.harga_material);
+                const hargaUpah = Utils.toNumID(task.harga_upah);
+                const total_harga = volAkhirNum * (hargaMaterial + hargaUpah);
+                const alreadySubmitted = task.isSubmitted === true || !!task.item_id || ["PENDING", "APPROVED", "REJECTED"].includes((task.approval_status || "").toUpperCase());
+
+                return {
+                    ...task,
+                    internalId: index, // ID unik untuk frontend manipulation
+                    vol_rab: volRab,
+                    harga_material: hargaMaterial,
+                    harga_upah: hargaUpah,
+                    isSubmitted: alreadySubmitted,
+                    approval_status: task.approval_status || (alreadySubmitted ? "Pending" : undefined),
+                    volume_akhir: alreadySubmitted ? String(volAkhirNum) : "",
+                    selisih: (Math.round((volAkhirNum - volRab + Number.EPSILON) * 100) / 100).toFixed(2),
+                    total_harga,
+                    isUploading: false,
+                    isSubmitting: false
+                };
+            });
+        }
+
+        Render.renderOpnameTable(document.getElementById('opnameContainer'));
+    },
+
+    renderUlokSelection: (container, uloks) => {
+        if(uloks.length === 0) {
+            container.innerHTML = `<div class="card">Tidak ada data ULOK untuk toko ini. <button class="btn btn-back" onclick="AppState.view='store-selection'; Render.app()">Kembali</button></div>`;
+            return;
+        }
+        // Auto select if only 1
+        if(uloks.length === 1) {
+            AppState.selectedUlok = uloks[0];
+            Render.app(); // Re-trigger flow
+            return;
+        }
+
+        const options = uloks.map(u => `<option value="${u}">${u}</option>`).join('');
+        container.innerHTML = `
+            <div class="card">
+                <button class="btn btn-back" onclick="AppState.view='store-selection'; Render.app()">Kembali</button>
+                <h2 style="color:var(--alfamart-red); margin: 20px 0;">Pilih No. ULOK</h2>
+                <select id="ulokSelect" class="form-select">
+                    <option value="">-- Pilih ULOK --</option>
+                    ${options}
+                </select>
+            </div>
+        `;
+        document.getElementById('ulokSelect').onchange = (e) => {
+            if(e.target.value) {
+                AppState.selectedUlok = e.target.value;
+                Render.app();
             }
         };
     },
 
-    dashboard: (container) => {
-        const role = AppState.user.role;
-        let buttons = '';
-
-        if (role === 'pic') {
-            buttons = `
-                <button onclick="AppState.activeView='store-selection-pic'; Render.app()" class="btn btn-primary d-flex flex-column align-center justify-center" style="height:140px; font-size:1.1rem; gap:12px;">
-                    <span style="font-size:36px">📝</span> 
-                    <span>Input Opname Harian</span>
-                </button>
-                <button onclick="AppState.activeView='final-opname-selection'; Render.app()" class="btn btn-success d-flex flex-column align-center justify-center" style="height:140px; font-size:1.1rem; gap:12px;">
-                    <span style="font-size:36px">✅</span> 
-                    <span>Lihat Opname Final</span>
-                </button>
-            `;
-        } else if (role === 'kontraktor') {
-            buttons = `
-                <button onclick="AppState.activeView='store-selection-kontraktor'; Render.app()" class="btn btn-info d-flex flex-column align-center justify-center" style="height:140px; font-size:1.1rem; gap:12px;">
-                    <span style="font-size:36px">🔔</span> 
-                    <span>Persetujuan Opname</span>
-                </button>
-                <button onclick="AppState.activeView='history-selection-kontraktor'; Render.app()" class="btn btn-secondary d-flex flex-column align-center justify-center" style="height:140px; font-size:1.1rem; gap:12px;">
-                    <span style="font-size:36px">📂</span> 
-                    <span>Histori Opname</span>
-                </button>
-            `;
-        }
-
+    renderLingkupSelection: (container) => {
+        // Mock Lingkup Selection UI
         container.innerHTML = `
-            <div class="container" style="padding-top:40px;">
-                <div class="card text-center" style="max-width:800px; margin:0 auto;">
-                    <h2 style="color:var(--primary); margin-bottom:10px;">Selamat Datang, ${AppState.user.kontraktor_username || AppState.user.name || AppState.user.username}!</h2>
-                    <p style="color:var(--text-muted); margin-bottom:30px;">Silakan pilih menu di bawah ini untuk memulai.</p>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
-                        ${buttons}
-                    </div>
-                </div>
+            <div class="card text-center">
+                 <button class="btn btn-back" style="float:left;" onclick="AppState.selectedUlok=null; Render.app()">Kembali</button>
+                 <div style="clear:both;"></div>
+                 <h2 class="mt-4">Pilih Lingkup Pekerjaan</h2>
+                 <p class="mb-4">Toko: ${AppState.selectedStore.nama_toko} | ULOK: ${AppState.selectedUlok}</p>
+                 <div class="d-flex" style="justify-content:center; gap:20px; margin-top:20px;">
+                    <button class="btn btn-primary" onclick="Handlers.selectLingkup('SIPIL')">SIPIL</button>
+                    <button class="btn btn-info" onclick="Handlers.selectLingkup('ME')">ME</button>
+                 </div>
             </div>
         `;
     },
 
-    storeSelection: async (container, type) => {
-        container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Sedang memuat data toko...</h3></div></div>';
+    renderOpnameTable: async (container) => {
+        const items = AppState.opnameItems;
+        
+        // Calculate Totals
+        const totalVal = items.reduce((sum, item) => sum + (item.total_harga || 0), 0);
+        const ppn = totalVal * 0.11;
+        const grandTotal = totalVal + ppn;
 
-        let url = "";
-        const u = AppState.user;
-        if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') url = `${API_BASE_URL}/api/toko?username=${u.username}`;
-        else if (u.role === 'kontraktor') url = `${API_BASE_URL}/api/toko_kontraktor?username=${u.username}`;
-
-        try {
-            const res = await fetch(url);
-            AppState.stores = await res.json();
-            if(!Array.isArray(AppState.stores)) AppState.stores = [];
-        } catch (e) {
-            AppState.stores = [];
-        }
-
-        const renderList = (filter = "") => {
-            const filtered = AppState.stores.filter(s => 
-                s.kode_toko.toLowerCase().includes(filter.toLowerCase()) || 
-                s.nama_toko.toLowerCase().includes(filter.toLowerCase())
-            );
-
-            let html = `
-                <div class="container" style="padding-top:20px;">
-                    <div class="card">
-                        <div class="d-flex align-center gap-2" style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:16px;">
-                            <button id="btn-back-store" class="btn btn-back">← Dashboard</button>
-                            <h2 style="color:var(--primary);">Pilih Toko (${type === 'opname' ? 'Input' : 'View'})</h2>
-                        </div>
-                        
-                        <div style="margin-bottom:24px;">
-                            <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Kode atau Nama Toko..." value="${filter}">
-                        </div>
-                        
-                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:16px;">
-                            ${filtered.map(toko => `
-                                <button class="btn btn-secondary store-item" data-kode="${toko.kode_toko}" style="height:auto; min-height:100px; flex-direction:column; align-items:flex-start; text-align:left; padding:16px; border-left:4px solid var(--secondary-yellow);">
-                                    <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700);">${toko.nama_toko}</div>
-                                    <div style="font-size:0.9rem; color:var(--text-muted);">Kode: <strong>${toko.kode_toko}</strong></div>
-                                </button>
-                            `).join('')}
-                        </div>
-                        ${filtered.length === 0 ? '<p class="text-center" style="padding:20px;">Toko tidak ditemukan.</p>' : ''}
-                    </div>
-                </div>
-            `;
-            container.innerHTML = html;
-
-            container.querySelector('#btn-back-store').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
-            const searchInput = document.getElementById('store-search');
-            searchInput.oninput = (e) => { renderList(e.target.value); document.getElementById('store-search').focus(); };
-
-            container.querySelectorAll('.store-item').forEach(btn => {
-                btn.onclick = () => {
-                    AppState.selectedStore = AppState.stores.find(s => s.kode_toko === btn.dataset.kode);
-                    if(type === 'opname') AppState.activeView = 'opname';
-                    else if(type === 'final-opname') AppState.activeView = 'final-opname-detail';
-                    else if(type === 'approval') AppState.activeView = 'approval-detail';
-                    else if(type === 'history') AppState.activeView = 'history-detail-kontraktor';
-                    
-                    AppState.selectedUlok = null;
-                    AppState.selectedLingkup = null;
-                    Render.app();
-                };
-            });
-        };
-        renderList();
-    },
-
-    opnameForm: async (container) => {
-        if (!AppState.selectedUlok) {
-            container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data ULOK...</h3></div></div>';
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${AppState.selectedStore.kode_toko}`);
-                const data = await res.json();
-                AppState.uloks = data;
-
-                if (data.length === 1) {
-                    AppState.selectedUlok = data[0];
-                    Render.opnameForm(container);
-                    return;
-                }
-
-                container.innerHTML = `
-                    <div class="container" style="padding-top:20px;">
-                        <div class="card">
-                            <button id="btn-back-ulok" class="btn btn-back" style="margin-bottom:15px;">Kembali</button>
-                            <h2 style="margin-bottom:20px;">Pilih Nomor ULOK</h2>
-                            <div class="d-flex flex-column gap-2">
-                                ${AppState.uloks.map(u => `<button class="btn btn-secondary ulok-btn" data-ulok="${u}" style="justify-content:flex-start;">📄 ${u}</button>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.querySelector('#btn-back-ulok').onclick = () => { AppState.activeView = 'store-selection-pic'; Render.app(); };
-                container.querySelectorAll('.ulok-btn').forEach(b => {
-                    b.onclick = () => { AppState.selectedUlok = b.dataset.ulok; Render.opnameForm(container); }
-                });
-            } catch (e) { container.innerHTML = `<div class="container"><div class="alert-error">Gagal memuat ULOK: ${e.message}</div></div>`; }
-            return;
-        }
-
-        if (!AppState.selectedLingkup) {
-            container.innerHTML = `
-                <div class="container" style="padding-top:40px;">
-                    <div class="card text-center" style="max-width:600px; margin:0 auto;">
-                        <h2 style="color:var(--primary);">Pilih Lingkup Pekerjaan</h2>
-                        <div class="badge badge-success" style="margin:10px auto; display:inline-block;">ULOK: ${AppState.selectedUlok}</div>
-                        
-                        <div class="d-flex justify-center gap-2" style="margin-top:30px; margin-bottom:30px;">
-                            <button class="btn btn-primary" id="btn-sipil" style="min-width:120px;">SIPIL</button>
-                            <button class="btn btn-info" id="btn-me" style="min-width:120px;">ME</button>
-                        </div>
-                        <button class="btn btn-back" id="btn-cancel-lingkup">Batal / Kembali</button>
-                    </div>
-                </div>
-            `;
-            container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.opnameForm(container); };
-            container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.opnameForm(container); };
-            container.querySelector('#btn-cancel-lingkup').onclick = () => { AppState.selectedUlok = null; Render.opnameForm(container); };
-            return;
-        }
-
-        container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Detail Opname...</h3></div></div>';
+        // Check Status for Final Button
+        let canFinalize = false;
+        let isFinalized = false;
         
         try {
-            const base = `${API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
-            const res = await fetch(base);
-            let data = await res.json();
+            // Cek status ke API (asynchronous, tapi kita render dulu UI nya agar cepat)
+            // Di implementasi nyata, ini sebaiknya ditunggu atau pakai state loading partial
+            const statusData = await API.checkStatus(AppState.selectedUlok, AppState.selectedLingkup);
+            if(statusData.status === 'approved') {
+                if(statusData.tanggal_opname_final) isFinalized = true;
+                else canFinalize = true;
+            }
+        } catch(e) { console.error(e); }
+
+        const rows = items.map(item => {
+            const trStyle = item.approval_status === 'REJECTED' ? 'background:#ffe5e5;' : 
+                           item.is_il ? 'background:#fff9c4;' : 
+                           item.isSubmitted ? 'background:#f0fff0;' : '';
             
-            AppState.opnameItems = data.map((task, index) => {
-                const volRab = toNumInput(task.vol_rab);
-                const volAkhirNum = toNumInput(task.volume_akhir);
-                const hargaMaterial = toNumID(task.harga_material);
-                const hargaUpah = toNumID(task.harga_upah);
-                const total_harga = volAkhirNum * (hargaMaterial + hargaUpah);
-                const alreadySubmitted = task.isSubmitted === true || !!task.item_id || ["PENDING", "APPROVED", "REJECTED"].includes(String(task.approval_status || "").toUpperCase());
-                return { ...task, id: index + 1, harga_material: hargaMaterial, harga_upah: hargaUpah, isSubmitted: alreadySubmitted, volume_akhir: alreadySubmitted ? String(volAkhirNum) : "", selisih: (Math.round((volAkhirNum - volRab + Number.EPSILON) * 100) / 100).toFixed(2), total_harga };
-            });
+            const badgeClass = item.approval_status === 'PENDING' ? 'badge-warning' :
+                               item.approval_status === 'APPROVED' ? 'badge-success' :
+                               item.approval_status === 'REJECTED' ? 'badge-error' : 'badge-light';
 
-            let isFinalized = false; let canFinalize = false;
+            // Action Button Logic
+            let actionBtn = '';
+            if (item.approval_status === 'REJECTED') {
+                actionBtn = `<button class="btn btn-warning" style="padding:4px 8px; font-size:12px;" onclick="Handlers.reviseItem(${item.internalId})">Perbaiki</button>`;
+            } else if (item.isSubmitted) {
+                actionBtn = `<div style="color:green; font-size:12px;"><strong>Tersimpan</strong><br>${item.submissionTime || ''}</div>`;
+            } else {
+                actionBtn = `<button class="btn btn-primary" style="padding:4px 8px; font-size:12px;" onclick="Handlers.submitItem(${item.internalId})" ${item.isSubmitting || !item.volume_akhir ? 'disabled' : ''}>Simpan</button>`;
+            }
 
-            const renderTable = () => {
-                const items = AppState.opnameItems;
-                const totalVal = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
-                const ppn = totalVal * 0.11;
-                const grandTotal = totalVal * 1.11;
+            // Input Volume Logic
+            const inputDisabled = item.isSubmitted ? 'disabled' : '';
+            
+            return `
+            <tr style="${trStyle}">
+                <td>${item.kategori_pekerjaan}</td>
+                <td>${item.jenis_pekerjaan}</td>
+                <td class="text-center">${item.vol_rab}</td>
+                <td class="text-center">${item.satuan}</td>
+                <td style="text-align:right;">${Utils.formatRupiah(item.harga_material)}</td>
+                <td style="text-align:right;">${Utils.formatRupiah(item.harga_upah)}</td>
+                <td class="text-center">
+                    <input type="number" class="form-input" style="width:80px; padding:4px;" 
+                        value="${item.volume_akhir}" 
+                        oninput="Handlers.updateVolume(${item.internalId}, this.value)"
+                        ${inputDisabled}
+                    >
+                </td>
+                <td class="text-center">${item.selisih || '-'}</td>
+                <td style="text-align:right; font-weight:bold;">${Utils.formatRupiah(item.total_harga)}</td>
+                <td class="text-center">
+                    ${!item.isSubmitted ? `
+                        <label class="btn btn-secondary" style="padding:4px 8px; font-size:12px; cursor:pointer;">
+                            ${item.isUploading ? '...' : 'Foto'}
+                            <input type="file" accept="image/*" style="display:none;" onchange="Handlers.uploadPhoto(${item.internalId}, this.files[0])">
+                        </label>
+                    ` : ''}
+                    ${item.foto_url ? `<br><a href="${item.foto_url}" target="_blank" style="font-size:11px;">Lihat</a>` : ''}
+                </td>
+                <td><small>${item.catatan || '-'}</small></td>
+                <td class="text-center"><span class="badge ${badgeClass}">${item.approval_status || '-'}</span></td>
+                <td class="text-center">${actionBtn}</td>
+            </tr>
+            `;
+        }).join('');
 
-                let html = `
-                <div class="container" style="padding-top:20px;">
-                    <div class="card">
-                        <div class="d-flex align-center gap-2" style="margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:15px;">
-                            <button id="btn-back-main" class="btn btn-back">← Kembali</button>
-                            <div>
-                                <h2 style="color:var(--primary); margin:0;">Input Opname: ${AppState.selectedLingkup}</h2>
-                                <span style="font-size:0.9rem; color:#64748b;">${AppState.selectedStore.nama_toko} (ULOK: ${AppState.selectedUlok})</span>
-                            </div>
-                        </div>
+        const finalBtnColor = isFinalized ? '#28a745' : canFinalize ? '#007bff' : '#6c757d';
+        const finalBtnText = isFinalized ? "Opname Selesai (Final)" : canFinalize ? "Opname Final" : "Menunggu Approval Semua Item";
+        const finalBtnDisabled = (!canFinalize || isFinalized) ? 'disabled' : '';
 
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Pekerjaan</th>
-                                        <th class="text-center" width="80">RAB</th>
-                                        <th class="text-center" width="60">Sat</th>
-                                        <th class="text-center" width="100">Akhir</th>
-                                        <th class="text-right" width="150">Total (Rp)</th>
-                                        <th class="text-center" width="80">Foto</th>
-                                        <th class="text-center" width="100">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${items.map(item => `
-                                        <tr style="background:${item.isSubmitted ? '#f0fdf4' : 'white'}">
-                                            <td>
-                                                <div style="font-size:0.8rem; color:#64748b; font-weight:600;">${item.kategori_pekerjaan}</div>
-                                                ${item.jenis_pekerjaan}
-                                            </td>
-                                            <td class="text-center">${item.vol_rab}</td>
-                                            <td class="text-center">${item.satuan}</td>
-                                            <td class="text-center">
-                                                <input type="number" class="form-input vol-input" data-id="${item.id}" value="${item.volume_akhir}" 
-                                                style="padding:6px; text-align:center;" ${item.isSubmitted ? 'disabled' : ''}>
-                                            </td>
-                                            <td class="text-right font-bold" style="color:var(--primary);" id="total-${item.id}">
-                                                ${formatRupiah(item.total_harga)}
-                                            </td>
-                                            <td class="text-center">
-                                                ${item.foto_url ? `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` : 
-                                                    `<input type="file" class="file-input" data-id="${item.id}" id="file-${item.id}" style="display:none;">
-                                                    <label for="file-${item.id}" class="btn btn-secondary" style="padding:4px 8px; font-size:12px;">Upload</label>`
-                                                }
-                                            </td>
-                                            <td class="text-center">
-                                                ${item.isSubmitted ? 
-                                                    `<span class="badge badge-success">Saved</span>` : 
-                                                    `<button class="btn btn-primary save-btn" style="padding:6px 12px; font-size:0.85rem;" data-id="${item.id}">Simpan</button>`
-                                                }
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div style="background:#f8fafc; padding:20px; border-radius:12px; margin-top:20px; border:1px solid #e2e8f0;">
-                            <h4 style="margin-bottom:15px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">Ringkasan Biaya</h4>
-                            <div class="d-flex" style="justify-content:space-between; margin-bottom:8px;"><span>Subtotal:</span> <b>${formatRupiah(totalVal)}</b></div>
-                            <div class="d-flex" style="justify-content:space-between; margin-bottom:8px;"><span>PPN 11%:</span> <b>${formatRupiah(ppn)}</b></div>
-                            <div class="d-flex" style="justify-content:space-between; font-size:1.2rem; color:var(--primary); margin-top:10px; padding-top:10px; border-top:2px dashed #e2e8f0;">
-                                <span>GRAND TOTAL:</span> <b>${formatRupiah(grandTotal)}</b>
-                            </div>
-                        </div>
-
-                        <button id="btn-final" class="btn ${isFinalized ? 'btn-success' : 'btn-primary'}" style="width:100%; margin-top:20px; padding:15px;" ${(!canFinalize || isFinalized) ? 'disabled' : ''}>
-                            ${isFinalized ? '✅ Opname Selesai (Final)' : canFinalize ? '🚀 Finalisasi Opname' : '⏳ Lengkapi Semua Item untuk Finalisasi'}
-                        </button>
-                    </div>
-                </div>
-                `;
-                container.innerHTML = html;
-                
-                container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
-                container.querySelectorAll('.vol-input').forEach(input => {
-                    input.oninput = (e) => {
-                        const id = parseInt(e.target.dataset.id);
-                        const val = e.target.value;
-                        const item = AppState.opnameItems.find(i => i.id === id);
-                        item.volume_akhir = val;
-                        const volAkhir = toNumInput(val);
-                        const volRab = toNumInput(item.vol_rab);
-                        item.selisih = (volAkhir - volRab).toFixed(2);
-                        item.total_harga = (volAkhir - volRab) * (item.harga_material + item.harga_upah);
-                        document.getElementById(`total-${id}`).innerText = formatRupiah(item.total_harga);
-                    }
-                });
-                
-                container.querySelectorAll('.save-btn').forEach(btn => {
-                    btn.onclick = async () => {
-                        alert("Logic Simpan berjalan (Simulasi)"); 
-                    }
-                });
-            };
-            renderTable();
-        } catch (e) {
-            container.innerHTML = `<div class="container"><div class="alert-error">Error: ${e.message}</div><button class="btn btn-back" onclick="Render.app()">Kembali</button></div>`;
-        }
-    },
-
-    finalOpnameView: async (container) => {
         container.innerHTML = `
-            <div class="container" style="padding-top:20px;">
-                <div class="card text-center">
-                    <h2 style="color:var(--primary);">Laporan Opname Final</h2>
-                    <p style="color:var(--text-muted); margin-bottom:20px;">Toko: ${AppState.selectedStore ? AppState.selectedStore.nama_toko : '-'} | ULOK: ${AppState.selectedUlok || '-'}</p>
-                    
-                    <button class="btn btn-primary" id="btn-download-pdf">📄 Download PDF Laporan</button>
-                    <br><br>
-                    <button class="btn btn-back" id="btn-back-final">Kembali ke Dashboard</button>
+            <div class="card" style="border-radius:0; width:100%; max-width:100%;">
+                <div class="d-flex gap-2" style="margin-bottom:20px;">
+                    <button class="btn btn-back" onclick="AppState.selectedLingkup=null; Render.app()">Kembali</button>
+                    <h2 style="color:var(--alfamart-red);">Input Opname Harian</h2>
                 </div>
-            </div>
-        `;
-        container.querySelector('#btn-back-final').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
-        container.querySelector('#btn-download-pdf').onclick = async () => {
-            alert("Fitur Download PDF");
-        };
-    },
-    
-    placeholder: (container, text) => {
-        container.innerHTML = `
-            <div class="container" style="padding-top:40px;">
-                <div class="card text-center">
-                    <h3 style="color:var(--text-muted);">${text}</h3>
-                    <p>Halaman ini sedang dalam pengembangan.</p>
-                    <button class="btn btn-back" onclick="AppState.activeView='dashboard'; Render.app()">Kembali</button>
+                
+                <h4 style="margin-bottom:10px;">ULOK: ${AppState.selectedUlok} | Lingkup: ${AppState.selectedLingkup}</h4>
+                
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Kategori</th>
+                                <th>Jenis</th>
+                                <th>Vol RAB</th>
+                                <th>Satuan</th>
+                                <th>Mat (Rp)</th>
+                                <th>Upah (Rp)</th>
+                                <th>Vol Akhir</th>
+                                <th>Selisih</th>
+                                <th>Total (Rp)</th>
+                                <th>Foto</th>
+                                <th>Catatan</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+
+                <div class="card" style="background:#f8f9fa; padding:16px;">
+                    <div class="d-flex justify-between"><span>Total:</span> <b>${Utils.formatRupiah(totalVal)}</b></div>
+                    <div class="d-flex justify-between"><span>PPN 11%:</span> <b>${Utils.formatRupiah(ppn)}</b></div>
+                    <hr style="margin:10px 0;">
+                    <div class="d-flex justify-between" style="font-size:1.2rem;"><span>GRAND TOTAL:</span> <b style="color:var(--alfamart-red);">${Utils.formatRupiah(grandTotal)}</b></div>
+                </div>
+
+                <div style="margin-top:20px;">
+                    <button class="btn" onclick="Handlers.finalizeOpname()" style="width:100%; background-color:${finalBtnColor}; color:white;" ${finalBtnDisabled}>
+                        ${finalBtnText}
+                    </button>
                 </div>
             </div>
         `;
     }
 };
 
-/* ======================== INIT ======================== */
+/* ==========================================================================
+   EVENT HANDLERS
+   ========================================================================== */
+const Handlers = {
+    goToStoreSelection: (nextContext) => {
+        AppState.view = 'store-selection';
+        Render.app();
+    },
+
+    selectLingkup: (lingkup) => {
+        AppState.selectedLingkup = lingkup;
+        Render.app();
+    },
+
+    updateVolume: (internalId, val) => {
+        const item = AppState.opnameItems[internalId];
+        if (item.isSubmitted) return;
+
+        const volAkhir = Utils.toNumInput(val);
+        const volRab = Utils.toNumInput(item.vol_rab);
+        const selisih = volAkhir - volRab;
+        
+        // Update State
+        item.volume_akhir = val; // keep string for input
+        item.selisih = selisih.toFixed(2);
+        item.total_harga = selisih * (item.harga_material + item.harga_upah);
+        
+        // Re-render whole table is expensive, better update DOM specific row and total
+        // But for simplicity in this porting, we re-render app. 
+        // Optimization: Debounce this or update DOM directly. 
+        // Let's re-render for accuracy of totals.
+        Render.renderOpnameTable(document.getElementById('opnameContainer'));
+    },
+
+    uploadPhoto: async (internalId, file) => {
+        if(!file) return;
+        const item = AppState.opnameItems[internalId];
+        item.isUploading = true;
+        Render.renderOpnameTable(document.getElementById('opnameContainer')); // Show loading state
+
+        try {
+            const res = await API.uploadFile(file);
+            item.foto_url = res.link;
+        } catch(e) {
+            alert("Gagal upload: " + e.message);
+        } finally {
+            item.isUploading = false;
+            Render.renderOpnameTable(document.getElementById('opnameContainer'));
+        }
+    },
+
+    submitItem: async (internalId) => {
+        const item = AppState.opnameItems[internalId];
+        if (!item.volume_akhir) return alert("Volume akhir harus diisi");
+
+        item.isSubmitting = true;
+        Render.renderOpnameTable(document.getElementById('opnameContainer'));
+
+        const payload = {
+            kode_toko: AppState.selectedStore.kode_toko,
+            nama_toko: AppState.selectedStore.nama_toko,
+            alamat: AppState.selectedStore.alamat || "",
+            pic_username: AppState.user.username,
+            no_ulok: AppState.selectedUlok,
+            kategori_pekerjaan: item.kategori_pekerjaan,
+            jenis_pekerjaan: item.jenis_pekerjaan,
+            vol_rab: item.vol_rab,
+            satuan: item.satuan,
+            volume_akhir: item.volume_akhir,
+            selisih: item.selisih,
+            foto_url: item.foto_url,
+            harga_material: item.harga_material,
+            harga_upah: item.harga_upah,
+            total_harga_akhir: item.total_harga,
+            lingkup_pekerjaan: item.lingkup_pekerjaan || AppState.selectedLingkup,
+            rab_key: item.rab_key || "",
+            is_il: item.is_il
+        };
+
+        try {
+            const res = await API.submitItem(payload);
+            item.isSubmitted = true;
+            item.approval_status = "Pending";
+            item.submissionTime = res.tanggal_submit;
+            item.item_id = res.item_id;
+        } catch (e) {
+            alert("Gagal simpan: " + e.message);
+        } finally {
+            item.isSubmitting = false;
+            Render.renderOpnameTable(document.getElementById('opnameContainer'));
+        }
+    },
+
+    reviseItem: (internalId) => {
+        const item = AppState.opnameItems[internalId];
+        item.isSubmitted = false;
+        item.approval_status = "Pending";
+        item.volume_akhir = "";
+        item.selisih = "";
+        item.total_harga = 0;
+        Render.renderOpnameTable(document.getElementById('opnameContainer'));
+    },
+
+    finalizeOpname: async () => {
+        if (!confirm("Apakah Anda yakin ingin melakukan Opname Final? Tindakan ini tidak dapat dibatalkan.")) return;
+        
+        try {
+            await API.lockOpname({
+                status: "locked",
+                ulok: AppState.selectedUlok,
+                lingkup_pekerjaan: AppState.selectedLingkup
+            });
+            alert("Opname berhasil difinalisasi!");
+            Render.renderOpnameTable(document.getElementById('opnameContainer'));
+        } catch(e) {
+            alert("Gagal: " + e.message);
+        }
+    }
+};
+
+/* ==========================================================================
+   INITIALIZATION
+   ========================================================================== */
 window.addEventListener('DOMContentLoaded', () => {
     Auth.init();
 });
