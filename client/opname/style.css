@@ -131,4 +131,417 @@ input[type="number"] { text-align: center; }
 .loading-screen {
     height: 100vh; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
+}/* =========================================
+   1. Variables & Reset (dari theme.css)
+   ========================================= */
+:root {
+  --alfamart-red: #e31e24;
+  --alfamart-yellow: #ffd700;
+  --alfamart-dark-red: #b71c1c;
+  --alfamart-light-yellow: #fff9c4;
+  --alfamart-light-blue: #87ceeb;
+  --alfamart-dark-blue: #4682b4;
+  --white: #ffffff;
+  --gray-100: #f5f5f5;
+  --gray-200: #eeeeee;
+  --gray-300: #e0e0e0;
+  --gray-600: #757575;
+  --gray-800: #424242;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+  /* Login Specific Variables (dari index.css) */
+  --login-primary: #005a9e;
+  --login-bg: #f4f7f6;
+  --login-card-bg: #ffffff;
+  --login-text: #2d3748;
+  --login-label: #4a5568;
+  --login-border: #cbd5e0;
+  --login-border-focus: #4299e1;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--gray-100);
+  color: var(--gray-800);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================
+   2. Utility & Common Components
+   ========================================= */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background-color: var(--alfamart-red);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background-color: var(--alfamart-dark-red);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--alfamart-red);
+  border: 2px solid var(--alfamart-red);
+}
+
+.btn-outline:hover {
+  color: var(--alfamart-dark-red);
+  border-color: var(--alfamart-dark-red);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Helper untuk Utility Header Button (Logout) */
+.btn-header-logout {
+  border-color: var(--white);
+  color: var(--white);
+  padding: 8px 20px;
+  font-size: 14px;
+  min-width: auto;
+  margin-top: 0;
+}
+
+/* =========================================
+   3. Login Styles (dari index.css)
+   ========================================= */
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--login-bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 2.5rem;
+  background-color: var(--login-card-bg);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin: 20px;
+  position: relative;
+}
+
+.login-header {
+  margin-bottom: 2rem;
+  clear: both;
+}
+
+.login-header h1 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--login-text);
+  margin: 0;
+}
+
+.login-header h3 {
+  margin-top: 10px;
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--login-text);
+}
+
+.btn-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--login-label);
+  font-weight: 500;
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+  float: left;
+  width: 100%;
+  text-align: left;
+}
+
+.btn-back-link:hover {
+  color: var(--login-primary);
+  transform: translateX(-5px);
+}
+
+.form-group-custom {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.form-group-custom label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--login-label);
+  font-size: 1rem;
+}
+
+.input-custom {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--login-border);
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  color: var(--login-text);
+  background-color: #fff;
+}
+
+.input-custom:focus {
+  outline: none;
+  border-color: var(--login-border-focus);
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 40px;
+}
+
+.toggle-password-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--login-label);
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-submit-custom {
+  width: 100%;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--login-primary);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  margin-top: 0.5rem;
+}
+
+.btn-submit-custom:hover:not(:disabled) {
+  background-color: #004a80;
+}
+
+.btn-submit-custom:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-submit-custom:disabled {
+  background-color: #cbd5e0;
+  cursor: not-allowed;
+}
+
+.alert-error {
+  color: #e53e3e;
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+/* =========================================
+   4. Header Styles & Animations (dari Header.js)
+   ========================================= */
+@keyframes logoSlideIn {
+  0% { opacity: 0; transform: translateX(-100px) rotate(-20deg); }
+  60% { opacity: 1; transform: translateX(10px) rotate(5deg); }
+  80% { transform: translateX(-5px) rotate(-2deg); }
+  100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+}
+
+@keyframes logoPopOut {
+  0% { opacity: 0; transform: scale(0) rotate(-180deg); }
+  60% { opacity: 1; transform: scale(1.2) rotate(10deg); }
+  80% { transform: scale(0.9) rotate(-5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes floatingIdle {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-8px) rotate(2deg); }
+  50% { transform: translateY(-4px) rotate(-2deg); }
+  75% { transform: translateY(-6px) rotate(1deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(220, 38, 38, 0.3)); }
+  50% { filter: drop-shadow(0 0 8px rgba(220, 38, 38, 0.6)); }
+}
+
+.main-header {
+  background-color: var(--alfamart-red);
+  color: var(--white);
+  padding: 12px 0;
+  box-shadow: var(--shadow);
+  width: 100%;
+  min-height: 80px;
+}
+
+.header-container {
+  width: 100%;
+  padding: 0 40px;
+}
+
+.desktop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.header-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-logo-img {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  animation: logoSlideIn 1.2s ease-out forwards;
+  opacity: 0;
+  transform: translateX(-100px);
+}
+
+.building-logo-img {
+  height: 45px;
+  animation: logoPopOut 1.5s ease-out forwards, floatingIdle 3s ease-in-out 1.5s infinite, pulseGlow 2s ease-in-out 1.5s infinite;
+  opacity: 0;
+  transform: scale(0);
+}
+
+.header-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.header-user-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.header-user-info {
+  text-align: right;
+}
+
+.header-user-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.header-user-role {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* Mobile Header */
+.mobile-header {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-header {
+    display: none !important;
+  }
+  .mobile-header {
+    display: block !important;
+  }
+  
+  .header-container {
+    padding: 0 16px;
+  }
+
+  .mobile-header-logos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .mobile-header-user {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+/* Loading Screen */
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--gray-100);
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: var(--alfamart-red);
+}
+
+.loading-text {
+  color: var(--alfamart-red);
 }
