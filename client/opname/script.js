@@ -930,7 +930,7 @@ const Render = {
                                 catatan: noteVal
                             };
 
-                            const res1 = await fetch(`https://sparta-backend-5hdj.onrender.com/api/opname/approve`, {
+                            const res1 = await fetch(`${API_BASE_URL}/api/opname/approve`, {
                                 method: "PATCH",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify(payload1)
@@ -1003,7 +1003,7 @@ const Render = {
                                 catatan: noteVal
                             };
 
-                            const res = await fetch(`https://sparta-backend-5hdj.onrender.com/api/opname/reject`, {
+                            const res = await fetch(`${API_BASE_URL}/api/opname/reject`, {
                                 method: "PATCH",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify(payload)
