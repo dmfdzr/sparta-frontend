@@ -75,24 +75,19 @@ body {
     right: 25px;
     top: 50%;
     transform: translateY(-50%);
-    
-    /* Style disamakan dengan svdokumen */
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px; /* Bukan pill (50px) lagi, tapi 6px */
-    color: white;
-    
-    padding: 8px 16px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    backdrop-filter: blur(4px);
-    transition: all 0.3s ease;
-    
-    /* Flex untuk icon dan text */
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
 }
 
 .header-logout:hover {
