@@ -24,7 +24,7 @@ const UPLOAD_CATEGORIES = [
     { key: "sketsaAwal", label: "Sketsa Awal (Layout)" },
     { key: "spk", label: "Dokumen SPK" },
     { key: "rab", label: "Dokumen RAB & Penawaran" },
-    { key: "iL", label: "Instruksi Lapangan" },
+    { key: "instruksiLapangan", label: "Instruksi Lapangan" },
     { key: "pengawasan", label: "Berkas Pengawasan" },
     { key: "aanwijzing", label: "Aanwijzing" },
     { key: "kerjaTambahKurang", label: "Kerja Tambah Kurang" },
@@ -219,7 +219,7 @@ function renderUploadSections(isReadOnly = false) {
     const groups = [
         { title: "Foto (JPG, JPEG, PNG)", keys: ["fotoExisting", "fotoRenovasi"] },
         { title: "Gambar (PDF, JPG, JPEG, PNG, Autocad)", keys: ["me", "sipil", "sketsaAwal"] },
-        { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["spk", "rab", "pendukung", "iL", "pengawasan", "aanwijzing", "kerjaTambahKurang"] }
+        { title: "Dokumen (PDF, JPG, JPEG, PNG)", keys: ["spk", "rab", "pendukung", "instruksiLapangan", "pengawasan", "aanwijzing", "kerjaTambahKurang"] }
     ];
 
     groups.forEach(group => {
@@ -513,7 +513,7 @@ function checkDocumentCompleteness(fileLinksString) {
         "spk", 
         "rab",
         "pendukung",
-        "iL",
+        "instruksiLapangan",
         "pengawasan",
         "aanwijzing",
         "kerjaTambahKurang"
