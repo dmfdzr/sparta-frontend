@@ -189,7 +189,7 @@ const Render = {
         const roleDisplay = AppState.user.role === 'pic' ? 'PIC' : 'Kontraktor';
         wrapper.innerHTML = `
             <div class="user-info">
-                User: ${AppState.user.username} | ${roleDisplay}
+                Semangat Pagi, ${AppState.user.username} | ${roleDisplay}
             </div>
         `;
         return wrapper;
