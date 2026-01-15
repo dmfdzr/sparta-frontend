@@ -516,7 +516,7 @@ function checkDocumentCompleteness(fileLinksString) {
         "iL",
         "pengawasan",
         "aanwijzing",
-        "kerjaTambahKurang"
+        "kerjaTambahKurang",
     ];
 
     if (!fileLinksString) {
