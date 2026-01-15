@@ -142,6 +142,7 @@ const Render = {
         }
 
         app.appendChild(Render.header());
+        app.appendChild(Render.userInfo());
 
         const contentDiv = document.createElement('div');
         contentDiv.id = 'main-content';
@@ -165,17 +166,11 @@ const Render = {
     header: () => {
         const header = document.createElement('header');
         header.className = 'app-header';
-        
-        // Perbaikan Logo: Menggunakan class header-logo yang filternya sudah dihapus di CSS
-        // Perbaikan Tombol Logout: Ditambahkan SVG icon agar mirip style button 'Dashboard' di svdokumen
         header.innerHTML = `
             <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart" class="header-logo" onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('afterbegin', '<b style=\\'position:absolute;left:20px;color:white\\'>ALFAMART</b>')">
-            
             <div style="text-align:center;">
                 <h1>Opname</h1>
-                <span class="header-user-info">User: ${AppState.user.username} | ${AppState.user.role === 'pic' ? 'PIC' : 'Kontraktor'}</span>
             </div>
-
             <button class="header-logout" id="btn-logout">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -184,9 +179,20 @@ const Render = {
                 <span>Keluar</span>
             </button>
         `;
-        
         header.querySelector('#btn-logout').onclick = () => Auth.logout();
         return header;
+    },
+
+    userInfo: () => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'user-greeting-wrapper';
+        const roleDisplay = AppState.user.role === 'pic' ? 'PIC' : 'Kontraktor';
+        wrapper.innerHTML = `
+            <div class="user-info">
+                User: ${AppState.user.username} | ${roleDisplay}
+            </div>
+        `;
+        return wrapper;
     },
 
     login: (container) => {
