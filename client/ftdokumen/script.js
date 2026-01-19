@@ -1,7 +1,7 @@
 // ==========================================
 // 1. GLOBAL STATE & CONFIG
 // ==========================================
-const API_BASE_URL = "https://dokumentasi-bangunan.onrender.com";
+const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com";
 
 // State global menggantikan useState React
 const STATE = {
