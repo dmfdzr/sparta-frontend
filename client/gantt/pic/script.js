@@ -11,6 +11,7 @@ const ENDPOINTS = {
     ganttData: `${API_BASE_URL}/get_gantt_data`,
     insertData: `${API_BASE_URL}/gantt/insert`,
     dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`, // New endpoint for day delay
+    pengawasanInsert: `${API_BASE_URL}/gantt/pengawasan/insert`, // New endpoint for supervision
 }
 
 let projects = []
@@ -343,6 +344,10 @@ async function fetchGanttDataForSelection(selectedValue) {
 
             const ganttData = data.gantt_data
             rawGanttData = ganttData // Store for delay reference
+
+            // Parse Pengawasan days from gantt_data
+            parseSupervisionFromGanttData(ganttData)
+
             const ganttStatus = String(ganttData.Status || "")
                 .trim()
                 .toLowerCase()
@@ -520,10 +525,16 @@ function parseGanttDataToTasks(ganttData, selectedValue, dayGanttDataArray = nul
                 categoryRangesMap[kategori] = []
             }
 
+            // Parse keterlambatan value
+            const keterlambatanValue = Number.parseInt(entry.keterlambatan, 10) || 0
+
             categoryRangesMap[kategori].push({
                 start: startDay > 0 ? startDay : 1,
                 end: endDay > 0 ? endDay : 1,
                 duration: duration > 0 ? duration : 1,
+                keterlambatan: keterlambatanValue,
+                hAwal: hAwalStr,
+                hAkhir: hAkhirStr,
             })
         })
 
@@ -1365,10 +1376,14 @@ function renderChart() {
         // Calculate total duration from ranges if available
         const totalDuration = task.duration > 0 ? task.duration : ranges.reduce((sum, r) => sum + (r.duration || 0), 0)
 
+        // Calculate total delay from all ranges
+        const totalRangeDelay = ranges.reduce((sum, r) => sum + (r.keterlambatan || 0), 0)
+        const displayDelay = totalRangeDelay > 0 ? totalRangeDelay : keterlambatan
+
         html += '<div class="task-row">'
         html += `<div class="task-name">
             <span>${task.name}</span>
-            <span class="task-duration">Total Durasi: ${totalDuration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ""}</span>
+            <span class="task-duration">Total Durasi: ${totalDuration} hari${displayDelay > 0 ? ` <span style="color: #e53e3e;">(+${displayDelay} hari delay)</span>` : ""}</span>
         </div>`
         html += `<div class="timeline" style="width: ${totalChartWidth}px;">`
 
@@ -1383,15 +1398,36 @@ function renderChart() {
                 const tEnd = new Date(tStart)
                 tEnd.setDate(tStart.getDate() + range.duration - 1)
 
-                html += `<div class="bar on-time" data-task-id="${task.id}-${idx}"
-                        style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;"
-                        title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
+                // Determine bar color based on delay
+                const hasDelay = range.keterlambatan && range.keterlambatan > 0
+                const barClass = hasDelay ? "bar on-time has-delay" : "bar on-time"
+                const barStyle = hasDelay
+                    ? `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; border: 2px solid #e53e3e;`
+                    : `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;`
+
+                html += `<div class="${barClass}" data-task-id="${task.id}-${idx}"
+                        style="${barStyle}"
+                        title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}${hasDelay ? ` | Keterlambatan: +${range.keterlambatan} hari` : ""}">
                     ${range.duration}
                 </div>`
+
+                // Render delay bar immediately after this range if it has delay
+                if (range.keterlambatan && range.keterlambatan > 0) {
+                    const delayLeftPos = range.end * DAY_WIDTH
+                    const delayWidthPos = range.keterlambatan * DAY_WIDTH - 1
+                    const tEndWithDelay = new Date(tEnd)
+                    tEndWithDelay.setDate(tEnd.getDate() + range.keterlambatan)
+
+                    html += `<div class="bar delayed" data-task-id="${task.id}-${idx}-delay"
+                            style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); opacity: 0.85;"
+                            title="Keterlambatan ${task.name} (Range ${idx + 1}): +${range.keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                        +${range.keterlambatan}
+                    </div>`
+                }
             })
 
-            // Bar keterlambatan (merah) - setelah range terakhir
-            if (keterlambatan > 0) {
+            // Legacy: Bar keterlambatan dari task level (jika tidak ada delay per range)
+            if (keterlambatan > 0 && totalRangeDelay === 0) {
                 const lastRange = ranges[ranges.length - 1]
                 const lastEnd = new Date(projectStartDate)
                 lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1)
@@ -1749,22 +1785,106 @@ function renderCheckpointList() {
 // ==================== SUPERVISION DAY HANDLING ====================
 let supervisionDays = {} // Format: { dayNumber: true, ... }
 
-function handleSupervisionDayClick(dayNumber, element) {
+// Parse Pengawasan_1 to Pengawasan_10 from gantt_data
+function parseSupervisionFromGanttData(ganttData) {
+    if (!ganttData) return
+
+    supervisionDays = {} // Reset supervision days
+
+    // Check Pengawasan_1 to Pengawasan_10
+    for (let i = 1; i <= 10; i++) {
+        const key = `Pengawasan_${i}`
+        const value = ganttData[key]
+
+        if (value !== undefined && value !== null && value !== "") {
+            // Value contains the day number
+            const dayNum = Number.parseInt(value, 10)
+            if (!isNaN(dayNum) && dayNum > 0) {
+                supervisionDays[dayNum] = true
+                console.log(`👁️ Pengawasan found: Day ${dayNum} (from ${key})`)
+            }
+        }
+    }
+
+    console.log("📋 Supervision days loaded:", supervisionDays)
+}
+
+async function handleSupervisionDayClick(dayNumber, element) {
+    if (!currentProject) {
+        alert("Silakan pilih No. Ulok terlebih dahulu.")
+        return
+    }
+
     if (supervisionDays[dayNumber]) {
         // Sudah ada pengawasan, tanyakan apakah ingin dihapus
         const confirmDelete = confirm(`Hapus pengawasan?\n\nHari: ${dayNumber}\n\nApakah Anda yakin?`)
         if (confirmDelete) {
-            delete supervisionDays[dayNumber]
-            element.classList.remove("supervision-active")
-            renderChart() // Re-render to remove the marker
+            // Send to API with day 0 to remove (or implement delete endpoint)
+            try {
+                const payload = {
+                    nomor_ulok: currentProject.ulokClean || currentProject.ulok.split("-").slice(0, -1).join("-"),
+                    lingkup_pekerjaan: currentProject.work.toUpperCase(),
+                    pengawasan_day: 0, // Send 0 to indicate removal
+                    remove_day: dayNumber // Indicate which day to remove
+                }
+
+                console.log("📤 Removing supervision:", payload)
+
+                const response = await fetch(ENDPOINTS.pengawasanInsert, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                })
+
+                const result = await response.json()
+
+                if (response.ok) {
+                    delete supervisionDays[dayNumber]
+                    element.classList.remove("supervision-active")
+                    renderChart()
+                    console.log("✅ Supervision removed successfully")
+                } else {
+                    throw new Error(result.message || "Gagal menghapus pengawasan")
+                }
+            } catch (error) {
+                console.error("❌ Error removing supervision:", error)
+                alert("Gagal menghapus pengawasan: " + error.message)
+            }
         }
     } else {
         // Belum ada pengawasan, tanyakan apakah ingin diterapkan
         const confirmAdd = confirm(`Terapkan pengawasan?\n\nHari: ${dayNumber}\n\nApakah Anda yakin?`)
         if (confirmAdd) {
-            supervisionDays[dayNumber] = true
-            element.classList.add("supervision-active")
-            renderChart() // Re-render to add the marker
+            try {
+                const payload = {
+                    nomor_ulok: currentProject.ulokClean || currentProject.ulok.split("-").slice(0, -1).join("-"),
+                    lingkup_pekerjaan: currentProject.work.toUpperCase(),
+                    pengawasan_day: dayNumber
+                }
+
+                console.log("📤 Sending supervision:", payload)
+
+                const response = await fetch(ENDPOINTS.pengawasanInsert, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                })
+
+                const result = await response.json()
+
+                if (response.ok) {
+                    supervisionDays[dayNumber] = true
+                    element.classList.add("supervision-active")
+                    renderChart()
+                    alert("✅ Pengawasan berhasil diterapkan!")
+                    console.log("✅ Supervision added successfully")
+                } else {
+                    throw new Error(result.message || "Gagal menyimpan pengawasan")
+                }
+            } catch (error) {
+                console.error("❌ Error adding supervision:", error)
+                alert("Gagal menyimpan pengawasan: " + error.message)
+            }
         }
     }
 }

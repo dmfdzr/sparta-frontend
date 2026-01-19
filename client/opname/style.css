@@ -1,0 +1,403 @@
+/* === VARIABLES (Sama seperti sebelumnya) === */
+:root {
+    --primary: #d62828;
+    --primary-dark: #b91c1c;
+    --primary-blue: #005a9e;
+    --secondary-yellow: #facc15;
+    
+    --accent: #ffffff;
+    --neutral-100: #f7f7f7;
+    --neutral-200: #e5e5e5;
+    --neutral-700: #333333;
+    --text-muted: #64748b;
+    
+    --radius: 12px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* === RESET & BASE === */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #f8fafc;
+    color: var(--neutral-700);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* === HEADER (Revised) === */
+.app-header {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    text-align: center;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+    height: 80px;
+    z-index: 50;
+}
+
+.header-logo {
+    width: 120px;
+    height: auto;
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    /* HAPUS FILTER INI AGAR WARNA LOGO ASLI MUNCUL */
+    /* filter: brightness(0) invert(1); */
+}
+
+.app-header h3, .app-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.header-user-info {
+    font-size: 0.85rem; 
+    opacity: 0.9; 
+    font-weight: 400; 
+    display: block;
+    margin-top: 2px;
+}
+
+/* Updated Logout Button Style to Match svdokumen .btn-back-header */
+.header-logout {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+.header-logout:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.02);
+}
+
+/* === LAYOUT & CARD === */
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 20px;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 2.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--neutral-200);
+}
+
+.text-center { text-align: center; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* === BUTTONS === */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+}
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.btn-secondary {
+    background-color: white;
+    color: var(--neutral-700);
+    border: 1px solid var(--neutral-200);
+}
+.btn-secondary:hover {
+    background-color: var(--neutral-100);
+    border-color: #cbd5e1;
+}
+
+.btn-success { background-color: #10b981; color: white; }
+.btn-success:hover { background-color: #059669; }
+
+.btn-info { background-color: #3b82f6; color: white; }
+.btn-info:hover { background-color: #2563eb; }
+
+.btn-back {
+    background-color: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--neutral-200);
+    padding: 8px 16px;
+    font-size: 0.9rem;
+}
+.btn-back:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    background-color: #fff1f2;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--neutral-200);
+    color: var(--neutral-700);
+}
+.btn-outline:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* === FORMS & INPUTS === */
+.form-input, .input-custom {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s;
+    background-color: #fff;
+}
+
+.form-input:focus, .input-custom:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.user-greeting-wrapper {
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: -20px;
+    position: relative;
+    z-index: 10;
+}
+
+.user-info {
+    display: inline-block;
+    padding: 8px 24px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--neutral-700);
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.user-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* === TABLE === */
+.table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    margin-top: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+th {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: #e2e8f0;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    padding: 16px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+td {
+    padding: 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background-color: #f8fafc; }
+
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.font-bold { font-weight: 700; }
+
+/* === LOGIN SPECIFIC === */
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.login-card {
+    background: white;
+    width: 100%;
+    max-width: 420px;
+    padding: 3rem 2.5rem;
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+
+.login-header h1 {
+    color: var(--primary);
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.login-header h3 {
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+
+.form-group-custom { margin-bottom: 1.5rem; text-align: left; }
+.form-group-custom label {
+    display: block;
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: #475569;
+}
+
+.btn-submit-custom {
+    width: 100%;
+    padding: 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 1rem;
+}
+.btn-submit-custom:hover {
+    background: var(--primary-dark);
+}
+
+/* === TAMBAHAN UNTUK LOGIN STYLE === */
+
+/* Tombol Kembali (Back Link) */
+.btn-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: #4a5568; /* var(--login-label) */
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    transition: all 0.2s ease;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.btn-back-link:hover {
+    color: var(--primary-blue); /* Menggunakan biru sesuai repo */
+    transform: translateX(-5px);
+}
+
+/* Penyesuaian Login Button agar Biru (Sesuai Repo) */
+.login-card .btn-submit-custom {
+    background-color: var(--primary-blue); /* #005a9e */
+}
+.login-card .btn-submit-custom:hover {
+    background-color: #004494;
+}
+
+/* Penyesuaian Header Text di Login */
+.login-header h1 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #2d3748;
+    margin: 0;
+}
+.login-header h3 {
+    margin-top: 10px;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #2d3748;
+}
+
+/* Pastikan input focus berwarna biru di halaman login */
+.login-card .input-custom:focus {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+.password-wrapper { position: relative; }
+.toggle-password-btn {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; opacity: 0.6;
+}
+
+/* === UTILS & STATES === */
+.d-flex { display: flex; }
+.flex-column { flex-direction: column; }
+.justify-center { justify-content: center; }
+.align-center { align-items: center; }
+.gap-2 { gap: 10px; }
+
+.badge { padding: 4px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
+.badge-success { background: #dcfce7; color: #166534; }
+
+.alert-error {
+    background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+    padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;
+}
+
+.loading-screen {
+    height: 100vh; display: flex; flex-direction: column; 
+    align-items: center; justify-content: center; background: white;
+}

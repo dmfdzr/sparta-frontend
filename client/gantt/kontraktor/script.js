@@ -20,6 +20,7 @@ let hasUserInput = false;
 let isProjectLocked = false;
 let filteredCategories = null;
 let dayGanttData = null;
+let supervisionDays = {}; // Format: { dayNumber: true, ... }
 
 // ==================== TASK TEMPLATES ====================
 const taskTemplateME = [
@@ -323,6 +324,9 @@ async function fetchGanttDataForSelection(selectedValue) {
                 console.log("🔓 Status Project: ACTIVE");
             }
 
+            // Parse supervision days from gantt_data
+            parseSupervisionFromGanttData(ganttData);
+
             // Parse tasks from gantt_data and day_gantt_data
             parseGanttDataToTasks(ganttData, selectedValue, dayGanttData);
             hasUserInput = true;
@@ -473,10 +477,16 @@ function parseGanttDataToTasks(ganttData, selectedValue, dayGanttDataArray = nul
                 categoryRangesMap[kategori] = [];
             }
 
+            // Parse keterlambatan value
+            const keterlambatanValue = parseInt(entry.keterlambatan, 10) || 0;
+
             categoryRangesMap[kategori].push({
                 start: startDay > 0 ? startDay : 1,
                 end: endDay > 0 ? endDay : 1,
-                duration: duration > 0 ? duration : 1
+                duration: duration > 0 ? duration : 1,
+                keterlambatan: keterlambatanValue,
+                hAwal: hAwalStr,
+                hAkhir: hAkhirStr
             });
         });
 
@@ -1151,23 +1161,27 @@ function renderChart() {
     const totalChartWidth = totalDaysToRender * DAY_WIDTH;
     const projectStartDate = new Date(currentProject.startDate);
 
+    // Render Header dengan supervision day highlighting
     let html = '<div class="chart-header">';
     html += '<div class="task-column">Tahapan</div>';
     html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
-
     for (let i = 0; i < totalDaysToRender; i++) {
         const currentDate = new Date(projectStartDate);
         currentDate.setDate(projectStartDate.getDate() + i);
-        const isSunday = currentDate.getDay() === 0;
+
         const dayNumber = i + 1;
+        const isSupervisionDay = supervisionDays[dayNumber] === true;
+        const supervisionClass = isSupervisionDay ? "supervision-active" : "";
 
         html += `
-            <div class="day-header" style="width: ${DAY_WIDTH}px; box-sizing: border-box; ${isSunday ? 'background-color:#ffe3e3;' : ''}">
-                <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
-            </div>
-        `;
+                <div class="day-header ${supervisionClass}" 
+                    style="width: ${DAY_WIDTH}px; box-sizing: border-box;"
+                    title="${isSupervisionDay ? "Hari Pengawasan" : ""}">
+                    <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
+                </div>
+            `;
     }
-    html += '</div></div>';
+    html += "</div></div>";
     html += '<div class="chart-body">';
 
     currentTasks.forEach(task => {
@@ -1182,10 +1196,14 @@ function renderChart() {
         const totalDuration = task.duration > 0 ? task.duration :
             ranges.reduce((sum, r) => sum + (r.duration || 0), 0);
 
+        // Calculate total delay from all ranges
+        const totalRangeDelay = ranges.reduce((sum, r) => sum + (r.keterlambatan || 0), 0);
+        const displayDelay = totalRangeDelay > 0 ? totalRangeDelay : keterlambatan;
+
         html += '<div class="task-row">';
         html += `<div class="task-name">
             <span>${task.name}</span>
-            <span class="task-duration">Total Durasi: ${totalDuration} hari${keterlambatan > 0 ? ` <span style="color: #e53e3e;">(+${keterlambatan} hari delay)</span>` : ''}</span>
+            <span class="task-duration">Total Durasi: ${totalDuration} hari${displayDelay > 0 ? ` <span style="color: #e53e3e;">(+${displayDelay} hari delay)</span>` : ''}</span>
         </div>`;
         html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
@@ -1198,14 +1216,36 @@ function renderChart() {
             const tEnd = new Date(tStart);
             tEnd.setDate(tStart.getDate() + range.duration - 1);
 
-            html += `<div class="bar on-time" data-task-id="${task.id}-${idx}" 
-                    style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;" 
-                    title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
+            // Determine bar color based on delay
+            const hasDelay = range.keterlambatan && range.keterlambatan > 0;
+            const barClass = hasDelay ? "bar on-time has-delay" : "bar on-time";
+            const barStyle = hasDelay
+                ? `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; border: 2px solid #e53e3e;`
+                : `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;`;
+
+            html += `<div class="${barClass}" data-task-id="${task.id}-${idx}" 
+                    style="${barStyle}" 
+                    title="${task.name} (Range ${idx + 1}): ${formatDateID(tStart)} - ${formatDateID(tEnd)}${hasDelay ? ` | Keterlambatan: +${range.keterlambatan} hari` : ''}">
                 ${range.duration}
             </div>`;
+
+            // Render delay bar immediately after this range if it has delay
+            if (range.keterlambatan && range.keterlambatan > 0) {
+                const delayLeftPos = range.end * DAY_WIDTH;
+                const delayWidthPos = range.keterlambatan * DAY_WIDTH - 1;
+                const tEndWithDelay = new Date(tEnd);
+                tEndWithDelay.setDate(tEnd.getDate() + range.keterlambatan);
+
+                html += `<div class="bar delayed" data-task-id="${task.id}-${idx}-delay"
+                        style="left: ${delayLeftPos}px; width: ${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); opacity: 0.85;"
+                        title="Keterlambatan ${task.name} (Range ${idx + 1}): +${range.keterlambatan} hari (s/d ${formatDateID(tEndWithDelay)})">
+                    +${range.keterlambatan}
+                </div>`;
+            }
         });
 
-        if (keterlambatan > 0 && ranges.length > 0) {
+        // Legacy: Bar keterlambatan dari task level (jika tidak ada delay per range)
+        if (keterlambatan > 0 && totalRangeDelay === 0 && ranges.length > 0) {
             const lastRange = ranges[ranges.length - 1];
             const lastEnd = new Date(projectStartDate);
             lastEnd.setDate(projectStartDate.getDate() + lastRange.end - 1);
@@ -1298,6 +1338,31 @@ function exportToExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Jadwal");
     XLSX.writeFile(wb, `Jadwal_${currentProject.ulokClean}.xlsx`);
+}
+
+// ==================== SUPERVISION DAY HANDLING ====================
+// Parse Pengawasan_1 to Pengawasan_10 from gantt_data
+function parseSupervisionFromGanttData(ganttData) {
+    if (!ganttData) return;
+
+    supervisionDays = {}; // Reset supervision days
+
+    // Check Pengawasan_1 to Pengawasan_10
+    for (let i = 1; i <= 10; i++) {
+        const key = `Pengawasan_${i}`;
+        const value = ganttData[key];
+
+        if (value !== undefined && value !== null && value !== "") {
+            // Value contains the day number
+            const dayNum = Number.parseInt(value, 10);
+            if (!isNaN(dayNum) && dayNum > 0) {
+                supervisionDays[dayNum] = true;
+                console.log(`👁️ Pengawasan found: Day ${dayNum} (from ${key})`);
+            }
+        }
+    }
+
+    console.log("📋 Supervision days loaded:", supervisionDays);
 }
 
 // ==================== START ====================

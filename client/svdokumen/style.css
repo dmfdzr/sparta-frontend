@@ -1,0 +1,931 @@
+/* === RESET & BASE === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* === VARIABLES === */
+:root {
+    --primary: #d62828;      /* Merah Alfamart */
+    --primary-dark: #b91c1c;
+    --accent: #ffffff;
+    --neutral-100: #f7f7f7;
+    --neutral-300: #e5e5e5;
+    --neutral-700: #333333;
+    --radius: 8px;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* === HEADER === */
+header {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    text-align: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.header-logo {
+    width: 140px;
+    height: auto;
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    line-height: 1.2;
+}
+
+.user-greeting-wrapper {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: -10px;
+    position: relative;
+    z-index: 10;
+}
+
+.user-info {
+    display: inline-block;
+    padding: 8px 24px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--neutral-700);
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.user-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.btn-back-header {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+.btn-back-header:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.02);
+}
+
+/* === CONTAINER === */
+.container {
+    max-width: 98%;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.view-section {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* === TABLE CONTROLS === */
+.table-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-input, .filter-select {
+    padding: 0.6rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+.search-input { flex: 1; min-width: 200px; }
+.filter-select { min-width: 180px; background-color: white; cursor: pointer; }
+
+.filter-select:focus, .search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(214, 40, 40, 0.1);
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.total-badge {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0; /* Border abu soft */
+    color: #64748b; /* Warna teks slate-500 */
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    height: 42px; /* Menyamakan tinggi dengan input search */
+}
+
+/* Membuat angka lebih menonjol */
+.total-badge span {
+    color: var(--primary); /* Merah Alfamart */
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+/* Responsiveness: Jika layar kecil, badge mengisi lebar penuh atau menyesuaikan */
+@media (max-width: 768px) {
+    .total-badge {
+        order: 2; /* Mengatur urutan jika perlu */
+        flex-grow: 1;
+        justify-content: center;
+    }
+}
+
+/* === TABLE STYLES === */
+.table-container {
+    width: 100%;
+    overflow-x: hidden; /* Sembunyikan scrollbar horizontal */
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 1px #e5e5e5;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto; /* Biarkan browser mengatur lebar kolom secara alami */
+}
+
+.table th {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    text-align: center;
+    padding: 14px 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-bottom: 2px solid #991b1b;
+    white-space: nowrap; /* Header tetap satu baris agar rapi */
+}
+
+.table th:nth-child(3) {
+    text-align: center;
+    min-width: 250px;
+}
+
+.table td:nth-child(3) {
+    text-align: left;
+    min-width: 250px; /* Lebar minimal disamakan dengan header */
+}
+
+.table th:last-child, 
+.table td:last-child {
+    min-width: 180px; 
+    white-space: nowrap; /* Tombol aksi jangan sampai terpotong */
+}
+
+.table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+    color: var(--neutral-700);
+    font-size: 0.95rem;
+    white-space: normal; 
+    word-wrap: break-word;
+}
+
+/* Kolom No, Kode, Cabang, dan Aksi sebaiknya rata tengah isinya juga */
+.table td:nth-child(1), /* No */
+.table td:nth-child(2), /* Kode */
+.table td:nth-child(4), /* Cabang */
+.table td:nth-child(5), /* Waktu (Baru) */
+.table td:nth-child(6), /* Editor (Baru) */
+.table td:nth-child(7), /* Link Folder (Geser dari 5 ke 7) */
+.table td:last-child    /* Aksi */ {
+    text-align: center;
+    white-space: nowrap;
+    padding: 14px 20px;
+}
+
+.table td:nth-child(3) {
+    min-width: 200px;
+}
+
+.table tr:hover {
+    background-color: #fff1f2; /* Highlight merah sangat muda saat hover baris */
+}
+
+/* === TOMBOL AKSI YANG LEBIH NYAMAN === */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px; /* Jarak antar tombol diatur di sini, bukan margin inline */
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px; /* Padding lebih besar biar enak diklik */
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.btn-action + .btn-action {
+    margin-left: 12px; /* Atur jarak sesuai keinginan, 12px sudah cukup lega */
+}
+
+/* Style Tombol Edit/Lihat (Soft Blue/Green) */
+.btn-edit {
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid transparent;
+}
+.btn-edit:hover {
+    background-color: #2563eb;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+}
+
+/* Style Tombol View (Untuk Head Office) */
+.btn-view {
+    background-color: #f0fdf4;
+    color: #16a34a;
+}
+.btn-view:hover {
+    background-color: #16a34a;
+    color: white;
+}
+
+/* Style Tombol Hapus (Soft Red) */
+.btn-delete {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid transparent;
+}
+.btn-delete:hover {
+    background-color: #dc2626;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.2);
+}
+
+/* === PAGINATION STYLES === */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    margin-top: 1rem;
+    border-top: 1px solid #e5e5e5;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color: #334155;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-pagination:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+    background-color: #fff1f2;
+}
+
+.btn-pagination:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+    border-color: #e2e8f0;
+}
+
+/* === FORM === */
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    display: inline-block;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.form-group { display: flex; flex-direction: column; }
+.form-group label { margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+
+.form-group input {
+    padding: 0.75rem;
+    border: 2px solid #e5e5e5;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.form-group input:focus { outline: none; border-color: #4299e1; }
+input:disabled { background-color: #f9f9f9; color: #555; border-color: #ddd; cursor: not-allowed; }
+
+/* === UPLOAD SECTION NEW === */
+.upload-section-group {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.upload-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary); /* Merah Alfamart */
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.upload-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive Grid */
+    gap: 1.5rem;
+}
+
+/* Kartu per Kategori Upload */
+.upload-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: box-shadow 0.2s;
+}
+
+.upload-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    border-color: #cbd5e1;
+}
+
+.upload-header {
+    margin-bottom: 12px;
+}
+
+.upload-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1e293b;
+    display: block;
+}
+
+/* === CUSTOM DROPZONE STYLE === */
+.upload-dropzone-wrapper {
+    margin-top: auto; /* Dorong ke bawah jika flex column */
+}
+
+/* Sembunyikan input asli */
+.hidden-file-input {
+    display: none; 
+}
+
+/* Label yang bertindak sebagai tombol upload */
+.upload-dropzone {
+    display: block;
+    width: 100%;
+    border: 2px dashed #cbd5e1; /* Garis putus-putus */
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    background-color: #f8fafc;
+    transition: all 0.2s ease;
+    margin-top: 10px;
+}
+
+.upload-dropzone:hover {
+    border-color: var(--primary); /* Berubah merah saat hover */
+    background-color: #fef2f2; /* Background merah sangat muda */
+}
+
+.dropzone-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #64748b;
+}
+
+.upload-dropzone:hover .dropzone-content {
+    color: var(--primary);
+}
+
+.upload-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.dropzone-content span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* === PREVIEW AREA === */
+.file-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+    min-height: 0; /* Fix flex overflow issue */
+}
+
+.preview-wrapper {
+    position: relative;
+    width: 60px; /* Ukuran thumbnail lebih compact */
+    height: 60px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    overflow: visible; /* Agar tombol delete terlihat keluar */
+}
+
+.preview-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+/* Preview untuk Non-Image (PDF dll) */
+.preview-file-item {
+    width: 100%;
+    height: 100%;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    flex-direction: column;
+    padding: 2px;
+}
+
+.preview-file-icon {
+    font-size: 1.2rem;
+}
+.preview-file-name {
+    font-size: 0.6rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+    color: #475569;
+}
+
+/* Tombol Hapus Preview */
+.btn-remove-preview {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+.btn-remove-preview:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+/* Existing Files List */
+.existing-files-list {
+    margin-bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.existing-file-item {
+    font-size: 0.9rem;
+    background: #eef2ff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border-left: 3px solid var(--primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-link {
+    text-decoration: none;
+    color: var(--primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.file-link:hover { text-decoration: underline; }
+
+.btn-delete {
+    border: 1px solid #dc2626; /* Merah */
+    color: #dc2626;
+    transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+    background: #dc2626;
+    color: white;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+/* Tombol Hapus Existing File (Trash Icon/Text) */
+.btn-delete-existing {
+    background: none;
+    border: 1px solid #f87171;
+    color: #dc2626;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.2s;
+}
+
+.btn-delete-existing:hover {
+    background: #fee2e2;
+}
+
+/* === MODAL, LOADING, TOAST === */
+.modal-overlay, .loading-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
+}
+.loading-overlay { background: rgba(255, 255, 255, 0.9); z-index: 9999; }
+.modal-box { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; }
+.modal-actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
+
+.toast {
+    position: fixed; bottom: 20px; right: 20px; background: #333; color: white;
+    padding: 12px 24px; border-radius: 8px; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s; z-index: 2000;
+}
+.toast.show { opacity: 1; }
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    width: 50px; height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+/* === MODAL BUTTON STYLES === */
+.btn-confirm {
+    background-color: var(--primary); /* Merah Alfamart */
+    color: white;
+    border: none;
+    padding: 10px 32px; /* Padding luas agar tombol terlihat "pasti" */
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(214, 40, 40, 0.2); /* Shadow halus merah */
+    min-width: 100px; /* Lebar minimum agar tidak terlalu kecil */
+}
+
+.btn-confirm:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px); /* Efek naik sedikit saat hover */
+    box-shadow: 0 6px 12px rgba(214, 40, 40, 0.3);
+}
+
+.btn-confirm:active {
+    transform: translateY(0); /* Efek ditekan */
+    box-shadow: 0 2px 4px rgba(214, 40, 40, 0.2);
+}
+
+.btn-cancel {
+    background-color: white;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+    background-color: #f1f5f9;
+    color: #334155;
+    border-color: #94a3b8;
+}
+
+/* =========================================
+   STYLE LIST FILE EXISTING (MODERN CARD LOOK)
+   ========================================= */
+
+.existing-files-list {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* Jarak antar file lebih lega */
+}
+
+.existing-file-item {
+    background: #ffffff;
+    border: 1px solid #e2e8f0; /* Border abu sangat muda */
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efek Hover pada Kartu File */
+.existing-file-item:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Garis aksen kiri (opsional, untuk penanda visual) */
+.existing-file-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #3b82f6; /* Biru soft */
+    border-radius: 4px 0 0 4px;
+}
+
+.file-link {
+    text-decoration: none;
+    color: #334155; /* Warna teks Slate-700 (lebih enak di mata daripada hitam pekat) */
+    font-weight: 500;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 100px); /* Sisa space dikurangi tombol hapus */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.file-link:hover {
+    color: #2563eb; /* Biru saat hover */
+    text-decoration: none;
+}
+
+/* Ikon File (Bisa dari SVG atau Unicode yang distyle) */
+.file-icon-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: #eff6ff;
+    color: #3b82f6;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+/* === STATUS DOKUMEN BADGE === */
+.doc-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background-color: #fff1f2; /* Background Merah Muda Soft */
+    border: 1px solid #fecdd3; /* Border Merah Muda */
+    color: #e11d48;            /* Teks Merah Rose */
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    width: fit-content;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+    cursor: help; /* Kursor berubah tanda tanya saat di-hover */
+}
+
+.doc-status-badge:hover {
+    background-color: #ffe4e6;
+    border-color: #fda4af;
+}
+
+.doc-status-badge svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* === CUSTOM TOOLTIP === */
+.tooltip {
+    position: relative;
+    cursor: help;
+}
+
+/* Tooltip Body (Kotak Hitam) */
+.tooltip::before {
+    content: attr(data-tooltip); /* Mengambil teks dari atribut data-tooltip */
+    position: absolute;
+    bottom: 125%; /* Muncul di atas elemen */
+    left: 50%;
+    transform: translateX(-50%);
+    
+    background-color: #1e293b; /* Warna latar gelap (Slate-800) */
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: normal; /* Izinkan text membungkus jika terlalu panjang */
+    width: max-content;
+    max-width: 250px; /* Batasi lebar agar tidak melebar ke seluruh layar */
+    text-align: center;
+    line-height: 1.4;
+    
+    /* Efek muncul */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease, bottom 0.2s ease;
+    pointer-events: none; /* Agar tidak mengganggu klik */
+    z-index: 100;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Segitiga Kecil di Bawah Tooltip */
+.tooltip::after {
+    content: "";
+    position: absolute;
+    bottom: 115%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #1e293b transparent transparent transparent; /* Panah warna sama dengan background */
+    
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease, bottom 0.2s ease;
+    z-index: 100;
+}
+
+/* Saat Hover: Tampilkan */
+.tooltip:hover::before {
+    opacity: 1;
+    visibility: visible;
+    bottom: 115%; /* Sedikit animasi naik */
+}
+
+.tooltip:hover::after {
+    opacity: 1;
+    visibility: visible;
+    bottom: 105%; /* Sedikit animasi naik */
+}
+
+/* Style Tombol Hapus Existing (Lebih Elegan) */
+.btn-delete-existing {
+    background-color: #fff1f2; /* Latar merah sangat muda */
+    color: #e11d48; /* Merah rose */
+    border: 1px solid transparent;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+}
+
+.btn-delete-existing:hover {
+    background-color: #e11d48;
+    color: white;
+    box-shadow: 0 2px 4px rgba(225, 29, 72, 0.3);
+}
+
+.btn-delete-existing:active {
+    transform: scale(0.98);
+}
+
+#kodeToko, 
+#namaToko {
+    text-transform: uppercase;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

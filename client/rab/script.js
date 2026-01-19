@@ -24,7 +24,7 @@ let suffixRenov;
 const PYTHON_API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"
 
 if (!sessionStorage.getItem('loggedInUserCabang')) {
-    window.location.replace('../../auth/kontraktor/login.html');
+    window.location.replace('../../auth/index.html');
 }
 
 const sipilCategoryOrder = [
@@ -978,7 +978,7 @@ async function initializePage() {
                 messageDiv.style.display = 'none';
             }
         } else {
-             messageDiv.style.display = 'none';
+            messageDiv.style.display = 'none';
         }
     } catch (error) {
         console.error("Gagal memuat data status awal:", error);
@@ -1008,13 +1008,13 @@ async function initializePage() {
 
     /*
     document.getElementById('lokasi_manual')?.addEventListener('input', function(e) {
-       const fullUlok = document.getElementById('lokasi').value.replace(/-/g, '');
-       if (fullUlok.length === 12) {
-           const rejectedData = rejectedSubmissionsList.find(item => item['Nomor Ulok'].replace(/-/g, '') === fullUlok);
-           if (rejectedData) {
-               populateFormWithHistory(rejectedData);
-           }
-       }
+        const fullUlok = document.getElementById('lokasi').value.replace(/-/g, '');
+        if (fullUlok.length === 12) {
+            const rejectedData = rejectedSubmissionsList.find(item => item['Nomor Ulok'].replace(/-/g, '') === fullUlok);
+            if (rejectedData) {
+                populateFormWithHistory(rejectedData);
+            }
+        }
     });
     */
 

@@ -10,10 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
             'menu-spk', 'menu-pengawasan', 'menu-opname', 'menu-tambahspk', 'menu-opname', 'menu-gantt', 'menu-dokumentasi', 'menu-svdokumen'
         ],
         'BRANCH BUILDING COORDINATOR': [
-            'menu-dokumentasi', 'menu-pengawasan', 'menu-svdokumen','menu-gantt'
+            'menu-dokumentasi', 'menu-svdokumen','menu-gantt', 'menu-opname'
         ],
         'BRANCH BUILDING SUPPORT': [
-            'menu-pengawasan', 'menu-dokumentasi', 'menu-opname', 'menu-gantt', 'menu-svdokumen'
+            'menu-dokumentasi', 'menu-opname', 'menu-gantt', 'menu-svdokumen'
         ]
     };
     const allowedMenus = roleConfig[userRole] || [];
