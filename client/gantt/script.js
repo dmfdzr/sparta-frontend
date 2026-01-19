@@ -297,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.rab) updateProjectFromRab(data.rab);
             if (data.day_gantt_data) dayGanttData = data.day_gantt_data;
             
+            // FIX: Parsing Pengawasan
             if (rawGanttData) parseSupervisionFromGanttData(rawGanttData);
 
             if (rawGanttData) {
@@ -451,14 +452,22 @@ document.addEventListener('DOMContentLoaded', () => {
         projectTasks[selectedValue] = currentTasks;
     }
 
+    // FIX: LOGIKA LOOP PENGAWASAN DIPERBAIKI (WHILE LOOP)
     function parseSupervisionFromGanttData(ganttData) {
         supervisionDays = {};
-        for (let i = 1; i <= 10; i++) {
+        let i = 1;
+        while(true) {
             const key = `Pengawasan_${i}`;
+            // Jika kolom tidak ada, hentikan loop
+            if (!ganttData.hasOwnProperty(key)) {
+                break;
+            }
+            
             const value = ganttData[key];
-            if (value && !isNaN(parseInt(value))) {
+            if (value && !isNaN(parseInt(value)) && parseInt(value) > 0) {
                 supervisionDays[parseInt(value)] = true;
             }
+            i++;
         }
     }
 
@@ -579,11 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
         container.children[idx].remove();
     }
 
-    // FIX: RESET FUNCTION UPDATE
     window.resetTaskSchedule = function() {
         if(!confirm("Reset semua inputan?")) return;
         
-        // Reset Data
         currentTasks.forEach(t => { 
             t.inputData.ranges = []; 
             t.start = 0; 
@@ -591,10 +598,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         hasUserInput = false;
         
-        // Re-render Inputs
         renderApiData();
         
-        // FIX: Clear Chart UI
         document.getElementById("ganttChart").innerHTML = `
             <div style="text-align: center; padding: 60px; color: #6c757d;">
                 <div style="font-size: 48px; margin-bottom: 20px;">ℹ️</div>
