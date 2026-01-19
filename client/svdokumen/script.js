@@ -222,6 +222,12 @@ function showForm(data = null) {
         document.getElementById("luasSales").value = formatDecimalInput(data.luas_sales);
         document.getElementById("luasParkir").value = formatDecimalInput(data.luas_parkir);
         document.getElementById("luasGudang").value = formatDecimalInput(data.luas_gudang);
+        document.getElementById("luasBangunanLantai1").value = formatDecimalInput(data.luas_bangunan_lantai_1);
+        document.getElementById("luasBangunanLantai2").value = formatDecimalInput(data.luas_bangunan_lantai_2);
+        document.getElementById("luasBangunanLantai3").value = formatDecimalInput(data.luas_bangunan_lantai_3);
+        document.getElementById("totalLuasBangunan").value = formatDecimalInput(data.total_luas_bangunan);
+        document.getElementById("luasAreaTerbuka").value = formatDecimalInput(data.luas_area_terbuka);
+        document.getElementById("tinggiPlafon").value = formatDecimalInput(data.tinggi_plafon);
 
         // PENTING: Simpan file_links asli SEKARANG, bukan saat submit
         originalFileLinks = data.file_links || "";
