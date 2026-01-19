@@ -17,30 +17,28 @@ body {
     color: var(--text-color);
 }
 
-/* ================= HEADER (UPDATED to Match Svdokumen) ================= */
+/* ================= HEADER (CLEAN STYLE) ================= */
 header {
     background-color: #fff;
-    padding: 10px 30px; /* Sedikit lebih compact */
+    padding: 0 30px;
+    height: 70px;
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Memisahkan Kiri dan Kanan */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    justify-content: space-between;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     position: sticky;
     top: 0;
     z-index: 1000;
-    height: 70px;
-    box-sizing: border-box;
 }
 
-/* Bagian Kiri: Logo & Title */
-.header-brand {
+.header-left {
     display: flex;
     align-items: center;
     gap: 15px;
 }
 
 .header-logo {
-    height: 40px; /* Ukuran logo disesuaikan */
+    height: 40px;
     width: auto;
 }
 
@@ -51,55 +49,66 @@ h1 {
     font-weight: 700;
 }
 
-/* Bagian Kanan: User Info & Back Button */
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.user-profile {
-    text-align: right;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.user-name {
-    font-weight: 600;
-    font-size: 14px;
-    color: #2d3748;
-}
-
-.user-role {
-    font-size: 11px;
-    color: #718096;
-    background: #edf2f7;
-    padding: 2px 8px;
-    border-radius: 10px;
-    display: inline-block;
-    margin-top: 2px;
-    align-self: flex-end; /* Supaya badge role rapat kanan */
-}
-
 .btn-back-header {
     text-decoration: none;
-    color: #555;
+    color: #64748b;
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-weight: 500;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 14px;
     padding: 8px 16px;
     border-radius: 8px;
     transition: all 0.2s;
-    background: #f1f1f1;
-    height: 36px;
-    box-sizing: border-box;
+    background: #f1f5f9;
 }
 
 .btn-back-header:hover {
     background: #e2e8f0;
-    color: #333;
+    color: #334155;
+}
+
+/* ================= USER INFO BAR (NEW) ================= */
+.user-info-bar {
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 10px 30px;
+    display: flex;
+    justify-content: flex-end; /* Align kanan */
+    align-items: center;
+}
+
+.user-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #475569;
+}
+
+.greeting {
+    color: #64748b;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.separator {
+    color: #cbd5e1;
+    margin: 0 5px;
+}
+
+.user-role {
+    font-size: 11px;
+    background: #e0e7ff;
+    color: #4338ca;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 /* ================= CONTAINER & CONTROLS ================= */
