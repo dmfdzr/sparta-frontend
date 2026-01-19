@@ -538,9 +538,8 @@ const Render = {
     },
 
     opnameForm: async (container) => {
-        // 1. Cek Data ULOK (Tidak berubah)
+        // --- BAGIAN 1 & 2: PILIH ULOK & LINGKUP (TIDAK BERUBAH) ---
         if (!AppState.selectedUlok) {
-            // ... (kode existing untuk cek ULOK)
             container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data ULOK...</h3></div></div>';
             try {
                 const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${AppState.selectedStore.kode_toko}`);
@@ -552,7 +551,7 @@ const Render = {
                     Render.opnameForm(container);
                     return;
                 }
-                // ... (render pilihan ulok, kode existing)
+                
                 container.innerHTML = `
                     <div class="container" style="padding-top:20px;">
                         <div class="card">
@@ -572,10 +571,8 @@ const Render = {
             return;
         }
 
-        // 2. Cek Data Lingkup (Tidak berubah)
         if (!AppState.selectedLingkup) {
-            // ... (kode existing untuk cek lingkup)
-             container.innerHTML = `
+            container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
                     <div class="card text-center" style="max-width:600px; margin:0 auto;">
                         <h2 style="color:var(--primary);">Pilih Lingkup Pekerjaan</h2>
@@ -595,19 +592,22 @@ const Render = {
             return;
         }
 
-        container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Detail Opname...</h3></div></div>';
+        // --- BAGIAN 3: RENDER TABEL UTAMA (DISESUAIKAN DENGAN REPO) ---
+        container.innerHTML = '<div class="loading-screen"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><h3>Memuat Detail Pekerjaan...</h3></div>';
         
         try {
-            // 3. Fetch Data Opname Items (Menggunakan API_BASE_URL default)
+            // Fetch Items
             const base = `${API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
             const res = await fetch(base);
             let data = await res.json();
             
+            // Mapping Data (Sesuai Logic Repo)
             AppState.opnameItems = data.map((task, index) => {
                 const volRab = toNumInput(task.vol_rab);
                 const volAkhirNum = toNumInput(task.volume_akhir);
                 const hargaMaterial = toNumID(task.harga_material);
                 const hargaUpah = toNumID(task.harga_upah);
+                // Hitung total harga berdasarkan volume akhir
                 const total_harga = volAkhirNum * (hargaMaterial + hargaUpah);
                 
                 const alreadySubmitted = task.isSubmitted === true || !!task.item_id || ["PENDING", "APPROVED", "REJECTED"].includes(String(task.approval_status || "").toUpperCase());
@@ -621,20 +621,18 @@ const Render = {
                     volume_akhir: alreadySubmitted ? String(volAkhirNum) : "", 
                     selisih: (Math.round((volAkhirNum - volRab + Number.EPSILON) * 100) / 100).toFixed(2), 
                     total_harga,
+                    catatan: task.catatan || "", // Tambahan kolom catatan
                     approval_status: task.approval_status || (alreadySubmitted ? "Pending" : "")
                 };
             });
 
-            // 4. Fetch Status Opname Final (PERBAIKAN UTAMA DI SINI)
+            // Cek Status Final (Locked)
             let isFinalized = false;
             let canFinalize = false;
             let statusMessage = "Menunggu Approval Semua Item";
 
             try {
-                // UPDATE: Menggunakan URL spesifik 'sparta-backend-5hdj' sesuai repo React
-                // karena endpoint ini mungkin belum ada di API_BASE_URL (opnamebnm-mgbe)
                 const checkUrl = `https://sparta-backend-5hdj.onrender.com/api/check_status_item_opname?no_ulok=${AppState.selectedUlok}&lingkup_pekerjaan=${AppState.selectedLingkup}`;
-                
                 const statusRes = await fetch(checkUrl);
                 const statusData = await statusRes.json();
 
@@ -649,7 +647,6 @@ const Render = {
                         statusMessage = "Opname Final";
                     }
                 } else {
-                    // Masih ada yang pending atau belum approved semua
                     canFinalize = false;
                     statusMessage = "Menunggu Approval Semua Item";
                 }
@@ -663,77 +660,100 @@ const Render = {
                 const ppn = totalVal * 0.11;
                 const grandTotal = totalVal * 1.11;
 
-                // Tentukan warna tombol dan status disabled
-                let btnColor = '#6c757d'; // Default Grey
-                if (isFinalized) btnColor = '#28a745'; // Green
-                else if (canFinalize) btnColor = '#007bff'; // Blue
+                let btnColor = '#6c757d'; 
+                if (isFinalized) btnColor = '#28a745'; 
+                else if (canFinalize) btnColor = '#007bff';
 
                 let html = `
-                <div class="container" style="padding-top:20px;">
-                    <div class="card">
-                        <div class="d-flex align-center gap-2" style="margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:15px;">
+                <div class="container" style="padding-top:20px; max-width:100%; padding-left:10px; padding-right:10px;">
+                    <div class="card" style="border-radius:0;">
+                        <div class="d-flex align-center gap-2" style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:15px; flex-wrap:wrap;">
                             <button id="btn-back-main" class="btn btn-back">← Kembali</button>
                             <div>
-                                <h2 style="color:var(--primary); margin:0;">Input Opname: ${AppState.selectedLingkup}</h2>
-                                <span style="font-size:0.9rem; color:#64748b;">${AppState.selectedStore.nama_toko} (ULOK: ${AppState.selectedUlok})</span>
+                                <h2 style="color:var(--primary); margin:0;">Input Opname Harian</h2>
+                                <span style="font-size:0.9rem; color:#64748b;">${AppState.selectedStore.nama_toko} (ULOK: ${AppState.selectedUlok} - ${AppState.selectedLingkup})</span>
                             </div>
                         </div>
 
-                        <div class="table-container">
-                            <table>
+                        <div class="table-container" style="overflow-x: auto; margin-bottom: 20px;">
+                            <table style="width:100%; min-width: 1400px; border-collapse: collapse;">
                                 <thead>
                                     <tr style="background:var(--primary); color:white;">
-                                        <th style="color:white;">Pekerjaan</th>
-                                        <th class="text-center" style="color:white;" width="60">RAB</th>
-                                        <th class="text-center" style="color:white;" width="50">Sat</th>
-                                        <th class="text-center" style="color:white;" width="90">Akhir</th>
-                                        <th class="text-center" style="color:white;" width="80">Selisih</th>
-                                        <th class="text-right" style="color:white;" width="140">Total (Rp)</th>
-                                        <th class="text-center" style="color:white;" width="80">Foto</th>
-                                        <th class="text-center" style="color:white;" width="90">Status</th>
-                                        <th class="text-center" style="color:white;" width="90">Aksi</th>
+                                        <th style="padding:12px; min-width:140px;">Kategori</th>
+                                        <th style="padding:12px; min-width:150px;">Jenis Pekerjaan</th>
+                                        <th class="text-center" style="padding:12px;">Vol RAB</th>
+                                        <th class="text-center" style="padding:12px;">Satuan</th>
+                                        <th class="text-right" style="padding:12px; min-width:120px;">Harga Material</th> <th class="text-right" style="padding:12px; min-width:120px;">Harga Upah</th>    <th class="text-center" style="padding:12px; min-width:120px;">Volume Akhir</th>
+                                        <th class="text-center" style="padding:12px; min-width:100px;">Selisih</th>
+                                        <th class="text-right" style="padding:12px; min-width:130px;">Total Harga</th>
+                                        <th class="text-center" style="padding:12px; min-width:110px;">Foto</th>
+                                        <th style="padding:12px; min-width:200px;">Catatan</th> <th class="text-center" style="padding:12px;">Status</th>
+                                        <th class="text-center" style="padding:12px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${items.map(item => {
-                                        let statusColor = "white";
+                                        let statusColor = "transparent";
                                         const st = (item.approval_status || "").toUpperCase();
                                         if(st === 'REJECTED') statusColor = "#ffe5e5";
-                                        else if(item.isSubmitted) statusColor = "#f0fdf4";
+                                        else if(item.is_il) statusColor = "#fff9c4"; // Highlight Item IL (Instruksi Lapangan)
+                                        else if(item.isSubmitted) statusColor = "#f0fff0";
 
                                         return `
-                                        <tr style="background:${statusColor}">
-                                            <td>
-                                                <div style="font-size:0.8rem; color:#64748b; font-weight:600;">${item.kategori_pekerjaan}</div>
-                                                ${item.jenis_pekerjaan}
-                                            </td>
-                                            <td class="text-center">${item.vol_rab}</td>
-                                            <td class="text-center">${item.satuan}</td>
-                                            <td class="text-center">
+                                        <tr style="background:${statusColor}; border-bottom:1px solid #ddd;">
+                                            <td style="padding:12px;">${item.kategori_pekerjaan}</td>
+                                            <td style="padding:12px;">${item.jenis_pekerjaan}</td>
+                                            <td class="text-center" style="padding:12px;">${item.vol_rab}</td>
+                                            <td class="text-center" style="padding:12px;">${item.satuan}</td>
+                                            
+                                            <td class="text-right" style="padding:12px;">${formatRupiah(item.harga_material)}</td>
+                                            
+                                            <td class="text-right" style="padding:12px;">${formatRupiah(item.harga_upah)}</td>
+
+                                            <td class="text-center" style="padding:8px;">
                                                 <input type="number" class="form-input vol-input" data-id="${item.id}" value="${item.volume_akhir}" 
-                                                style="padding:6px; text-align:center; width:70px;" ${item.isSubmitted ? 'disabled' : ''}>
+                                                style="width:100px; text-align:center;" 
+                                                placeholder="0" step="any"
+                                                ${item.isSubmitted ? 'disabled' : ''}>
                                             </td>
-                                            <td class="text-center font-bold" style="color:${parseFloat(item.selisih) < 0 ? 'red' : 'green'};">
-                                                ${item.selisih || '-'}
+                                            
+                                            <td class="text-center" style="padding:12px;">
+                                                <span style="font-weight:bold; color:${parseFloat(item.selisih) < 0 ? 'red' : parseFloat(item.selisih) > 0 ? 'green' : 'black'};">
+                                                    ${(item.volume_akhir !== "" && item.volume_akhir !== null) ? item.selisih : '-'}
+                                                </span>
                                             </td>
-                                            <td class="text-right font-bold" style="color:${item.total_harga < 0 ? 'red' : 'var(--primary)'};" id="total-${item.id}">
+                                            
+                                            <td class="text-right" style="padding:12px; font-weight:bold; color:${item.total_harga < 0 ? 'red' : 'black'};" id="total-${item.id}">
                                                 ${formatRupiah(item.total_harga)}
                                             </td>
-                                            <td class="text-center">
-                                                ${item.foto_url ? `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` : 
-                                                    `<input type="file" class="file-input" data-id="${item.id}" id="file-${item.id}" style="display:none;">
-                                                    <label for="file-${item.id}" class="btn btn-secondary" style="padding:4px 8px; font-size:12px; cursor:pointer;">Upload</label>`
+                                            
+                                            <td class="text-center" style="padding:12px;">
+                                                ${item.foto_url ? 
+                                                    `<a href="${item.foto_url}" target="_blank" style="color:var(--primary-blue); text-decoration:underline;">Lihat Foto</a>` : 
+                                                    (!item.isSubmitted ? 
+                                                        `<input type="file" class="file-input" data-id="${item.id}" id="file-${item.id}" style="display:none;">
+                                                         <label for="file-${item.id}" class="btn btn-outline btn-sm" style="cursor:pointer; font-size:12px;">Pilih Foto</label>` : 
+                                                        `<span style="color:#aaa;">-</span>`
+                                                    )
                                                 }
                                             </td>
-                                            <td class="text-center">
-                                                <span class="badge ${st === 'APPROVED' ? 'badge-success' : st === 'REJECTED' ? 'badge-error' : st === 'PENDING' ? 'badge-warning' : ''}" style="font-size:10px;">${item.approval_status || '-'}</span>
+                                            
+                                            <td style="padding:12px;">
+                                                ${item.catatan ? `<pre style="white-space:pre-wrap; font-size:12px; color:#444; font-family:inherit;">${item.catatan}</pre>` : `<span style="color:#aaa;">—</span>`}
                                             </td>
-                                            <td class="text-center">
+
+                                            <td class="text-center" style="padding:12px;">
+                                                <span class="badge ${st === 'APPROVED' ? 'badge-success' : st === 'REJECTED' ? 'badge-error' : st === 'PENDING' ? 'badge-warning' : 'badge-light'}">
+                                                    ${item.approval_status || '-'}
+                                                </span>
+                                            </td>
+                                            
+                                            <td class="text-center" style="padding:12px;">
                                                 ${st === 'REJECTED' ? 
-                                                    `<button class="btn btn-info perbaiki-btn" data-id="${item.id}" style="padding:6px 12px; font-size:0.8rem; background-color:orange; border:none;">Perbaiki</button>` :
+                                                    `<button class="btn btn-warning btn-sm perbaiki-btn" data-id="${item.id}">Perbaiki</button>` :
                                                     item.isSubmitted ? 
-                                                    `<span style="color:green; font-size:0.8rem; font-weight:bold;">Tersimpan</span>` : 
-                                                    `<button class="btn btn-primary save-btn" style="padding:6px 12px; font-size:0.85rem;" data-id="${item.id}">Simpan</button>`
+                                                    `<div style="font-size:12px; color:green;"><strong>Tersimpan</strong><br><small>${item.submissionTime || ''}</small></div>` : 
+                                                    `<button class="btn btn-primary btn-sm save-btn" data-id="${item.id}">Simpan</button>`
                                                 }
                                             </td>
                                         </tr>
@@ -748,12 +768,21 @@ const Render = {
                                 INSTRUKSI LAPANGAN
                             </a>
                         </div>
-                        <div style="background:#f8fafc; padding:20px; border-radius:12px; margin-top:20px; border:1px solid #e2e8f0;">
-                            <h4 style="margin-bottom:15px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">Ringkasan Biaya</h4>
-                            <div class="d-flex" style="justify-content:space-between; margin-bottom:8px;"><span>Total Keseluruhan:</span> <b>${formatRupiah(totalVal)}</b></div>
-                            <div class="d-flex" style="justify-content:space-between; margin-bottom:8px;"><span>PPN 11%:</span> <b>${formatRupiah(ppn)}</b></div>
-                            <div class="d-flex" style="justify-content:space-between; font-size:1.2rem; color:var(--primary); margin-top:10px; padding-top:10px; border-top:2px dashed #e2e8f0;">
-                                <span>GRAND TOTAL:</span> <b>${formatRupiah(grandTotal)}</b>
+
+                        <div style="margin-top:20px; padding:16px; background-color:#f8f9fa; border-radius:8px;">
+                            <h4 style="color:var(--primary); margin-bottom:12px;">Ringkasan Total</h4>
+                            <div class="d-flex justify-between" style="margin-bottom:8px;">
+                                <span>Total Keseluruhan:</span>
+                                <strong id="summary-total" style="color:${totalVal < 0 ? 'red' : 'black'}">${formatRupiah(totalVal)}</strong>
+                            </div>
+                            <div class="d-flex justify-between" style="margin-bottom:8px;">
+                                <span>PPN 11%:</span>
+                                <strong id="summary-ppn" style="color:${ppn < 0 ? 'red' : 'black'}">${formatRupiah(ppn)}</strong>
+                            </div>
+                            <hr style="margin:12px 0;">
+                            <div class="d-flex justify-between" style="font-size:18px;">
+                                <span><strong>GRAND TOTAL:</strong></span>
+                                <strong id="summary-grand" style="color:${grandTotal < 0 ? 'red' : 'black'}">${formatRupiah(grandTotal)}</strong>
                             </div>
                         </div>
 
@@ -770,87 +799,139 @@ const Render = {
                 `;
                 container.innerHTML = html;
                 
-                // Event Handlers
-                container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
+                // --- EVENT HANDLERS ---
                 
-                // Handle Volume Change
+                container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
+
+                // 1. Handle Input Volume
                 container.querySelectorAll('.vol-input').forEach(input => {
                     input.oninput = (e) => {
                         const id = parseInt(e.target.dataset.id);
                         const val = e.target.value;
                         const item = AppState.opnameItems.find(i => i.id === id);
+                        
                         item.volume_akhir = val;
+                        
                         const volAkhir = toNumInput(val);
                         const volRab = toNumInput(item.vol_rab);
-                        item.selisih = (volAkhir - volRab).toFixed(2);
-                        item.total_harga = (volAkhir - volRab) * (item.harga_material + item.harga_upah);
                         
-                        // Update angka di tabel secara langsung tanpa re-render penuh agar fokus tidak hilang
-                        const totalEl = document.getElementById(`total-${id}`);
-                        if(totalEl) {
-                            totalEl.innerText = formatRupiah(item.total_harga);
-                            totalEl.style.color = item.total_harga < 0 ? 'red' : 'var(--primary)';
-                        }
-                        // Update Summary di bawah
-                        renderSummaryOnly(items);
+                        // Hitung Selisih
+                        item.selisih = (volAkhir - volRab).toFixed(2);
+                        
+                        // Hitung Total Harga (Konsisten menggunakan Vol Akhir sesuai Repo saat load)
+                        item.total_harga = volAkhir * (item.harga_material + item.harga_upah);
+                        
+                        // Update UI Tabel (DOM Manipulation untuk performa)
+                        Render.updateRowUI(item);
+                        Render.updateSummaryUI();
                     }
                 });
-                const renderSummaryOnly = (items) => {
-                    // (Opsional) Implementasi update DOM elemen summary jika diperlukan real-time yang mulus
-                    // Karena ini versi simple, kita biarkan saja atau panggil renderTable() jika tidak masalah dengan fokus input.
-                    // Di sini saya skip untuk kesederhanaan, data tersimpan di variable `items`.
-                };
+
+                // 2. Handle Upload Foto
+                container.querySelectorAll('.file-input').forEach(input => {
+                    input.onchange = async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const id = parseInt(e.target.dataset.id);
+                        const label = document.querySelector(`label[for="file-${id}"]`);
+                        
+                        label.innerText = "...";
+                        
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/api/upload`, { method: "POST", body: formData });
+                            const result = await res.json();
+                            if(!res.ok) throw new Error(result.message);
+                            
+                            const item = AppState.opnameItems.find(i => i.id === id);
+                            item.foto_url = result.link;
+                            
+                            // Render ulang baris ini saja atau alert sukses
+                            renderTable(); 
+                        } catch (err) {
+                            alert(`Gagal upload: ${err.message}`);
+                            label.innerText = "Pilih Foto";
+                        }
+                    }
+                });
+
+                // 3. Handle Simpan Item
                 container.querySelectorAll('.save-btn').forEach(btn => {
                     btn.onclick = async () => {
                         const id = parseInt(btn.dataset.id);
                         const item = AppState.opnameItems.find(i => i.id === id);
                         
-                        if (!item.volume_akhir) { alert("Volume akhir harus diisi!"); return; }
+                        if (item.volume_akhir === "" || item.volume_akhir === null) { 
+                            alert("Volume akhir harus diisi sebelum menyimpan."); return; 
+                        }
                         
                         btn.innerText = "...";
                         btn.disabled = true;
 
                         try {
-                                const payload = {
-                                    kode_toko: AppState.selectedStore.kode_toko,
-                                    nama_toko: AppState.selectedStore.nama_toko,
-                                    pic_username: AppState.user.username,
-                                    no_ulok: AppState.selectedUlok,
-                                    kategori_pekerjaan: item.kategori_pekerjaan,
-                                    jenis_pekerjaan: item.jenis_pekerjaan,
-                                    vol_rab: item.vol_rab,
-                                    satuan: item.satuan,
-                                    volume_akhir: item.volume_akhir,
-                                    selisih: item.selisih,
-                                    foto_url: item.foto_url,
-                                    harga_material: item.harga_material,
-                                    harga_upah: item.harga_upah,
-                                    total_harga_akhir: item.total_harga,
-                                    lingkup_pekerjaan: AppState.selectedLingkup,
-                                    is_il: item.is_il
-                                };
-                                const res = await fetch(`${API_BASE_URL}/api/opname/item/submit`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify(payload)
-                                });
-                            if(!res.ok) throw new Error("Gagal menyimpan");
+                            const payload = {
+                                kode_toko: AppState.selectedStore.kode_toko,
+                                nama_toko: AppState.selectedStore.nama_toko,
+                                pic_username: AppState.user.username,
+                                no_ulok: AppState.selectedUlok,
+                                kategori_pekerjaan: item.kategori_pekerjaan,
+                                jenis_pekerjaan: item.jenis_pekerjaan,
+                                vol_rab: item.vol_rab,
+                                satuan: item.satuan,
+                                volume_akhir: item.volume_akhir,
+                                selisih: item.selisih,
+                                foto_url: item.foto_url,
+                                harga_material: item.harga_material,
+                                harga_upah: item.harga_upah,
+                                total_harga_akhir: item.total_harga,
+                                lingkup_pekerjaan: AppState.selectedLingkup,
+                                is_il: item.is_il
+                            };
+
+                            const res = await fetch(`${API_BASE_URL}/api/opname/item/submit`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(payload)
+                            });
+                            
+                            if(!res.ok) {
+                                const result = await res.json();
+                                throw new Error(result.message);
+                            }
+                            
                             item.isSubmitted = true;
                             item.approval_status = "Pending";
-                            renderTable(); // Refresh UI
+                            item.submissionTime = new Date().toISOString(); // Placeholder
+                            renderTable();
                         } catch (e) {
-                            alert(e.message);
+                            alert(`Error: ${e.message}`);
                             btn.innerText = "Simpan";
                             btn.disabled = false;
                         }
                     }
                 });
 
-                // Handle Opname Final Click (PERBAIKAN: Gunakan URL React Repo)
+                // 4. Handle Perbaiki (Reset Status)
+                container.querySelectorAll('.perbaiki-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const id = parseInt(btn.dataset.id);
+                        const item = AppState.opnameItems.find(i => i.id === id);
+                        item.isSubmitted = false;
+                        item.approval_status = "Pending";
+                        item.volume_akhir = "";
+                        item.selisih = "";
+                        item.total_harga = 0;
+                        renderTable();
+                    }
+                });
+
+                // 5. Handle Final Opname
                 if(canFinalize && !isFinalized) {
                     const btnFinal = container.querySelector('#btn-final');
                     btnFinal.onclick = async () => {
-                        if (!confirm("Apakah Anda yakin ingin melakukan Opname Final?Tindakan ini tidak dapat dibatalkan.")) return;
+                        if (!confirm("Apakah Anda yakin ingin melakukan Opname Final? Tindakan ini tidak dapat dibatalkan.")) return;
                         
                         btnFinal.innerText = "Memproses...";
                         btnFinal.disabled = true;
@@ -862,7 +943,6 @@ const Render = {
                                 lingkup_pekerjaan: AppState.selectedLingkup,
                             };
                             
-                            // UPDATE: URL endpoint ke sparta-backend-5hdj
                             const res = await fetch(`https://sparta-backend-5hdj.onrender.com/api/opname_locked`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
@@ -874,7 +954,7 @@ const Render = {
                                 alert("Opname berhasil difinalisasi!");
                                 isFinalized = true;
                                 canFinalize = false;
-                                Render.opnameForm(container); // Reload page state
+                                Render.opnameForm(container);
                             } else {
                                 alert(`Gagal finalisasi: ${result.message}`);
                                 btnFinal.innerText = "Opname Final";
@@ -888,7 +968,36 @@ const Render = {
                     };
                 }
             };
+            
+            // Helper untuk update UI Baris tanpa re-render full
+            Render.updateRowUI = (item) => {
+                // Update Selisih
+                const row = document.querySelector(`.vol-input[data-id="${item.id}"]`).closest('tr');
+                const selisihCell = row.cells[7]; // Index kolom selisih (check index th)
+                const s = parseFloat(item.selisih);
+                selisihCell.innerHTML = `<span style="font-weight:bold; color:${s < 0 ? 'red' : s > 0 ? 'green' : 'black'};">${item.selisih}</span>`;
+                
+                // Update Total
+                const totalCell = document.getElementById(`total-${item.id}`);
+                if(totalCell) {
+                    totalCell.innerText = formatRupiah(item.total_harga);
+                    totalCell.style.color = item.total_harga < 0 ? 'red' : 'black';
+                }
+            };
+
+            // Helper Update Summary
+            Render.updateSummaryUI = () => {
+                const totalVal = AppState.opnameItems.reduce((sum, i) => sum + (i.total_harga || 0), 0);
+                const ppn = totalVal * 0.11;
+                const grandTotal = totalVal * 1.11;
+                
+                document.getElementById('summary-total').innerText = formatRupiah(totalVal);
+                document.getElementById('summary-ppn').innerText = formatRupiah(ppn);
+                document.getElementById('summary-grand').innerText = formatRupiah(grandTotal);
+            };
+
             renderTable();
+
         } catch (e) {
             container.innerHTML = `<div class="container"><div class="alert-error">Error: ${e.message}</div><button class="btn btn-back" onclick="Render.app()">Kembali</button></div>`;
         }
