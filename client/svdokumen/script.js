@@ -105,6 +105,8 @@ function initApp() {
         });
     });
 
+    setupAutoCalculation();
+
     // Search & Filter
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
@@ -122,6 +124,45 @@ function initApp() {
     // Load Data Awal
     renderUploadSections();
     fetchDocuments();
+}
+
+// ==========================================
+// AUTO CALCULATION LOGIC
+// ==========================================
+function setupAutoCalculation() {
+    const ids = ['luasBangunanLantai1', 'luasBangunanLantai2', 'luasBangunanLantai3'];
+    const totalInput = document.getElementById('totalLuasBangunan');
+
+    const parseLocalFloat = (val) => {
+        if (!val) return 0;
+        // Hapus titik (pemisah ribuan jika ada) dan ganti koma dengan titik
+        const cleanStr = val.toString().replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleanStr) || 0;
+    };
+    const formatLocalString = (num) => {
+        return num.toFixed(2).replace('.', ',');
+    };
+
+    const calculate = () => {
+        let total = 0;
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                total += parseLocalFloat(el.value);
+            }
+        });
+        
+        if (totalInput) {
+            totalInput.value = formatLocalString(total);
+        }
+    };
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', calculate);
+            el.addEventListener('blur', calculate);
+        }
+    });
 }
 
 function resetFormState() {
@@ -768,6 +809,12 @@ async function handleFormSubmit(e) {
             luas_sales: document.getElementById("luasSales").value,
             luas_parkir: document.getElementById("luasParkir").value,
             luas_gudang: document.getElementById("luasGudang").value,
+            luas_bangunan_lantai_1: document.getElementById("luasBangunanLantai1").value,
+            luas_bangunan_lantai_2: document.getElementById("luasBangunanLantai2").value,
+            luas_bangunan_lantai_3: document.getElementById("luasBangunanLantai3").value,
+            total_luas_bangunan: document.getElementById("totalLuasBangunan").value,
+            luas_area_terbuka: document.getElementById("luasAreaTerbuka").value,
+            tinggi_plafon: document.getElementById("tinggiPlafon").value,
             cabang: currentUser.cabang || "",
             email: currentUser.email || "",
             pic_name: currentUser.email || "",
