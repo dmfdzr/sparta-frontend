@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isProjectLocked = false;
     let filteredCategories = null;
     let supervisionDays = {}; 
-    let checkpoints = {}; 
+    // Checkpoints state removed
 
     // ==================== 4. TASK TEMPLATES ====================
     const taskTemplateME = [
@@ -162,10 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("projectInfo").innerHTML = "";
         document.getElementById("stats").innerHTML = "";
         document.getElementById("apiData").innerHTML = "";
-        document.getElementById("exportButtons").style.display = "none";
-        
-        const cpSection = document.getElementById("checkpointSection");
-        if(cpSection) cpSection.style.display = "none";
+        // Checkpoint section removal handled by simple non-existence in HTML
     }
 
     // ==================== 6. CORE: INIT & LOAD PROJECTS ====================
@@ -253,7 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Reset States
         supervisionDays = {};
-        checkpoints = {};
         dayGanttData = null;
         rawGanttData = null;
         ganttApiData = null;
@@ -276,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (hasUserInput || isProjectLocked) {
             renderChart();
-            document.getElementById("exportButtons").style.display = "block";
+            // Export buttons code removed
         } else {
              document.getElementById("ganttChart").innerHTML = `
                 <div style="text-align: center; padding: 60px; color: #6c757d;">
@@ -287,16 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         updateStats();
-
-        // Checkpoint UI only for PIC roles
-        const cpSection = document.getElementById("checkpointSection");
-        if(APP_MODE === 'pic') {
-            if(cpSection) cpSection.style.display = "block";
-            populateCheckpointTasks();
-            renderCheckpointList();
-        } else {
-            if(cpSection) cpSection.style.display = "none";
-        }
+        // Checkpoint UI logic removed
     }
 
     async function fetchGanttData(selectedValue) {
@@ -317,11 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.rab) updateProjectFromRab(data.rab);
             if (data.day_gantt_data) dayGanttData = data.day_gantt_data;
             
-            if (data.checkpoints) {
-                 for (const taskId in data.checkpoints) {
-                    checkpoints[taskId] = data.checkpoints[taskId].map(cp => ({ day: parseInt(cp.day), taskName: cp.taskName }));
-                }
-            }
+            // Checkpoints parsing removed
+
             if (rawGanttData) parseSupervisionFromGanttData(rawGanttData);
 
             if (rawGanttData) {
@@ -726,11 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
             (t.inputData.ranges||[]).forEach(r => maxEnd = Math.max(maxEnd, r.end));
         });
         
-        // Cek juga checkpoint untuk menentukan panjang chart
-        let maxCp = 0;
-        Object.values(checkpoints).forEach(arr => arr.forEach(c => maxCp = Math.max(maxCp, c.day)));
-
-        const totalDays = Math.max(maxEnd + 10, maxCp + 5, currentProject.work==='ME'?50:100);
+        const totalDays = Math.max(maxEnd + 10, currentProject.work==='ME'?50:100);
         const totalW = totalDays * DAY_WIDTH;
 
         let html = `<div class="chart-header"><div class="task-column">Tahapan</div><div class="timeline-column" style="width:${totalW}px">`;
@@ -762,13 +742,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            if(checkpoints[t.id]) {
-                checkpoints[t.id].forEach(cp => {
-                    const lC = (cp.day - 1) * DAY_WIDTH;
-                    html += `<div class="checkpoint-marker" style="left:${lC}px"><div class="checkpoint-label">CP ${cp.day}</div></div>`;
-                });
-            }
-            
+            // Checkpoints rendering removed
+
             // Render supervision marker di baris task jika range masuk
             for(const [day, isActive] of Object.entries(supervisionDays)) {
                 if(isActive) {
@@ -787,42 +762,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chart.innerHTML = html;
     }
 
-    // ==================== 13. CHECKPOINTS & INFO ====================
-    window.populateCheckpointTasks = function() {
-        const sel = document.getElementById("checkpointTaskSelect");
-        if(!sel) return;
-        sel.innerHTML = '<option value="">-- Pilih --</option>';
-        currentTasks.forEach(t => sel.innerHTML += `<option value="${t.id}">${t.name}</option>`);
-    }
-
-    window.addCheckpoint = function() {
-        const tId = document.getElementById("checkpointTaskSelect").value;
-        const d = parseInt(document.getElementById("checkpointDayInput").value);
-        if(!tId || !d) return;
-        
-        if(!checkpoints[tId]) checkpoints[tId] = [];
-        checkpoints[tId].push({day: d, taskName: currentTasks.find(x=>x.id==tId).name});
-        renderCheckpointList();
-        renderChart();
-    }
-
-    window.removeCheckpoint = function(tid, d) {
-        if(!confirm("Hapus checkpoint?")) return;
-        checkpoints[tid] = checkpoints[tid].filter(x => x.day !== d);
-        renderCheckpointList();
-        renderChart();
-    }
-
-    window.renderCheckpointList = function() {
-        const div = document.getElementById("checkpointList");
-        if(!div) return;
-        div.innerHTML = '';
-        Object.entries(checkpoints).forEach(([tid, cps]) => {
-            cps.forEach(cp => {
-                div.innerHTML += `<div class="checkpoint-item"><span>${cp.taskName} (Hari ${cp.day})</span> <button class="btn-checkpoint-delete" onclick="removeCheckpoint(${tid}, ${cp.day})">Hapus</button></div>`;
-            });
-        });
-    }
+    // ==================== 13. CHECKPOINTS & INFO & EXPORT ====================
+    // Removed populatedCheckpointTasks, addCheckpoint, removeCheckpoint, renderCheckpointList, exportToExcel
 
     function updateProjectFromRab(rab) {
         if(rab.Alamat) currentProject.alamat = rab.Alamat;
@@ -841,34 +782,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("stats").innerHTML = `
             <div class="stat-card"><div class="stat-value">${currentTasks.length}</div><div class="stat-label">Total Tahapan</div></div>
         `;
-    }
-
-    // ==================== 14. EXPORT ====================
-    window.exportToExcel = function() {
-        if (!currentProject || !currentTasks.length) return;
-        const startDate = new Date(currentProject.startDate);
-        const data = [
-            ["Laporan Jadwal Proyek"],
-            ["No. Ulok", currentProject.ulok],
-            ["Nama Toko", currentProject.store],
-            [],
-            ["No", "Tahapan", "Range Hari", "Total Durasi"]
-        ];
-        
-        currentTasks.forEach((task, i) => {
-            const ranges = task.inputData.ranges || [];
-            if (ranges.length === 0) return;
-            
-            const rangeStr = ranges.map(r => `H${r.start}-H${r.end}`).join(", ");
-            const totalDur = ranges.reduce((sum,r)=>sum+r.duration,0);
-            
-            data.push([i + 1, task.name, rangeStr, totalDur]);
-        });
-        
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Jadwal");
-        XLSX.writeFile(wb, `Jadwal_${currentProject.ulokClean}.xlsx`);
     }
 
     // Start
