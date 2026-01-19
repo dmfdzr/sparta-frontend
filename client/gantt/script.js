@@ -103,19 +103,27 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     // ==================== 5. HELPER FUNCTIONS ====================
+    
+    // FIX: Format Tanggal Manual DD/MM/YYYY agar konsisten & tidak tergantung locale browser
     function formatDateID(date) {
-        return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+        const d = String(date.getDate()).padStart(2, '0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
     }
 
     function parseDateDDMMYYYY(dateStr) {
         if (!dateStr) return null;
+        // Handle format DD/MM/YYYY
         const parts = dateStr.split('/');
-        if (parts.length !== 3) return null;
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        const date = new Date(year, month, day);
-        return isNaN(date.getTime()) ? null : date;
+        if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            const date = new Date(year, month, day);
+            return isNaN(date.getTime()) ? null : date;
+        }
+        return null;
     }
 
     function extractUlokAndLingkup(value) {
@@ -256,8 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProjectInfo();
         renderApiData(); 
         
-        // FIX: Tampilkan chart jika Kontraktor sudah input (hasUserInput=true)
-        // PIC tetap bisa lihat chart meskipun belum dikunci
+        // FIX: Pastikan chart dirender jika ada data input (hasUserInput = true)
+        // Ini berlaku untuk Kontraktor (persistensi setelah refresh) maupun PIC (view only)
         if (hasUserInput) {
             renderChart();
         } else {
@@ -298,15 +306,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 parseGanttDataToTasks(rawGanttData, selectedValue, dayGanttData);
                 
-                // FIX: Cek apakah benar-benar ada data durasi, bukan cuma header kosong
-                const totalDur = currentTasks.reduce((acc, t) => acc + (t.duration || 0), 0);
-                hasUserInput = totalDur > 0;
+                // FIX: Validasi hasUserInput lebih robust
+                // Jika rawGanttData punya 'Kategori_1', artinya sudah pernah disimpan.
+                // Kita set true agar chart dirender walau durasi mungkin 0 karena parsing error
+                hasUserInput = !!(rawGanttData['Kategori_1']);
             } else {
                 loadDefaultTasks(selectedValue);
             }
 
         } catch (e) {
-            console.warn("Using default template", e);
+            console.warn("Using default template/No Data", e);
             loadDefaultTasks(selectedValue);
         } finally {
             isLoadingGanttData = false;
@@ -344,12 +353,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let rangeMap = {}; 
         
         if (dayData && dayData.length > 0) {
+            // Find earliest date
             dayData.forEach(d => {
                 const dt = parseDateDDMMYYYY(d.h_awal);
                 if(dt && dt < earliestDate) earliestDate = dt;
             });
             currentProject.startDate = earliestDate.toISOString().split('T')[0];
 
+            // Map ranges
             dayData.forEach(d => {
                 const kat = d.Kategori;
                 if(!kat) return;
@@ -361,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const s = Math.round((startD - earliestDate) / msDay) + 1;
                 const e = Math.round((endD - earliestDate) / msDay) + 1;
                 
-                // Normalisasi nama kategori untuk key (lowercase, trim)
+                // Normalisasi key
                 const key = kat.toLowerCase().trim();
                 if(!rangeMap[key]) rangeMap[key] = [];
                 rangeMap[key].push({
@@ -377,7 +388,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let ranges = [];
             const normName = cat.name.toLowerCase().trim();
             
-            // FIX: Match kategori dengan lebih fleksibel
+            // FIX: Pencocokan nama kategori yang lebih fleksibel
+            // Cek persis, atau contains
             for(const [k, v] of Object.entries(rangeMap)) {
                 if(normName === k || normName.includes(k) || k.includes(normName)) {
                     ranges = v;
@@ -434,8 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } 
         else if (APP_MODE === 'pic') {
-            // FIX: PIC tetap melihat warning ini jika belum dikunci, 
-            // tapi chart di bawah tetap akan dirender oleh changeUlok() karena hasUserInput=true
+            // Logic: PIC tetap melihat warning ini, TAPI Chart di bawah tetap dirender oleh changeUlok() karena hasUserInput=true
             if (!isProjectLocked) {
                 container.innerHTML = `
                     <div class="api-card warning">
@@ -567,7 +578,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks = tasks;
         hasUserInput = true;
         saveProjectSchedule("Active");
-        // Setelah simpan, chart harus dirender ulang
         renderChart();
         updateStats();
     }
@@ -590,16 +600,17 @@ document.addEventListener('DOMContentLoaded', () => {
             "Nama_Kontraktor": "PT KONTRAKTOR", 
         };
         
+        // Build Payload
         currentTasks.forEach(t => {
-            // Selalu kirim kategori meskipun durasi 0 agar struktur tabel terjaga
             const ranges = t.inputData.ranges || [];
-            payload[`Kategori_${t.id}`] = t.name; 
+            payload[`Kategori_${t.id}`] = t.name; // Always save name to preserve structure
             
             if(ranges.length > 0) {
                  const pStart = new Date(currentProject.startDate);
                  const tStart = new Date(pStart); tStart.setDate(pStart.getDate() + ranges[0].start - 1);
                  const tEnd = new Date(pStart); tEnd.setDate(pStart.getDate() + ranges[ranges.length-1].end - 1);
                  
+                 // Note: Sending ISO format to backend
                  payload[`Hari_Mulai_Kategori_${t.id}`] = tStart.toISOString().split('T')[0];
                  payload[`Hari_Selesai_Kategori_${t.id}`] = tEnd.toISOString().split('T')[0];
                  payload[`Keterlambatan_Kategori_${t.id}`] = "0";
@@ -617,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     "Nomor Ulok": currentProject.ulokClean,
                     "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
                     "Kategori": t.name,
-                    "h_awal": formatDateID(dS),
+                    "h_awal": formatDateID(dS), // Send DD/MM/YYYY to backend for consistency
                     "h_akhir": formatDateID(dE)
                 });
             });
@@ -635,8 +646,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 isProjectLocked = true; 
                 renderApiData(); 
             }
-            // Ensure UI is updated (flag input flag)
-            hasUserInput = currentTasks.some(t => t.duration > 0);
+            
+            // Re-render chart to ensure persistence UI
+            renderChart();
             
         } catch (err) {
             console.error(err);
@@ -678,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.handleHeaderClick = async function(dayNum, el) {
-        // FIX: Hanya boleh klik jika Role PIC DAN Proyek Terkunci
+        // Feature Lock: PIC only allowed when Project is Locked
         if(APP_MODE !== 'pic' || !isProjectLocked) return;
         
         const isRemoving = supervisionDays[dayNum];
@@ -715,7 +727,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalDays = Math.max(maxEnd + 10, currentProject.work==='ME'?50:100);
         const totalW = totalDays * DAY_WIDTH;
 
-        // FIX: Non-interactive header if not locked
+        // Interaction Logic
         const isInteractive = APP_MODE === 'pic' && isProjectLocked;
         const headerTitle = isInteractive ? "Klik untuk set Pengawasan" : "";
         const cursorStyle = isInteractive ? "cursor: pointer;" : "cursor: default;";
@@ -725,7 +737,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const isSup = supervisionDays[i];
             const clss = isSup ? "day-header supervision-active" : "day-header";
             const clickEvent = isInteractive ? `onclick="handleHeaderClick(${i}, this)"` : '';
-            
             html += `<div class="${clss}" style="width:${DAY_WIDTH}px; ${cursorStyle}" ${clickEvent} title="${headerTitle}">${i}</div>`;
         }
         html += `</div></div><div class="chart-body">`;
@@ -733,9 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks.forEach((t) => {
             const ranges = t.inputData.ranges || [];
             
-            // FIX: Jangan return/skip jika ranges kosong, agar struktur tabel tetap ada
-            // if(!ranges.length && t.duration===0) return; 
-            
+            // Note: Keep empty rows visible to maintain structure
             let durTxt = ranges.reduce((s,r)=>s+r.duration,0);
             html += `<div class="task-row"><div class="task-name"><span>${t.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
             html += `<div class="timeline" style="width:${totalW}px">`;
