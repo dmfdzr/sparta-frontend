@@ -452,22 +452,19 @@ document.addEventListener('DOMContentLoaded', () => {
         projectTasks[selectedValue] = currentTasks;
     }
 
-    // FIX: LOGIKA LOOP PENGAWASAN DIPERBAIKI (WHILE LOOP)
+    // FIX: Parsing Supervision Robust
+    // Menggunakan loop properti objek untuk menghindari masalah "gap" pada index
     function parseSupervisionFromGanttData(ganttData) {
         supervisionDays = {};
-        let i = 1;
-        while(true) {
-            const key = `Pengawasan_${i}`;
-            // Jika kolom tidak ada, hentikan loop
-            if (!ganttData.hasOwnProperty(key)) {
-                break;
+        for (const key in ganttData) {
+            if (ganttData.hasOwnProperty(key)) {
+                if (key.startsWith("Pengawasan_")) {
+                    const val = ganttData[key];
+                    if (val && !isNaN(parseInt(val)) && parseInt(val) > 0) {
+                        supervisionDays[parseInt(val)] = true;
+                    }
+                }
             }
-            
-            const value = ganttData[key];
-            if (value && !isNaN(parseInt(value)) && parseInt(value) > 0) {
-                supervisionDays[parseInt(value)] = true;
-            }
-            i++;
         }
     }
 
@@ -746,6 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // FIX: LOGIKA CLICK HEADER (ADD/REMOVE)
     window.handleHeaderClick = async function(dayNum, el) {
         if(APP_MODE !== 'pic' || !isProjectLocked) return;
         
@@ -756,8 +754,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const payload = {
             nomor_ulok: currentProject.ulokClean,
             lingkup_pekerjaan: currentProject.work.toUpperCase(),
-            pengawasan_day: isRemoving ? 0 : dayNum,
-            remove_day: isRemoving ? dayNum : undefined
+            pengawasan_day: isRemoving ? 0 : dayNum, // Send 0 if removing
+            remove_day: isRemoving ? dayNum : undefined // Send specific day if removing
         };
 
         try {
