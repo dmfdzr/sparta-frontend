@@ -508,15 +508,15 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `
             <div class="api-card info">
                 <h3 style="color: #2b6cb0; margin:0; display:flex; align-items:center; gap:8px;">
-                    <span>👆</span> Tahap 1: Input Pengawasan
+                    <span>Input Pengawasan Terlebih Dahulu</span>
                 </h3>
                 <p style="margin-top:5px; margin-bottom:15px; font-size:14px; color:#4a5568;">
-                    Klik pada <b>Angka Tanggal</b> di Header Chart di bawah untuk menandai hari pengawasan. 
-                    Jika sudah selesai, klik tombol di bawah untuk lanjut input keterlambatan.
+                    Klik angka/tanggal pada Header Table Chart di bawah untuk menandai hari pengawasan. 
+                    Jika sudah selesai, kunci hari pengawasan untuk lanjut input keterlambatan.
                 </p>
                 <div style="text-align:right;">
                     <button class="btn-publish" style="background:#3182ce; width:auto;" onclick="lockSupervision()">
-                        Selesai & Lanjut ke Keterlambatan ➡️
+                        Kunci Hari Pengawasan & Input Keterlambatan
                     </button>
                 </div>
             </div>`;
