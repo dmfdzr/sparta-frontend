@@ -558,18 +558,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FORM KONTRAKTOR ---
     window.renderContractorInputForm = function(container) { 
-        let html = `<div class="api-card"><div class="api-card-title">Input Jadwal (Multi-Range)</div><div class="task-input-container">`;
+        let html = `<div class="api-card"><div class="api-card-title">Input Jadwal & Keterikatan</div><div class="task-input-container">`;
         
-        // Cek apakah semua task sudah memiliki range/input
+        // Cek kelengkapan data
         const isAllTasksFilled = currentTasks.every(t => 
             t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
         );
 
-        currentTasks.forEach(task => {
+        // Header Table untuk kerapihan
+        html += `
+        <div style="display:flex; padding:0 10px 5px; color:#666; font-size:12px; font-weight:bold;">
+            <div style="width:30%;">Nama Tahapan</div>
+            <div style="width:25%;">Syarat (Predecessor)</div>
+            <div style="width:45%;">Range Hari (Mulai - Selesai)</div>
+        </div>`;
+
+        currentTasks.forEach((task, index) => {
             const ranges = task.inputData.ranges || [];
-            html += `<div class="task-input-row-multi" id="task-row-${task.id}">
-                <div class="task-input-label-multi">${escapeHtml(task.name)}</div>
-                <div class="task-ranges-container" id="ranges-${task.id}">`;
+            
+            // --- LOGIC DROPDOWN DEPENDENCY ---
+            // Hanya tampilkan task dengan ID lebih kecil untuk mencegah circular loop sederhana
+            let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
+            currentTasks.forEach(prevTask => {
+                if (prevTask.id < task.id) {
+                    const selected = (task.dependency == prevTask.id) ? 'selected' : '';
+                    dependencyOptions += `<option value="${prevTask.id}" ${selected}>${prevTask.id}. ${prevTask.name}</option>`;
+                }
+            });
+
+            html += `
+            <div class="task-input-row-multi" id="task-row-${task.id}" style="display:flex; align-items:flex-start; gap:10px;">
+                <div style="width:30%; font-weight:600; font-size:13px; padding-top:5px;">
+                    ${task.id}. ${escapeHtml(task.name)}
+                </div>
+
+                <div style="width:25%;">
+                    <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:5px;">
+                        ${dependencyOptions}
+                    </select>
+                    <div style="font-size:10px; color:#718096; margin-top:2px;">*Mulai setelah ini selesai</div>
+                </div>
+
+                <div style="width:45%;">
+                    <div class="task-ranges-container" id="ranges-${task.id}">`;
             
             const rangesToRender = ranges.length > 0 ? ranges : [{start: 0, end: 0}];
             
@@ -577,18 +608,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += createRangeHTML(task.id, idx, r.start, r.end);
             });
 
-            html += `</div><button class="btn-add-range" onclick="addRange(${task.id})">+ Tambah Hari</button></div>`;
+            html += `</div>
+                    <button class="btn-add-range" onclick="addRange(${task.id})">+ Tambah Split Jadwal</button>
+                </div>
+            </div>`;
         });
 
-        // Logika Button Style & Disabled
+        // Logika Tombol Kunci
         const btnDisabledAttr = isAllTasksFilled ? '' : 'disabled';
         const btnStyle = isAllTasksFilled ? '' : 'background-color: #cbd5e0; cursor: not-allowed;';
-        const lockLabel = isAllTasksFilled ? '🔒 Kunci Jadwal' : '🔒 Lengkapi Semua Tahapan';
+        const lockLabel = isAllTasksFilled ? '🔒 Kunci Jadwal' : '🔒 Lengkapi & Terapkan Dahulu';
 
         html += `</div>
             <div class="task-input-actions">
                 <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
-                <button class="btn-apply-schedule" onclick="applyTaskSchedule()">Terapkan Jadwal</button>
+                <button class="btn-apply-schedule" onclick="applyTaskSchedule()">⚡ Hitung & Terapkan Jadwal</button>
             </div>
             <div class="task-input-actions" style="border-top:none; padding-top:0;">
                 <button class="btn-publish" onclick="confirmAndPublish()" style="${btnStyle}" ${btnDisabledAttr}>
@@ -645,40 +679,99 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.applyTaskSchedule = function() {
-        let tasks = [];
+        let tempTasks = [];
         let error = false;
 
+        // 1. AMBIL DATA DARI INPUT (Range & Dependency)
         currentTasks.forEach(t => {
             const container = document.getElementById(`ranges-${t.id}`);
-            if(!container) { tasks.push(t); return; }
+            // Ambil value dependency dari dropdown
+            const depSelect = document.querySelector(`.dep-select[data-task-id="${t.id}"]`);
+            const depValue = depSelect ? depSelect.value : "";
+
+            if(!container) { tempTasks.push(t); return; }
             
             let newRanges = [];
             Array.from(container.children).forEach(row => {
                 const s = parseInt(row.querySelector('[data-type="start"]').value) || 0;
                 const e = parseInt(row.querySelector('[data-type="end"]').value) || 0;
-                if(s === 0 && e === 0) return;
-                if(e < s) { error = true; alert(`Error Tahapan ${t.name}: End < Start`); }
-                newRanges.push({start: s, end: e, duration: (e-s+1)});
+                
+                // Skip baris kosong 0-0, kecuali itu satu-satunya baris
+                if(s === 0 && e === 0 && container.children.length > 1) return;
+                
+                if(e < s && e !== 0) { 
+                    error = true; 
+                    alert(`Error Tahapan ${t.name}: Hari Selesai lebih kecil dari Mulai`); 
+                }
+                newRanges.push({start: s, end: e, duration: (e > 0 ? e-s+1 : 0)});
             });
             
-            const totalDur = newRanges.reduce((sum, r) => sum + r.duration, 0);
-            const minStart = newRanges.length ? Math.min(...newRanges.map(r=>r.start)) : 0;
-            
-            tasks.push({...t, start: minStart, duration: totalDur, inputData: {ranges: newRanges}});
+            tempTasks.push({
+                ...t, 
+                dependency: depValue, // Simpan ID dependency
+                inputData: {ranges: newRanges}
+            });
         });
 
         if(error) return;
-        currentTasks = tasks;
+
+        // 2. LOGIKA CASCADING (KETERIKATAN)
+        // Kita loop task berurutan. Karena ID urut (1,2,3...), kita bisa hitung impact dari atas ke bawah.
+        let processedTasksMap = {}; // Simpan max end date setiap task
+
+        tempTasks.forEach(task => {
+            const ranges = task.inputData.ranges;
+            
+            // Cek Dependency
+            if (task.dependency) {
+                const parentId = parseInt(task.dependency);
+                const parentEndDay = processedTasksMap[parentId] || 0;
+                
+                // Syarat: Start hari pertama task ini harus > Parent End Day
+                const requiredStart = parentEndDay + 1;
+                
+                if (ranges.length > 0) {
+                    const currentStart = ranges[0].start;
+                    
+                    // Jika jadwal user tabrakan dengan syarat dependency (misal user input start 3, padahal parent selesai 5)
+                    // Maka kita GESER otomatis (Shift)
+                    if (currentStart < requiredStart && currentStart !== 0) {
+                        const shiftDays = requiredStart - currentStart;
+                        
+                        // Geser semua split range task ini
+                        ranges.forEach(r => {
+                            r.start += shiftDays;
+                            r.end += shiftDays;
+                        });
+                        
+                        // Opsional: Beritahu user ada pergeseran (matikan jika ingin silent mode)
+                        // console.log(`Auto-shifting task ${task.name} by ${shiftDays} days due to dependency.`);
+                    }
+                }
+            }
+
+            // Hitung properti summary task
+            const totalDur = ranges.reduce((sum, r) => sum + r.duration, 0);
+            const minStart = ranges.length ? Math.min(...ranges.map(r=>r.start)) : 0;
+            const maxEnd = ranges.length ? Math.max(...ranges.map(r=>r.end)) : 0;
+
+            // Simpan max end day untuk referensi task berikutnya
+            processedTasksMap[task.id] = maxEnd;
+
+            // Update object task
+            task.start = minStart;
+            task.duration = totalDur;
+        });
+
+        // 3. SIMPAN STATE
+        currentTasks = tempTasks;
         hasUserInput = true;
         
-        // Simpan status sementara (Active)
         saveProjectSchedule("Active");
         
-        // Update Chart
+        // 4. RENDER ULANG
         renderChart();
         updateStats();
-
-        // PENTING: Render ulang form input agar tombol "Kunci Jadwal" bisa ter-update statusnya (enable/disable)
         renderApiData(); 
     }
 
