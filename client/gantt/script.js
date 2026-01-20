@@ -557,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = `
             <div class="delay-control-card">
-                <div class="delay-title">⏱️ Input Keterlambatan (Delay)</div>
+                <div class="delay-title">Input Keterlambatan</div>
                 <div class="delay-form-row">
                     <div class="form-group" style="flex: 2;">
                         <label>Pilih Tahapan</label>
