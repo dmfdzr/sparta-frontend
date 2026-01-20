@@ -560,6 +560,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.renderContractorInputForm = function(container) { 
         let html = `<div class="api-card"><div class="api-card-title">Input Jadwal (Multi-Range)</div><div class="task-input-container">`;
         
+        // Cek apakah semua task sudah memiliki range/input
+        const isAllTasksFilled = currentTasks.every(t => 
+            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
+        );
+
         currentTasks.forEach(task => {
             const ranges = task.inputData.ranges || [];
             html += `<div class="task-input-row-multi" id="task-row-${task.id}">
@@ -575,13 +580,20 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `</div><button class="btn-add-range" onclick="addRange(${task.id})">+ Tambah Hari</button></div>`;
         });
 
+        // Logika Button Style & Disabled
+        const btnDisabledAttr = isAllTasksFilled ? '' : 'disabled';
+        const btnStyle = isAllTasksFilled ? '' : 'background-color: #cbd5e0; cursor: not-allowed;';
+        const lockLabel = isAllTasksFilled ? '🔒 Kunci Jadwal' : '🔒 Lengkapi Semua Tahapan';
+
         html += `</div>
             <div class="task-input-actions">
                 <button class="btn-reset-schedule" onclick="resetTaskSchedule()">Reset</button>
                 <button class="btn-apply-schedule" onclick="applyTaskSchedule()">Terapkan Jadwal</button>
             </div>
             <div class="task-input-actions" style="border-top:none; padding-top:0;">
-                <button class="btn-publish" onclick="confirmAndPublish()">🔒 Kunci Jadwal</button>
+                <button class="btn-publish" onclick="confirmAndPublish()" style="${btnStyle}" ${btnDisabledAttr}>
+                    ${lockLabel}
+                </button>
             </div>
         </div>`;
         container.innerHTML = html;
@@ -658,13 +670,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if(error) return;
         currentTasks = tasks;
         hasUserInput = true;
+        
+        // Simpan status sementara (Active)
         saveProjectSchedule("Active");
         
+        // Update Chart
         renderChart();
         updateStats();
+
+        // PENTING: Render ulang form input agar tombol "Kunci Jadwal" bisa ter-update statusnya (enable/disable)
+        renderApiData(); 
     }
 
     window.confirmAndPublish = function() {
+        const isAllTasksFilled = currentTasks.every(t => 
+            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
+        );
+
+        if (!isAllTasksFilled) {
+            alert("Harap lengkapi semua tahapan pekerjaan terlebih dahulu sebelum mengunci jadwal.");
+            return;
+        }
         if(!confirm("Yakin kunci jadwal? Data tidak bisa diubah lagi.")) return;
         saveProjectSchedule("Terkunci");
     }
