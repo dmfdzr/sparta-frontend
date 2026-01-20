@@ -568,8 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Header Table untuk kerapihan
         html += `
         <div style="display:flex; padding:0 10px 5px; color:#666; font-size:12px; font-weight:bold;">
-            <div style="width:30%;">Nama Tahapan</div>
-            <div style="width:25%;">Syarat (Predecessor)</div>
+            <div style="width:30%;">Tahapan</div>
+            <div style="width:25%;">Keterikatan</div>
             <div style="width:45%;">Range Hari (Mulai - Selesai)</div>
         </div>`;
 
