@@ -963,14 +963,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderChart() {
         const chart = document.getElementById('ganttChart');
         const DAY_WIDTH = 40;
+        const ROW_HEIGHT = 50; // Tinggi baris sesuai CSS
 
+        // 1. Hitung Lebar Chart
         let maxTaskEndDay = 0;
         currentTasks.forEach(task => {
             if (task.inputData && task.inputData.ranges) {
                 task.inputData.ranges.forEach(range => {
-                    if (range.end > maxTaskEndDay) {
-                        maxTaskEndDay = range.end;
-                    }
+                    if (range.end > maxTaskEndDay) maxTaskEndDay = range.end;
                 });
             }
         });
@@ -979,10 +979,10 @@ document.addEventListener('DOMContentLoaded', () => {
             (currentProject.work === 'ME' ? totalDaysME : totalDaysSipil),
             maxTaskEndDay + 10
         );
-
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
         const projectStartDate = new Date(currentProject.startDate);
 
+        // 2. Setup Header & Interactive Logic
         const isInteractive = APP_MODE === 'pic' && isProjectLocked && !isSupervisionLocked;
         let headerTitle = "";
         if (APP_MODE === 'pic' && isProjectLocked) {
@@ -992,40 +992,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const cursorStyle = isInteractive ? "cursor: pointer;" : "cursor: default;";
 
+        // 3. Render Header HTML
         let html = '<div class="chart-header">';
         html += '<div class="task-column">Tahapan</div>';
         html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
-        
         for (let i = 0; i < totalDaysToRender; i++) {
             const dayNumber = i + 1;
             const isSup = supervisionDays[dayNumber] === true;
             const clss = isSup ? "day-header supervision-active" : "day-header";
             const clickEvent = isInteractive ? `onclick="handleHeaderClick(${dayNumber}, this)"` : '';
-            
-            html += `
-                <div class="${clss}" style="width:${DAY_WIDTH}px; box-sizing: border-box; ${cursorStyle}" ${clickEvent} title="${headerTitle}">
-                    <span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span>
-                </div>
-            `;
+            html += `<div class="${clss}" style="width:${DAY_WIDTH}px; box-sizing: border-box; ${cursorStyle}" ${clickEvent} title="${headerTitle}"><span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span></div>`;
         }
         html += "</div></div>";
-        html += '<div class="chart-body">';
 
-        currentTasks.forEach(task => {
+        // 4. Render Body & Siapkan Koordinat Garis
+        html += '<div class="chart-body" style="position:relative;">'; // Tambah relative positioning
+        
+        let taskCoordinates = {}; // Simpan koordinat (id -> {x, y})
+
+        currentTasks.forEach((task, index) => {
             const ranges = task.inputData?.ranges || [];
-            
             let durTxt = ranges.reduce((s,r)=>s+r.duration,0);
+            
+            // Simpan Koordinat untuk Dependency (Ambil range paling akhir untuk Start Point, range paling awal untuk End Point)
+            const maxEnd = ranges.length ? Math.max(...ranges.map(r=>r.end)) : 0;
+            const minStart = ranges.length ? Math.min(...ranges.map(r=>r.start)) : 0;
+            
+            taskCoordinates[task.id] = {
+                y: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2), // Titik tengah vertikal baris
+                endX: maxEnd * DAY_WIDTH,
+                startX: (minStart - 1) * DAY_WIDTH
+            };
+
+            // HTML Row
             html += `<div class="task-row"><div class="task-name"><span>${task.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
             html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
             ranges.forEach((range, idx) => {
                 const leftPos = (range.start - 1) * DAY_WIDTH;
                 const widthPos = (range.duration * DAY_WIDTH) - 1;
-
-                const tStart = new Date(projectStartDate);
-                tStart.setDate(projectStartDate.getDate() + (range.start - 1));
-                const tEnd = new Date(tStart);
-                tEnd.setDate(tStart.getDate() + range.duration - 1);
+                const tStart = new Date(projectStartDate); tStart.setDate(projectStartDate.getDate() + (range.start - 1));
+                const tEnd = new Date(tStart); tEnd.setDate(tStart.getDate() + range.duration - 1);
 
                 const hasDelay = range.keterlambatan && range.keterlambatan > 0;
                 const barClass = hasDelay ? "bar on-time has-delay" : "bar on-time";
@@ -1033,32 +1040,61 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; border: 2px solid #e53e3e;`
                     : `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;`;
 
-                html += `<div class="${barClass}" data-task-id="${task.id}-${idx}" 
-                        style="${barStyle}" 
-                        title="${task.name}: ${formatDateID(tStart)} - ${formatDateID(tEnd)}">
-                    ${range.duration}
-                </div>`;
-
+                html += `<div class="${barClass}" style="${barStyle}" title="${task.name}"> ${range.duration}</div>`;
+                
                 if (hasDelay) {
                     const delayLeftPos = range.end * DAY_WIDTH;
                     const delayWidthPos = range.keterlambatan * DAY_WIDTH - 1;
-                    html += `<div class="bar delayed" style="left:${delayLeftPos}px; width:${delayWidthPos}px; box-sizing: border-box; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); opacity: 0.85;">+${range.keterlambatan}</div>`;
+                    html += `<div class="bar delayed" style="left:${delayLeftPos}px; width:${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); opacity: 0.85;">+${range.keterlambatan}</div>`;
                 }
             });
 
+            // Supervision Markers
             for(const [day, isActive] of Object.entries(supervisionDays)) {
                 if(isActive) {
                     const dInt = parseInt(day);
                     const inRange = ranges.some(r => dInt >= r.start && dInt <= r.end);
-                    if(inRange) {
-                        html += `<div class="supervision-marker" style="left:${(dInt-1)*DAY_WIDTH}px"></div>`;
-                    }
+                    if(inRange) html += `<div class="supervision-marker" style="left:${(dInt-1)*DAY_WIDTH}px"></div>`;
                 }
             }
-
-            html += `</div></div>`;
+            html += `</div></div>`; // End Timeline & TaskRow
         });
-        html += `</div>`;
+
+        // 5. Generate SVG Lines (Dependency)
+        let svgLines = '';
+        currentTasks.forEach(task => {
+            if (task.dependency) {
+                const parent = taskCoordinates[task.dependency];
+                const me = taskCoordinates[task.id];
+
+                if (parent && me && parent.endX > 0 && me.startX > 0) {
+                    const startX = parent.endX;
+                    const startY = parent.y;
+                    const endX = me.startX;
+                    const endY = me.y;
+                    const controlOffset = 20; 
+                    const path = `M ${startX} ${startY} 
+                                C ${startX + controlOffset} ${startY}, 
+                                ${endX - controlOffset} ${endY}, 
+                                ${endX} ${endY}`;
+                    
+                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#arrowhead)" />`;
+                }
+            }
+        });
+        const svgHeight = currentTasks.length * ROW_HEIGHT;
+        html += `
+            <svg class="chart-lines-svg" style="width:${totalChartWidth}px; height:${svgHeight}px;">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e0" />
+                    </marker>
+                </defs>
+                ${svgLines}
+            </svg>
+        `;
+
+        html += `</div>`; // End Chart Body
         chart.innerHTML = html;
     }
 

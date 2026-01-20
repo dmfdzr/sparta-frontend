@@ -528,26 +528,48 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     margin-left: 5px; /* Centering helper based on day width */
 }
 
-/* Dependencies Lines SVG */
-.dependency-svg {
-    position: absolute;
-    top: 0;
-    left: 250px;
-    pointer-events: none;
-    z-index: 1;
-}
-.dependency-line {
-    fill: none;
-    stroke: #cbd5e0;
-    stroke-width: 2px;
-    stroke-dasharray: 4;
-}
-
 .legend {
     display: flex;
     gap: 20px;
     justify-content: center;
     margin-top: 20px;
 }
-.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; }
-.legend-color { width: 16px; height: 16px; border-radius: 4px; }
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #555;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+/* ================= DEPENDENCY LINES (SVG) ================= */
+.chart-lines-svg {
+    position: absolute;
+    top: 0;
+    left: 250px; /* Offset selebar kolom Task Name */
+    height: 100%;
+    pointer-events: none; /* Agar klik tembus ke bar/row di bawahnya */
+    z-index: 10; /* Di atas background row, tapi di bawah bar (bar z-index 5-8) */
+}
+
+.dependency-line {
+    fill: none;
+    stroke: #cbd5e0; /* Abu-abu soft (Cool Gray 300) */
+    stroke-width: 1.5px;
+    transition: stroke 0.3s;
+}
+
+.dependency-line:hover {
+    stroke: #a0aec0;
+    stroke-width: 2px;
+}
+
+#arrowhead polygon {
+    fill: #cbd5e0;
+}
