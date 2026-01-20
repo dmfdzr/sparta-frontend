@@ -1078,18 +1078,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 ${endX - controlOffset} ${endY}, 
                                 ${endX} ${endY}`;
                     
-                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#arrowhead)" />`;
+                    svgLines += `<path d="${path}" class="dependency-line"/>`;
                 }
             }
         });
         const svgHeight = currentTasks.length * ROW_HEIGHT;
         html += `
             <svg class="chart-lines-svg" style="width:${totalChartWidth}px; height:${svgHeight}px;">
-                <defs>
-                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                        <polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e0" />
-                    </marker>
-                </defs>
                 ${svgLines}
             </svg>
         `;

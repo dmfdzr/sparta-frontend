@@ -569,7 +569,3 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     stroke: #a0aec0;
     stroke-width: 2px;
 }
-
-#arrowhead polygon {
-    fill: #cbd5e0;
-}
