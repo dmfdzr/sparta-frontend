@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (dayGanttData) {
             dayGanttData.forEach((d, idx) => {
-                optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${d.keterlambatan||0}">${d.Kategori} (${d.h_awal} - ${d.h_akhir}) ${d.keterlambatan ? `(+${d.keterlambatan} delay)` : ''}</option>`;
+                optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${d.keterlambatan||0}">${d.Kategori} (${d.h_awal} - ${d.h_akhir}) ${d.keterlambatan ? `(+${d.keterlambatan} Hari)` : ''}</option>`;
             });
         } else {
             currentTasks.forEach(t => {
@@ -736,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await fetch(ENDPOINTS.dayKeterlambatan, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)});
-            alert("Delay disimpan");
+            alert("Keterlambatan diterapkan");
             changeUlok(); 
         } catch (err) {
             alert("Error: " + err.message);
