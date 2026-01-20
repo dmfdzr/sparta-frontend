@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let rawGanttData = null;
     let dayGanttData = null;
     let dependencyData = []; // Store dependency relationships from API
+    let filteredCategories = null; // Store filtered categories from RAB
     let isLoadingGanttData = false;
     let hasUserInput = false;
     let isProjectLocked = false;
@@ -258,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rawGanttData = null;
         ganttApiData = null;
         dependencyData = [];
+        filteredCategories = null;
         isProjectLocked = false;
         hasUserInput = false;
         isSupervisionLocked = false;
@@ -308,6 +310,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.rab) updateProjectFromRab(data.rab);
             if (data.day_gantt_data) dayGanttData = data.day_gantt_data;
             if (data.dependency_data) dependencyData = data.dependency_data;
+            if (data.filtered_categories && Array.isArray(data.filtered_categories)) {
+                filteredCategories = data.filtered_categories;
+                console.log('📋 Filtered Categories from API:', filteredCategories);
+            }
 
             // FIX: Parsing Pengawasan
             if (rawGanttData) parseSupervisionFromGanttData(rawGanttData);
@@ -338,7 +344,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadDefaultTasks(selectedValue) {
         let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
-        currentTasks = JSON.parse(JSON.stringify(template)).map(t => ({
+        let tasksToUse = JSON.parse(JSON.stringify(template));
+
+        // Filter tasks based on filtered_categories from API if available
+        if (filteredCategories && filteredCategories.length > 0) {
+            const normalizedFilteredCategories = filteredCategories.map(c => c.toLowerCase().trim());
+            tasksToUse = tasksToUse.filter(task => {
+                const normalizedTaskName = task.name.toLowerCase().trim();
+                return normalizedFilteredCategories.some(fc =>
+                    normalizedTaskName.includes(fc) || fc.includes(normalizedTaskName)
+                );
+            });
+
+            // Re-index task IDs after filtering
+            tasksToUse = tasksToUse.map((task, index) => ({
+                ...task,
+                id: index + 1
+            }));
+
+            console.log('📋 Filtered tasks based on RAB categories:', tasksToUse.map(t => t.name));
+        }
+
+        currentTasks = tasksToUse.map(t => ({
             ...t,
             inputData: { ranges: [] }
         }));
