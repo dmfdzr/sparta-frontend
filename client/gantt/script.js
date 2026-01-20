@@ -565,42 +565,41 @@ document.addEventListener('DOMContentLoaded', () => {
             t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
         );
 
-        // Header Table untuk kerapihan
-        html += `
-        <div style="display:flex; padding:0 10px 5px; color:#666; font-size:12px; font-weight:bold;">
-            <div style="width:30%;">Tahapan</div>
-            <div style="width:25%;">Keterikatan</div>
-            <div style="width:45%;">Range Hari (Mulai - Selesai)</div>
-        </div>`;
-
         currentTasks.forEach((task, index) => {
             const ranges = task.inputData.ranges || [];
             
-            // --- LOGIC DROPDOWN DEPENDENCY ---
-            // Hanya tampilkan task dengan ID lebih kecil untuk mencegah circular loop sederhana
+            // Generate Options Dependency
             let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
             currentTasks.forEach(prevTask => {
+                // Tampilkan task ID sebelumnya sebagai opsi
                 if (prevTask.id < task.id) {
                     const selected = (task.dependency == prevTask.id) ? 'selected' : '';
                     dependencyOptions += `<option value="${prevTask.id}" ${selected}>${prevTask.id}. ${prevTask.name}</option>`;
                 }
             });
 
+            // UBAH STYLE WIDTH DISINI
             html += `
-            <div class="task-input-row-multi" id="task-row-${task.id}" style="display:flex; align-items:flex-start; gap:10px;">
-                <div style="width:30%; font-weight:600; font-size:13px; padding-top:5px;">
+            <div class="task-input-row-multi" id="task-row-${task.id}">
+                <div style="font-weight:700; font-size:14px; color:#2d3748; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">
                     ${task.id}. ${escapeHtml(task.name)}
                 </div>
 
-                <div style="width:25%;">
-                    <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:5px;">
-                        ${dependencyOptions}
-                    </select>
-                    <div style="font-size:10px; color:#718096; margin-top:2px;">*Mulai setelah ini selesai</div>
-                </div>
+                <div style="display:flex; align-items:flex-start; gap:15px;">
+                    
+                    <div style="width:35%;">
+                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Syarat (Predecessor)</label>
+                        <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px;">
+                            ${dependencyOptions}
+                        </select>
+                        <div style="font-size:10px; color:#a0aec0; margin-top:3px; line-height:1.2;">
+                            *Mulai setelah thp ini selesai
+                        </div>
+                    </div>
 
-                <div style="width:45%;">
-                    <div class="task-ranges-container" id="ranges-${task.id}">`;
+                    <div style="width:65%;">
+                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Durasi (Hari ke-)</label>
+                        <div class="task-ranges-container" id="ranges-${task.id}">`;
             
             const rangesToRender = ranges.length > 0 ? ranges : [{start: 0, end: 0}];
             
@@ -608,13 +607,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += createRangeHTML(task.id, idx, r.start, r.end);
             });
 
-            html += `</div>
-                    <button class="btn-add-range" onclick="addRange(${task.id})">+ Tambah Split Jadwal</button>
+            html += `   </div>
+                        <button class="btn-add-range" onclick="addRange(${task.id})" style="margin-top:8px;">+ Tambah Split</button>
+                    </div>
                 </div>
             </div>`;
         });
 
-        // Logika Tombol Kunci
+        // Logika Tombol
         const btnDisabledAttr = isAllTasksFilled ? '' : 'disabled';
         const btnStyle = isAllTasksFilled ? '' : 'background-color: #cbd5e0; cursor: not-allowed;';
         const lockLabel = isAllTasksFilled ? '🔒 Kunci Jadwal' : '🔒 Lengkapi & Terapkan Dahulu';

@@ -231,11 +231,24 @@ select:focus {
 /* --- CONTRACTOR INPUT STYLES --- */
 .task-input-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 15px;
-    max-height: 500px;
+    grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
+    gap: 20px; /* Tambah jarak antar kotak */
+    max-height: 600px; /* Tambah sedikit tinggi scroll area */
     overflow-y: auto;
-    padding-right: 5px;
+    padding: 5px; /* Padding agar shadow tidak terpotong */
+}
+
+.dep-select {
+    width: 100%;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+}
+.dep-select:focus {
+    border-color: #3182ce;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
 }
 
 .task-input-row-multi {
