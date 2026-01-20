@@ -597,39 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`;
     }
 
-    // --- FORM PIC (DELAY) ---
-    window.renderPicDelayForm = function(container) {
-        let optionsHtml = '<option value="">-- Pilih Tahapan --</option>';
-        
-        if (dayGanttData) {
-            dayGanttData.forEach((d, idx) => {
-                const delayVal = parseInt(d.keterlambatan || 0);
-                const delayText = delayVal > 0 ? ` (+${delayVal} Hari)` : '';
-                optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${delayVal}">${d.Kategori} (${d.h_awal} - ${d.h_akhir})${delayText}</option>`;
-            });
-        } else {
-            currentTasks.forEach(t => {
-                optionsHtml += `<option value="${t.name}">${t.name}</option>`;
-            });
-        }
-
-        container.innerHTML = `
-            <div class="delay-control-card">
-                <div class="delay-title">Input Keterlambatan</div>
-                <div class="delay-form-row">
-                    <div class="form-group" style="flex: 2;">
-                        <label>Pilih Tahapan</label>
-                        <select id="delayTaskSelect" class="form-control" onchange="onDelaySelectChange()">${optionsHtml}</select>
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label>Jml Hari</label>
-                        <input type="number" id="delayDaysInput" class="form-control" placeholder="0" min="0">
-                    </div>
-                    <button onclick="submitDelay()" class="btn-terapkan-delay">Simpan</button>
-                </div>
-            </div>`;
-    }
-
     // ==================== 10. ACTIONS: KONTRAKTOR ====================
     window.addRange = function(taskId) {
         const container = document.getElementById(`ranges-${taskId}`);
