@@ -68,11 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let ganttApiData = null;
     let rawGanttData = null;
     let dayGanttData = null; 
-
     let isLoadingGanttData = false;
     let hasUserInput = false;
     let isProjectLocked = false;
-    let supervisionDays = {}; 
+    let supervisionDays = {};
+    let isSupervisionLocked = false;
 
     // ==================== 4. TASK TEMPLATES ====================
     const taskTemplateME = [
@@ -249,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ganttApiData = null;
         isProjectLocked = false;
         hasUserInput = false;
+        isSupervisionLocked = false;
 
         if (!selectedUlok) {
             currentProject = null;
@@ -264,11 +265,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setelah fetch, render semua komponen
         renderProjectInfo();
         renderApiData(); 
-        
         if (hasUserInput) {
             renderChart();
         } else {
-             document.getElementById("ganttChart").innerHTML = `
+            document.getElementById("ganttChart").innerHTML = `
                 <div style="text-align: center; padding: 60px; color: #6c757d;">
                     <div style="font-size: 48px; margin-bottom: 20px;">ℹ️</div>
                     <h2 style="margin-bottom: 15px;">Belum Ada Jadwal</h2>
@@ -498,6 +498,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderPicDelayForm(container);
             }
         }
+    }
+
+    // --- FORM PIC (DELAY & SUPERVISION CONTROL) ---
+    window.renderPicDelayForm = function(container) {
+        let html = '';
+        // TAMPILAN 1: MODE EDIT PENGAWASAN (Belum dikunci)
+        if (!isSupervisionLocked) {
+            html += `
+            <div class="api-card info">
+                <h3 style="color: #2b6cb0; margin:0; display:flex; align-items:center; gap:8px;">
+                    <span>👆</span> Tahap 1: Input Pengawasan
+                </h3>
+                <p style="margin-top:5px; margin-bottom:15px; font-size:14px; color:#4a5568;">
+                    Klik pada <b>Angka Tanggal</b> di Header Chart di bawah untuk menandai hari pengawasan. 
+                    Jika sudah selesai, klik tombol di bawah untuk lanjut input keterlambatan.
+                </p>
+                <div style="text-align:right;">
+                    <button class="btn-publish" style="background:#3182ce; width:auto;" onclick="lockSupervision()">
+                        Selesai & Lanjut ke Keterlambatan ➡️
+                    </button>
+                </div>
+            </div>`;
+            container.innerHTML = html;
+            return;
+        }
+        // TAMPILAN 2: MODE INPUT KETERLAMBATAN (Sudah dikunci)
+        let optionsHtml = '<option value="">-- Pilih Tahapan --</option>';
+        if (dayGanttData) {
+            dayGanttData.forEach((d, idx) => {
+                const delayVal = parseInt(d.keterlambatan || 0);
+                const delayText = delayVal > 0 ? ` (+${delayVal} Hari)` : '';
+                optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${delayVal}">${d.Kategori} (${d.h_awal} - ${d.h_akhir})${delayText}</option>`;
+            });
+        }
+        html += `
+            <div class="delay-control-card">
+                <div class="delay-title" style="justify-content:space-between;">
+                    <span>Tahap 2: Input Keterlambatan</span>
+                    <button onclick="unlockSupervision()" style="background:transparent; border:1px solid #ddd; padding:4px 8px; font-size:11px; border-radius:4px; cursor:pointer; color:#555;">
+                        ✏️ Ubah Pengawasan
+                    </button>
+                </div>
+                <div class="delay-form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Pilih Tahapan</label>
+                        <select id="delayTaskSelect" class="form-control" onchange="onDelaySelectChange()">${optionsHtml}</select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Jml Hari</label>
+                        <input type="number" id="delayDaysInput" class="form-control" placeholder="0" min="0">
+                    </div>
+                    <button onclick="submitDelay()" class="btn-terapkan-delay">Simpan</button>
+                </div>
+            </div>`;
+        
+        container.innerHTML = html;
     }
 
     // --- FORM KONTRAKTOR ---
@@ -745,11 +801,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    window.lockSupervision = function() {
+        // Validasi opsional: cek apakah ada hari pengawasan yg dipilih
+        if (Object.keys(supervisionDays).length === 0) {
+            if(!confirm("Anda belum memilih hari pengawasan satupun. Lanjut?")) return;
+        }
+        
+        isSupervisionLocked = true;
+        renderApiData(); // Render ulang form (ganti ke input delay)
+        renderChart();   // Render ulang chart (header jadi disable)
+    }
+
+    window.unlockSupervision = function() {
+        isSupervisionLocked = false;
+        renderApiData(); // Render ulang form (kembali ke instruksi pengawasan)
+        renderChart();   // Render ulang chart (header jadi clickable)
+    }
+
     // FIX: LOGIKA CLICK HEADER (ADD/REMOVE)
     window.handleHeaderClick = async function(dayNum, el) {
         // 1. Cek Permission
         if(APP_MODE !== 'pic' || !isProjectLocked) return;
-        
+        if(isSupervisionLocked) {
+            alert("Mode input keterlambatan sedang aktif. Klik 'Ubah Pengawasan' jika ingin mengedit hari pengawasan.");
+            return;
+        }
         const isRemoving = supervisionDays[dayNum];
         const confirmMsg = isRemoving ? `Hapus pengawasan hari ${dayNum}?` : `Set pengawasan hari ${dayNum}?`;
         
@@ -821,8 +897,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
         const projectStartDate = new Date(currentProject.startDate);
 
-        const isInteractive = APP_MODE === 'pic' && isProjectLocked;
-        const headerTitle = isInteractive ? "Klik untuk set Pengawasan" : "";
+        const isInteractive = APP_MODE === 'pic' && isProjectLocked && !isSupervisionLocked;
+        let headerTitle = "";
+        if (APP_MODE === 'pic' && isProjectLocked) {
+            headerTitle = isSupervisionLocked 
+                ? "Klik 'Ubah Pengawasan' untuk mengedit" 
+                : "Klik untuk set Pengawasan";
+        }
         const cursorStyle = isInteractive ? "cursor: pointer;" : "cursor: default;";
 
         let html = '<div class="chart-header">';
