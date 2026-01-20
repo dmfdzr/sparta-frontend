@@ -698,10 +698,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 3. Susun Payload (Object Tunggal)
+        // 3. Susun Payload (Perbaikan Key: Sesuaikan dengan saveProjectSchedule)
         const payloadObj = {
-            "nomor_ulok": currentProject.ulokClean,
-            "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+            "Nomor Ulok": currentProject.ulokClean,       // UBAH: "nomor_ulok" -> "Nomor Ulok"
+            "Lingkup_Pekerjaan": currentProject.work.toUpperCase(), // UBAH: "lingkup_pekerjaan" -> "Lingkup_Pekerjaan"
             "remove_kategori_data": [
                 {
                     "Kategori": taskName,
@@ -712,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // FIX: Bungkus payloadObj ke dalam Array [] karena endpoint mengharapkan List
+            // Bungkus payloadObj ke dalam Array []
             const finalPayload = [payloadObj];
             
             console.log("Sending Remove Payload:", finalPayload); 
@@ -721,7 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(ENDPOINTS.dayInsert, { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
-                body: JSON.stringify(finalPayload) // Kirim sebagai Array
+                body: JSON.stringify(finalPayload)
             });
 
             // Baca pesan error dari server jika ada
