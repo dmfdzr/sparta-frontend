@@ -595,17 +595,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="display:flex; align-items:flex-start; gap:25px;"> 
                     
                     <div style="width:30%; min-width: 150px;"> 
-                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Syarat (Predecessor)</label>
+                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Keterikatan</label>
                         <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px; width:100%;">
                             ${dependencyOptions}
                         </select>
                         <div style="font-size:10px; color:#a0aec0; margin-top:4px; line-height:1.2;">
-                            *Mulai setelah ini
+                            *Mulai setelah tahapan ini
                         </div>
                     </div>
 
                     <div style="width:70%;">
-                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Durasi (Hari ke-)</label>
+                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Durasi (Hari Ke- sampai Hari Ke-)</label>
                         <div class="task-ranges-container" id="ranges-${task.id}">`;
             
             const rangesToRender = ranges.length > 0 ? ranges : [{start: 0, end: 0}];
@@ -616,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             html += `   </div>
-                        <button class="btn-add-range" onclick="addRange(${task.id})" style="margin-top:8px;">+ Tambah Split</button>
+                        <button class="btn-add-range" onclick="addRange(${task.id})" style="margin-top:8px;">+ Tambah Durasi Lain</button>
                     </div>
                 </div>
             </div>`;
