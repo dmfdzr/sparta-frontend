@@ -57,7 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
         insertData: `${API_BASE_URL}/gantt/insert`,
         dayInsert: `${API_BASE_URL}/gantt/day/insert`,
         dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`,
-        pengawasanInsert: `${API_BASE_URL}/gantt/pengawasan/insert`
+        pengawasanInsert: `${API_BASE_URL}/gantt/pengawasan/insert`,
+        dependencyInsert: `${API_BASE_URL}/gantt/dependency/insert`
     };
 
     // ==================== 3. STATE MANAGEMENT ====================
@@ -68,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let ganttApiData = null;
     let rawGanttData = null;
     let dayGanttData = null;
+    let dependencyData = []; // Store dependency relationships from API
     let isLoadingGanttData = false;
     let hasUserInput = false;
     let isProjectLocked = false;
@@ -255,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dayGanttData = null;
         rawGanttData = null;
         ganttApiData = null;
+        dependencyData = [];
         isProjectLocked = false;
         hasUserInput = false;
         isSupervisionLocked = false;
@@ -304,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.rab) updateProjectFromRab(data.rab);
             if (data.day_gantt_data) dayGanttData = data.day_gantt_data;
+            if (data.dependency_data) dependencyData = data.dependency_data;
 
             // FIX: Parsing Pengawasan
             if (rawGanttData) parseSupervisionFromGanttData(rawGanttData);
@@ -445,12 +449,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 minStart = Math.min(...ranges.map(r => r.start));
             }
 
+            // Find dependency from API data
+            let dependencyTaskId = null;
+            if (dependencyData && dependencyData.length > 0) {
+                const depEntry = dependencyData.find(d =>
+                    d.Kategori && d.Kategori.toLowerCase().trim() === normalizedName
+                );
+                if (depEntry && depEntry.Kategori_Terikat) {
+                    // Find the task ID of Kategori_Terikat
+                    const terikatName = depEntry.Kategori_Terikat.toLowerCase().trim();
+                    const terikatTask = tempTaskList.find(t =>
+                        t.name.toLowerCase().trim() === terikatName
+                    );
+                    if (terikatTask) {
+                        dependencyTaskId = terikatTask.id;
+                    }
+                }
+            }
+
             dynamicTasks.push({
                 id: item.id,
                 name: item.name,
                 start: minStart,
                 duration: totalDuration,
                 dependencies: [],
+                dependency: dependencyTaskId, // Set dependency from API
                 keterlambatan: item.keterlambatan || 0,
                 inputData: { ranges: ranges }
             });
@@ -596,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     <div style="width:30%; min-width: 150px;"> 
                         <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Keterikatan</label>
-                        <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px; width:100%;">
+                        <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px; width:100%;" onchange="handleDependencyChange(${task.id}, this.value)">
                             ${dependencyOptions}
                         </select>
                         <div style="font-size:10px; color:#a0aec0; margin-top:4px; line-height:1.2;">
@@ -754,6 +777,149 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ==================== DEPENDENCY FUNCTIONS ====================
+    window.handleDependencyChange = async function (taskId, newDependencyTaskId) {
+        const task = currentTasks.find(t => t.id === parseInt(taskId));
+        if (!task || !currentProject) return;
+
+        const oldDependencyTaskId = task.dependency;
+        const oldDependencyTask = oldDependencyTaskId ? currentTasks.find(t => t.id === parseInt(oldDependencyTaskId)) : null;
+        const newDependencyTask = newDependencyTaskId ? currentTasks.find(t => t.id === parseInt(newDependencyTaskId)) : null;
+
+        try {
+            document.body.style.cursor = 'wait';
+
+            // If there was an old dependency, remove it first
+            if (oldDependencyTask) {
+                await removeDependency(task.name, oldDependencyTask.name);
+            }
+
+            // If new dependency is selected, add it
+            if (newDependencyTask) {
+                await saveDependency(task.name, newDependencyTask.name);
+            }
+
+            // Update local state
+            task.dependency = newDependencyTaskId ? parseInt(newDependencyTaskId) : null;
+
+            // Update dependencyData array
+            updateLocalDependencyData(task.name, newDependencyTask ? newDependencyTask.name : null);
+
+            console.log(`Dependency updated: ${task.name} -> ${newDependencyTask ? newDependencyTask.name : 'None'}`);
+
+        } catch (err) {
+            console.error("Dependency update failed:", err);
+            alert("Gagal update keterikatan: " + err.message);
+            // Revert dropdown to old value
+            const depSelect = document.querySelector(`.dep-select[data-task-id="${taskId}"]`);
+            if (depSelect) depSelect.value = oldDependencyTaskId || '';
+        } finally {
+            document.body.style.cursor = 'default';
+        }
+    }
+
+    async function saveDependency(kategori, kategoriTerikat) {
+        const payload = {
+            "nomor_ulok": currentProject.ulokClean,
+            "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+            "dependency_data": [
+                {
+                    "Kategori": kategori.toUpperCase(),
+                    "Kategori_Terikat": kategoriTerikat.toUpperCase()
+                }
+            ]
+        };
+
+        console.log("=== SAVE DEPENDENCY PAYLOAD ===", payload);
+
+        const response = await fetch(ENDPOINTS.dependencyInsert, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server Error (${response.status}): ${errorText}`);
+        }
+
+        return await response.json();
+    }
+
+    async function removeDependency(kategori, kategoriTerikat) {
+        const payload = {
+            "nomor_ulok": currentProject.ulokClean,
+            "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+            "remove_dependency_data": [
+                {
+                    "Kategori": kategori.toUpperCase(),
+                    "Kategori_Terikat": kategoriTerikat.toUpperCase()
+                }
+            ]
+        };
+
+        console.log("=== REMOVE DEPENDENCY PAYLOAD ===", payload);
+
+        const response = await fetch(ENDPOINTS.dependencyInsert, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server Error (${response.status}): ${errorText}`);
+        }
+
+        return await response.json();
+    }
+
+    // Save multiple dependencies at once (for bulk operations)
+    window.saveBulkDependencies = async function (dependencyList) {
+        if (!currentProject || !dependencyList || dependencyList.length === 0) return;
+
+        const payload = {
+            "nomor_ulok": currentProject.ulokClean,
+            "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+            "dependency_data": dependencyList.map(d => ({
+                "Kategori": d.kategori.toUpperCase(),
+                "Kategori_Terikat": d.kategoriTerikat.toUpperCase()
+            }))
+        };
+
+        console.log("=== BULK SAVE DEPENDENCY PAYLOAD ===", payload);
+
+        const response = await fetch(ENDPOINTS.dependencyInsert, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server Error (${response.status}): ${errorText}`);
+        }
+
+        return await response.json();
+    }
+
+    function updateLocalDependencyData(kategori, kategoriTerikat) {
+        // Remove existing entry for this kategori
+        dependencyData = dependencyData.filter(d =>
+            d.Kategori.toLowerCase().trim() !== kategori.toLowerCase().trim()
+        );
+
+        // Add new entry if kategoriTerikat is provided
+        if (kategoriTerikat) {
+            dependencyData.push({
+                "Nomor Ulok": currentProject.ulokClean,
+                "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
+                "Kategori": kategori,
+                "Kategori_Terikat": kategoriTerikat
+            });
+        }
+    }
+
     window.resetTaskSchedule = function () {
         if (!confirm("Reset semua inputan?")) return;
 
@@ -761,8 +927,10 @@ document.addEventListener('DOMContentLoaded', () => {
             t.inputData.ranges = [];
             t.start = 0;
             t.duration = 0;
+            t.dependency = null; // Reset dependency too
         });
         hasUserInput = false;
+        dependencyData = []; // Reset dependency data
 
         renderApiData();
 
@@ -1170,19 +1338,39 @@ document.addEventListener('DOMContentLoaded', () => {
                     const startY = parent.y;
                     const endX = me.startX;
                     const endY = me.y;
-                    const controlOffset = 20;
+
+                    // Calculate control points for smooth curve
+                    const midX = (startX + endX) / 2;
+                    const controlOffset = Math.abs(endY - startY) / 3;
+
+                    // Create path with arrow marker
                     const path = `M ${startX} ${startY} 
-                                C ${startX + controlOffset} ${startY}, 
-                                ${endX - controlOffset} ${endY}, 
+                                C ${startX + 30} ${startY}, 
+                                ${endX - 30} ${endY}, 
                                 ${endX} ${endY}`;
 
-                    svgLines += `<path d="${path}" class="dependency-line"/>`;
+                    // Find parent task name for tooltip
+                    const parentTask = currentTasks.find(t => t.id === task.dependency);
+                    const tooltipText = parentTask ? `${task.name} bergantung pada ${parentTask.name}` : '';
+
+                    svgLines += `<path d="${path}" class="dependency-line" data-from="${task.dependency}" data-to="${task.id}">
+                        <title>${tooltipText}</title>
+                    </path>`;
+
+                    // Add arrow head at end point
+                    const arrowSize = 6;
+                    svgLines += `<polygon points="${endX},${endY} ${endX - arrowSize},${endY - arrowSize / 2} ${endX - arrowSize},${endY + arrowSize / 2}" class="dependency-arrow" fill="#667eea"/>`;
                 }
             }
         });
         const svgHeight = currentTasks.length * ROW_HEIGHT;
         html += `
             <svg class="chart-lines-svg" style="width:${totalChartWidth}px; height:${svgHeight}px;">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#667eea"/>
+                    </marker>
+                </defs>
                 ${svgLines}
             </svg>
         `;
