@@ -578,26 +578,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // UBAH STYLE WIDTH DISINI
             html += `
             <div class="task-input-row-multi" id="task-row-${task.id}">
-                <div style="font-weight:700; font-size:14px; color:#2d3748; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">
+                <div style="font-weight:700; font-size:14px; color:#2d3748; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
                     ${task.id}. ${escapeHtml(task.name)}
                 </div>
 
-                <div style="display:flex; align-items:flex-start; gap:15px;">
+                <div style="display:flex; align-items:flex-start; gap:25px;"> 
                     
-                    <div style="width:35%;">
+                    <div style="width:30%; min-width: 150px;"> 
                         <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Syarat (Predecessor)</label>
-                        <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px;">
+                        <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px; width:100%;">
                             ${dependencyOptions}
                         </select>
-                        <div style="font-size:10px; color:#a0aec0; margin-top:3px; line-height:1.2;">
-                            *Mulai setelah thp ini selesai
+                        <div style="font-size:10px; color:#a0aec0; margin-top:4px; line-height:1.2;">
+                            *Mulai setelah ini
                         </div>
                     </div>
 
-                    <div style="width:65%;">
+                    <div style="width:70%;">
                         <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Durasi (Hari ke-)</label>
                         <div class="task-ranges-container" id="ranges-${task.id}">`;
             

@@ -231,11 +231,11 @@ select:focus {
 /* --- CONTRACTOR INPUT STYLES --- */
 .task-input-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
-    gap: 20px; /* Tambah jarak antar kotak */
-    max-height: 600px; /* Tambah sedikit tinggi scroll area */
+    grid-template-columns: repeat(auto-fill, minmax(650px, 1fr));
+    gap: 25px;
+    max-height: 650px; 
     overflow-y: auto;
-    padding: 5px; /* Padding agar shadow tidak terpotong */
+    padding: 10px; 
 }
 
 .dep-select {
@@ -268,8 +268,10 @@ select:focus {
 .range-input-group {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
     margin-bottom: 8px;
+    background: #fff;
+    padding: 2px;
 }
 
 .input-group {
