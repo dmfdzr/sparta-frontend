@@ -161,6 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("apiData").innerHTML = "";
     }
 
+    function getTaskDateString(dayInt) {
+        if (!currentProject || !currentProject.startDate || dayInt <= 0) return null;
+        const pStart = new Date(currentProject.startDate);
+        const targetDate = new Date(pStart);
+        targetDate.setDate(pStart.getDate() + (dayInt - 1));
+        return formatDateID(targetDate); // Menggunakan fungsi formatDateID yg sudah ada
+    }
+
     // ==================== 6. CORE: INIT & LOAD PROJECTS ====================
     async function loadDataAndInit() {
         try {
@@ -603,7 +611,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const rangesToRender = ranges.length > 0 ? ranges : [{start: 0, end: 0}];
             
             rangesToRender.forEach((r, idx) => {
-                html += createRangeHTML(task.id, idx, r.start, r.end);
+                const isSaved = ranges.length > 0; 
+                html += createRangeHTML(task.id, idx, r.start, r.end, isSaved);
             });
 
             html += `   </div>
@@ -632,27 +641,111 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = html;
     }
 
-    window.createRangeHTML = function(taskId, idx, start, end) {
+    window.createRangeHTML = function(taskId, idx, start, end, isSaved = false) {
+        const btnColor = isSaved ? 'background: #fed7d7; color: #c53030;' : 'background: #e2e8f0; color: #4a5568;';
         return `
-        <div class="range-input-group" data-range-idx="${idx}">
-            <div class="input-group"><label>H</label><input type="number" class="task-day-input" data-task-id="${taskId}" data-type="start" value="${start}" min="0"></div>
+        <div class="range-input-group" id="range-group-${taskId}-${idx}" data-range-idx="${idx}">
+            <div class="input-group">
+                <label>H</label>
+                <input type="number" class="task-day-input" id="start-${taskId}-${idx}" data-task-id="${taskId}" data-type="start" value="${start}" min="0" ${isSaved ? 'readonly style="background:#f7fafc"' : ''}>
+            </div>
             <span class="input-separator">-</span>
-            <div class="input-group"><label>H</label><input type="number" class="task-day-input" data-task-id="${taskId}" data-type="end" value="${end}" min="0"></div>
-            <button class="btn-remove-range" onclick="removeRange(${taskId}, ${idx})">×</button>
+            <div class="input-group">
+                <label>H</label>
+                <input type="number" class="task-day-input" id="end-${taskId}-${idx}" data-task-id="${taskId}" data-type="end" value="${end}" min="0" ${isSaved ? 'readonly style="background:#f7fafc"' : ''}>
+            </div>
+            <button class="btn-remove-range" style="${btnColor}" onclick="removeRange(${taskId}, ${idx}, ${isSaved})">×</button>
         </div>`;
     }
 
     // ==================== 10. ACTIONS: KONTRAKTOR ====================
     window.addRange = function(taskId) {
         const container = document.getElementById(`ranges-${taskId}`);
-        const idx = container.children.length;
-        container.insertAdjacentHTML('beforeend', createRangeHTML(taskId, idx, 0, 0));
+        const uniqueIdx = Date.now(); 
+        container.insertAdjacentHTML('beforeend', createRangeHTML(taskId, uniqueIdx, 0, 0, false));
     }
 
-    window.removeRange = function(taskId, idx) {
-        const container = document.getElementById(`ranges-${taskId}`);
-        if(container.children.length <= 1) return alert("Minimal satu range.");
-        container.children[idx].remove();
+    window.removeRange = async function(taskId, idx, isSaved) {
+        const rowId = `range-group-${taskId}-${idx}`;
+        const element = document.getElementById(rowId);
+        
+        // 1. Jika data BARU (Draft/Belum Save), hapus DOM saja
+        if (!isSaved) {
+            if (element) element.remove();
+            return;
+        }
+
+        // 2. Jika data SUDAH TERSIMPAN (DB), Konfirmasi & Request API
+        if (!confirm("Data ini sudah tersimpan di server. Yakin ingin menghapusnya?")) return;
+
+        // Ambil nilai Input (karena readonly, value masih ada di input)
+        const startVal = parseInt(document.getElementById(`start-${taskId}-${idx}`).value) || 0;
+        const endVal = parseInt(document.getElementById(`end-${taskId}-${idx}`).value) || 0;
+        
+        // Cari nama task berdasarkan ID
+        const taskObj = currentTasks.find(t => t.id === taskId);
+        const taskName = taskObj ? taskObj.name : "";
+
+        // Validasi
+        if (startVal === 0 || endVal === 0 || !taskName) {
+            alert("Data tidak valid/kosong, dihapus dari tampilan saja.");
+            if(element) element.remove();
+            return;
+        }
+
+        // Konversi Hari ke Tanggal (dd/mm/yyyy)
+        const dateStartStr = getTaskDateString(startVal);
+        const dateEndStr = getTaskDateString(endVal);
+
+        if (!dateStartStr || !dateEndStr) {
+            alert("Gagal mengonversi tanggal. Cek Start Date Project.");
+            return;
+        }
+
+        // 3. Susun Payload Sesuai Request Body Anda
+        const payload = {
+            "nomor_ulok": currentProject.ulokClean,
+            "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+            "remove_kategori_data": [
+                {
+                    "Kategori": taskName,
+                    "h_awal": dateStartStr,
+                    "h_akhir": dateEndStr
+                }
+            ]
+        };
+
+        try {
+            console.log("Sending Remove Payload:", payload); // Debugging
+            
+            // Ubah kursor jadi loading
+            document.body.style.cursor = 'wait';
+            
+            // NOTE: Menggunakan endpoint dayInsert sesuai instruksi
+            const response = await fetch(ENDPOINTS.dayInsert, { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("Gagal menghapus data di server.");
+
+            // 4. Sukses API -> Hapus dari UI & Update State Lokal
+            if (element) element.remove();
+            if (taskObj && taskObj.inputData && taskObj.inputData.ranges) {
+                taskObj.inputData.ranges = taskObj.inputData.ranges.filter(r => r.start !== startVal || r.end !== endVal);
+            }
+            
+            alert("Data berhasil dihapus.");
+            renderChart();
+            updateStats();
+            
+        } catch (err) {
+            console.error(err);
+            alert("Error: " + err.message);
+        } finally {
+            document.body.style.cursor = 'default';
+        }
     }
 
     window.resetTaskSchedule = function() {
