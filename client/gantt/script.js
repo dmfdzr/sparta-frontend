@@ -699,9 +699,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 3. Susun Payload sesuai format backend untuk remove
+        // Sesuaikan lingkup_pekerjaan: "ME" atau "SIPIL" (uppercase)
+        const lingkupValue = currentProject.work.toUpperCase() === "ME" ? "ME" : "SIPIL";
+
         const payload = {
             "nomor_ulok": currentProject.ulokClean,
-            "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+            "lingkup_pekerjaan": lingkupValue,
             "remove_kategori_data": [
                 {
                     "Kategori": taskName,
@@ -712,7 +715,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            console.log("Sending Remove Payload:", payload);
+            console.log("=== REMOVE PAYLOAD DEBUG ===");
+            console.log("URL:", ENDPOINTS.dayInsert);
+            console.log("Payload:", JSON.stringify(payload, null, 2));
             document.body.style.cursor = 'wait';
 
             const response = await fetch(ENDPOINTS.dayInsert, {
@@ -721,8 +726,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(payload)
             });
 
-            // Baca pesan error dari server jika ada
+            // Baca response dari server
             const responseText = await response.text();
+            console.log("Response Status:", response.status);
+            console.log("Response Body:", responseText);
 
             if (!response.ok) {
                 throw new Error(`Server Error (${response.status}): ${responseText}`);
