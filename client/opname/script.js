@@ -110,161 +110,585 @@ const Auth = {
     }
 };
 
-/* ======================== PDF GENERATOR (Placeholder) ======================== */
+/* ======================== PDF HELPER FUNCTIONS (From Repo) ======================== */
+// Konfigurasi Konstanta PDF
+const COMPANY_NAME = "PT. SUMBER ALFARIA TRIJAYA, Tbk";
+const REPORT_TITLE = "BERITA ACARA OPNAME PEKERJAAN";
+// Gunakan logo lokal jika ada, atau fallback ke URL publik
+const LOGO_URL_FALLBACK = "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Alfamart_logo.svg/1280px-Alfamart_logo.svg.png";
+const LOCAL_LOGO_PATH = "../../assets/Alfamart-Emblem.png"; // Sesuaikan path jika perlu
+
+// Helper Konversi Angka yang Kuat (Persis dari repo)
+const toNumberID_PDF = (v) => {
+    if (v === null || v === undefined) return 0;
+    const s = String(v).trim();
+    if (!s) return 0;
+    const cleaned = s.replace(/[^\d,.-]/g, "");
+    const normalized = cleaned.replace(/\./g, "").replace(",", ".");
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : 0;
+};
+
+const toNumberVol_PDF = (v) => {
+    if (v === null || v === undefined) return 0;
+    let s = String(v).trim();
+    if (!s) return 0;
+    if (s.includes(",") && s.includes(".")) {
+        s = s.replace(/\./g, "").replace(",", ".");
+    } else if (s.includes(",")) {
+        s = s.replace(",", ".");
+    }
+    const n = Number(s.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+};
+
+// Helper Fetching Data Khusus PDF
+const fetchRabData = async (kode_toko, no_ulok, lingkup) => {
+    try {
+        const url = new URL(`${API_BASE_URL}/api/rab`);
+        url.searchParams.set("kode_toko", kode_toko);
+        if (no_ulok) url.searchParams.set("no_ulok", no_ulok);
+        if (lingkup) url.searchParams.set("lingkup", lingkup);
+        const response = await fetch(url.toString());
+        if (!response.ok) throw new Error("Gagal mengambil data RAB");
+        return await response.json();
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
+};
+
+const fetchPicList = async ({ noUlok, lingkup, kodeToko }) => {
+    try {
+        const url = new URL(`${API_BASE_URL}/api/pic-list`);
+        url.searchParams.set("no_ulok", noUlok);
+        if (lingkup) url.searchParams.set("lingkup", lingkup);
+        if (kodeToko) url.searchParams.set("kode_toko", kodeToko);
+        const res = await fetch(url.toString());
+        if (!res.ok) return [];
+        const json = await res.json();
+        return Array.isArray(json.pic_list) ? json.pic_list : [];
+    } catch (e) { return []; }
+};
+
+const fetchPicKontraktorData = async (noUlok) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/pic-kontraktor?no_ulok=${encodeURIComponent(noUlok)}`);
+        if (!res.ok) return { pic_username: "N/A", kontraktor_username: "N/A" };
+        const json = await res.json();
+        return { pic_username: json.pic_username ?? "N/A", kontraktor_username: json.kontraktor_username ?? "N/A" };
+    } catch (e) { return { pic_username: "N/A", kontraktor_username: "N/A" }; }
+};
+
+const fetchPicKontraktorOpnameData = async (noUlok) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/pic-kontraktor-opname?no_ulok=${encodeURIComponent(noUlok)}`);
+        if (!res.ok) return { pic_username: "N/A", kontraktor_username: "N/A", name: "" };
+        const json = await res.json();
+        return {
+            pic_username: json.pic_username ?? "N/A",
+            kontraktor_username: json.kontraktor_username ?? "N/A",
+            name: json.name ?? "",
+        };
+    } catch (e) { return { pic_username: "N/A", kontraktor_username: "N/A", name: "" }; }
+};
+
+// Helper Gambar ke Base64
+const toBase64 = async (url) => {
+    try {
+        if (!url) return null;
+        // Gunakan proxy jika URL beda origin, atau fetch langsung jika sama/cors allow
+        const proxyUrl = `${API_BASE_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl).catch(() => fetch(url)); 
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error(`Gagal load gambar: ${url}`, error);
+        return null;
+    }
+};
+
+const groupDataByCategory = (data) => {
+    const categories = {};
+    data.forEach((item) => {
+        const categoryName = (item.kategori_pekerjaan || "LAINNYA").toUpperCase();
+        if (!categories[categoryName]) categories[categoryName] = [];
+        categories[categoryName].push(item);
+    });
+    return categories;
+};
+
+const wrapText = (doc, text, maxWidth) => {
+    const words = text.split(" ");
+    const lines = [];
+    let currentLine = "";
+    for (let word of words) {
+        const testLine = currentLine + (currentLine ? " " : "") + word;
+        const textWidth = doc.getTextWidth(testLine);
+        if (textWidth > maxWidth && currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+        } else {
+            currentLine = testLine;
+        }
+    }
+    if (currentLine) lines.push(currentLine);
+    return lines;
+};
+
+/* ======================== PDF GENERATOR (REVISED) ======================== */
 const PDFGenerator = {
-    generateFinalOpnamePDF: (items, store, ulok, lingkup, user) => {
-        if (!window.jspdf) { alert("Library PDF belum dimuat. Pastikan internet aktif."); return; }
+    generateFinalOpnamePDF: async (submissions, selectedStore, selectedUlok, selectedLingkup, user) => {
+        if (!window.jspdf) { alert("Library PDF belum dimuat."); return; }
         const { jsPDF } = window.jspdf;
+        
+        console.log("Memulai pembuatan PDF Full Version...");
         const doc = new jsPDF();
+        const currentDate = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
 
-        // --- Configuration ---
-        const marginLeft = 14;
-        const marginRight = 196; // 210 (A4 Width) - 14
-        let currentY = 20;
+        // --- FOOTER FUNCTION ---
+        const addFooter = (pageNum) => {
+            doc.setFontSize(8);
+            doc.setTextColor(128, 128, 128);
+            doc.text(
+                `Halaman ${pageNum} - Dicetak pada: ${new Date().toLocaleString("id-ID")}`,
+                doc.internal.pageSize.getWidth() / 2,
+                doc.internal.pageSize.getHeight() - 10,
+                { align: "center" }
+            );
+            doc.setTextColor(0, 0, 0);
+        };
 
-        // --- Header Section ---
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text("BERITA ACARA OPNAME PEKERJAAN", 105, currentY, { align: "center" });
-        currentY += 7;
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(`Nomor Dokumen: ${ulok}`, 105, currentY, { align: "center" });
-        currentY += 5;
-
-        // Line Separator
-        doc.setLineWidth(0.5);
-        doc.setDrawColor(0, 0, 0); // Black
-        doc.line(marginLeft, currentY, marginRight, currentY);
-        currentY += 10;
-
-        // --- Info Section (2 Columns) ---
-        const colLeft = marginLeft;
-        const colRight = 120;
+        // --- PREPARE DATA ---
+        const lingkupFix = (selectedLingkup || "").toUpperCase();
         
-        doc.setFontSize(9);
+        // 1. Fetch RAB
+        const rabData = await fetchRabData(selectedStore.kode_toko, selectedUlok, lingkupFix);
         
-        // Left: Store Info
-        doc.setFont("helvetica", "bold");
-        doc.text("DATA TOKO:", colLeft, currentY);
-        doc.setFont("helvetica", "normal");
-        currentY += 5;
-        doc.text(`Nama Toko : ${store.nama_toko}`, colLeft, currentY);
-        currentY += 5;
-        doc.text(`Kode Toko : ${store.kode_toko}`, colLeft, currentY);
+        // 2. Fetch PIC Info
+        const picKontraktorData = await fetchPicKontraktorData(selectedUlok);
+        const fromOpname = await fetchPicKontraktorOpnameData(selectedUlok);
         
-        // Reset Y for Right Column
-        currentY -= 10; 
-
-        // Right: Opname Info
-        doc.setFont("helvetica", "bold");
-        doc.text("DETAIL OPNAME:", colRight, currentY);
-        doc.setFont("helvetica", "normal");
-        currentY += 5;
-        doc.text(`Lingkup Kerja : ${lingkup}`, colRight, currentY);
-        currentY += 5;
-        doc.text(`Tanggal Cetak : ${new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}`, colRight, currentY);
-        
-        currentY += 15; // Space before table
-
-        // --- Table Data Preparation ---
-        const tableBody = items.map((item, index) => {
-            // Pastikan harga satuan ada (fallback jika tidak ada di objek item)
-            const hSatuan = item.harga_satuan ? item.harga_satuan : (item.total_harga / (toNumInput(item.volume_akhir) || 1));
-            
-            return [
-                index + 1,
-                item.jenis_pekerjaan,
-                item.satuan,
-                item.vol_rab,
-                item.volume_akhir,
-                formatRupiah(hSatuan),
-                formatRupiah(item.total_harga)
-            ];
-        });
-
-        // Calculate Totals
-        const totalBiaya = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
-        const ppn = totalBiaya * 0.11;
-        const grandTotal = totalBiaya * 1.11;
-
-        // --- Render Table (Formal Style) ---
-        doc.autoTable({
-            startY: currentY,
-            head: [['No', 'Uraian Pekerjaan', 'Sat', 'Vol RAB', 'Vol Real', 'Hrg Satuan', 'Total']],
-            body: tableBody,
-            theme: 'grid', // Grid tipis terlihat lebih rapi
-            styles: {
-                font: 'helvetica',
-                fontSize: 9,
-                textColor: [33, 33, 33], // Dark Grey text
-                lineColor: [200, 200, 200], // Soft border color
-                lineWidth: 0.1,
-                cellPadding: 4,
-                valign: 'middle'
-            },
-            headStyles: {
-                fillColor: [245, 245, 245], // Very light grey background (Hemat tinta & elegan)
-                textColor: [0, 0, 0], // Black text
-                fontStyle: 'bold',
-                lineWidth: 0.1,
-                lineColor: [150, 150, 150] // Slightly darker border for header
-            },
-            columnStyles: {
-                0: { halign: 'center', cellWidth: 10 }, // No
-                1: { halign: 'left' },                   // Uraian
-                2: { halign: 'center', cellWidth: 15 }, // Sat
-                3: { halign: 'center', cellWidth: 20 }, // Vol RAB
-                4: { halign: 'center', cellWidth: 20 }, // Vol Real
-                5: { halign: 'right', cellWidth: 30 },  // Hrg Satuan
-                6: { halign: 'right', cellWidth: 35 },  // Total
-            },
-            foot: [
-                ['', '', '', '', '', { content: 'Sub Total', styles: { fontStyle: 'bold', halign: 'right' } }, { content: formatRupiah(totalBiaya), styles: { fontStyle: 'bold', halign: 'right' } }],
-                ['', '', '', '', '', { content: 'PPN 11%', styles: { fontStyle: 'bold', halign: 'right' } }, { content: formatRupiah(ppn), styles: { fontStyle: 'bold', halign: 'right' } }],
-                ['', '', '', '', '', { content: 'GRAND TOTAL', styles: { fontStyle: 'bold', halign: 'right', textColor: [0, 0, 0] } }, { content: formatRupiah(grandTotal), styles: { fontStyle: 'bold', halign: 'right', textColor: [0, 0, 0] } }]
-            ],
-            footStyles: {
-                fillColor: [255, 255, 255],
-                textColor: [33, 33, 33],
-                lineColor: [200, 200, 200],
-                lineWidth: 0.1
-            }
-        });
-
-        // --- Signatures Section ---
-        let finalY = doc.lastAutoTable.finalY + 25;
-        
-        // Handle Page Break for Signatures if needed
-        if (finalY > 260) {
-            doc.addPage();
-            finalY = 40;
+        if (fromOpname?.name && String(fromOpname.name).trim()) picKontraktorData.name = String(fromOpname.name).trim();
+        if (!picKontraktorData.pic_username || picKontraktorData.pic_username === "N/A") {
+            if (fromOpname?.pic_username) picKontraktorData.pic_username = String(fromOpname.pic_username).trim();
+        }
+        if (!picKontraktorData.kontraktor_username || picKontraktorData.kontraktor_username === "N/A") {
+            if (fromOpname?.kontraktor_username) picKontraktorData.kontraktor_username = String(fromOpname.kontraktor_username).trim();
         }
 
-        const sigWidth = 70;
-        const xLeft = 25;
-        const xRight = 115;
+        const picList = await fetchPicList({ noUlok: selectedUlok, lingkup: lingkupFix, kodeToko: selectedStore.kode_toko });
 
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
+        // --- SETUP HALAMAN ---
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 14;
+        let startY = 12;
 
-        // PIC Signature
-        doc.text("Dibuat Oleh,", xLeft + (sigWidth/2), finalY, { align: "center" });
-        doc.text("PIC Toko / Store Crew", xLeft + (sigWidth/2), finalY + 5, { align: "center" });
+        // --- HEADER ---
+        // 1. Logo
+        let logoData = null;
+        try {
+           // Coba load logo
+           logoData = await toBase64(LOGO_URL_FALLBACK);
+        } catch(e) {}
 
-        // Contractor Signature
-        doc.text("Disetujui Oleh,", xRight + (sigWidth/2), finalY, { align: "center" });
-        doc.text("Kontraktor Pelaksana", xRight + (sigWidth/2), finalY + 5, { align: "center" });
+        const logoW = 48; const logoH = 20;
+        if (logoData) {
+            doc.addImage(logoData, "PNG", (pageWidth - logoW) / 2, startY, logoW, logoH);
+        }
+        startY += logoH + 6;
+        startY += 6; // Spasi
 
-        // Space for signing
+        // 2. Identitas
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
-        doc.text(`( ${user.name || user.username} )`, xLeft + (sigWidth/2), finalY + 35, { align: "center" });
-        doc.text("( ....................................... )", xRight + (sigWidth/2), finalY + 35, { align: "center" });
+        doc.text(COMPANY_NAME, margin, startY);
+        startY += 5;
+        doc.setFont("helvetica", "normal");
+        doc.text("BUILDING & MAINTENANCE DEPT", margin, startY);
+        startY += 5;
 
-        // Save PDF
-        const fileName = `BA_Opname_${store.kode_toko}_${ulok}.pdf`;
-        doc.save(fileName);
+        const cabangTxt = selectedStore.cabang || selectedStore.nama_cabang || selectedStore.kota || "";
+        if (cabangTxt) {
+            doc.text(`CABANG: ${cabangTxt}`, margin, startY);
+            startY += 6;
+        }
+        startY += 6;
+
+        // 3. Judul
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text(REPORT_TITLE, pageWidth / 2, startY, { align: "center" });
+        startY += 12;
+        doc.setFont("helvetica", "normal");
+        startY += 8;
+
+        // --- INFO PROYEK ---
+        doc.setFontSize(10);
+        const dataOpname = submissions && submissions.length > 0 ? submissions[0] : {};
+        const finalNamaToko = dataOpname.nama_toko || selectedStore.nama_toko || "-";
+        const finalAlamat = dataOpname.alamat || selectedStore.alamat || "-";
+        const picLine = picList && picList.length > 0 ? picList.join(", ") : (picKontraktorData.name || picKontraktorData.pic_username || "N/A");
+
+        doc.text(`NOMOR ULOK : ${selectedUlok || "-"}`, margin, startY); startY += 7;
+        doc.text(`LINGKUP PEKERJAAN : ${lingkupFix}`, margin, startY); startY += 7;
+        doc.text(`NAMA TOKO : ${finalNamaToko}`, margin, startY); startY += 7;
+        doc.text(`ALAMAT : ${finalAlamat}`, margin, startY); startY += 7;
+        doc.text(`TANGGAL OPNAME : ${currentDate}`, margin, startY); startY += 7;
+        doc.text(`NAMA PIC : ${picLine}`, margin, startY); startY += 7;
+        doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, startY); startY += 15;
+
+        // ======================= BAGIAN 1: RAB FINAL =======================
+        doc.setFontSize(12).setFont("helvetica", "bold");
+        doc.text("RAB FINAL", margin, startY);
+        doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
+        doc.line(margin, startY + 2, pageWidth - margin, startY + 2);
+        startY += 10;
+
+        const rabCategories = groupDataByCategory(rabData.filter((item) => !item.is_il));
+        let lastY = startY;
+        let categoryNumber = 1;
+        let grandTotalRAB = 0;
+
+        for (const categoryName of Object.keys(rabCategories)) {
+            if (lastY + 50 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+            
+            doc.setFontSize(11).setFont("helvetica", "bold");
+            doc.text(`${categoryNumber}. ${categoryName}`, margin, lastY);
+            lastY += 10;
+            categoryNumber++;
+
+            let catMaterialTotal = 0;
+            let catUpahTotal = 0;
+
+            const categoryTableBody = rabCategories[categoryName].map((item, idx) => {
+                const volume = toNumberVol_PDF(item.volume);
+                const hargaMaterial = toNumberID_PDF(item.harga_material);
+                const hargaUpah = toNumberID_PDF(item.harga_upah);
+                const totalMaterial = volume * hargaMaterial;
+                const totalUpah = volume * hargaUpah;
+                const totalHarga = totalMaterial + totalUpah;
+
+                catMaterialTotal += totalMaterial;
+                catUpahTotal += totalUpah;
+                grandTotalRAB += totalHarga;
+
+                return [
+                    idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
+                    formatRupiah(hargaMaterial), formatRupiah(hargaUpah),
+                    formatRupiah(totalMaterial), formatRupiah(totalUpah),
+                    formatRupiah(totalHarga)
+                ];
+            });
+
+            // Subtotal row
+            categoryTableBody.push(["", "", "", "", "", "SUB TOTAL", formatRupiah(catMaterialTotal), formatRupiah(catUpahTotal), formatRupiah(catMaterialTotal + catUpahTotal)]);
+
+            doc.autoTable({
+                head: [
+                    ["NO.", "JENIS PEKERJAAN", "SATUAN", "VOLUME", { content: "HARGA SATUAN (Rp)", colSpan: 2, styles: { halign: "center" } }, { content: "TOTAL HARGA (Rp)", colSpan: 3, styles: { halign: "center" } }],
+                    ["", "", "", "", "Material", "Upah", "Material", "Upah", "TOTAL HARGA (Rp)"]
+                ],
+                body: categoryTableBody,
+                startY: lastY,
+                margin: { left: margin, right: margin },
+                theme: "grid",
+                styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1 },
+                headStyles: { fillColor: [205, 234, 242], textColor: [0, 0, 0], fontSize: 8, fontStyle: "bold", halign: "center" },
+                columnStyles: { 
+                    0: { cellWidth: 8, halign: "center" }, 
+                    1: { cellWidth: 40 },
+                    8: { fontStyle: "bold", halign: "right" }
+                },
+                didParseCell: (data) => {
+                    // Warna kuning utk IL, abu utk subtotal
+                    if(data.section === 'body') {
+                        const original = rabCategories[categoryName];
+                        if (data.row.index < original.length && original[data.row.index].is_il) {
+                            data.cell.styles.fillColor = [255, 245, 157];
+                        }
+                        if (data.row.index === data.table.body.length - 1) {
+                            data.cell.styles.fillColor = [242, 242, 242];
+                            if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold';
+                        }
+                    }
+                    if(data.column.index > 2) data.cell.styles.halign = 'right';
+                }
+            });
+            lastY = doc.lastAutoTable.finalY + 10;
+        }
+
+        // --- SUMMARY RAB ---
+        const totalRealRAB = grandTotalRAB;
+        const totalPembulatanRAB = Math.floor(totalRealRAB / 10000) * 10000;
+        const ppnRAB = totalPembulatanRAB * 0.11;
+        const totalSetelahPPNRAB = totalPembulatanRAB + ppnRAB;
+
+        if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+        
+        doc.autoTable({
+            body: [
+                ["TOTAL", formatRupiah(totalRealRAB)],
+                ["PEMBULATAN", formatRupiah(totalPembulatanRAB)],
+                ["PPN 11%", formatRupiah(ppnRAB)],
+                ["GRAND TOTAL", formatRupiah(totalSetelahPPNRAB)]
+            ],
+            startY: lastY,
+            margin: { left: pageWidth - 95, right: margin },
+            tableWidth: 85,
+            theme: "grid",
+            styles: { fontSize: 9, halign: "right", cellPadding: 3 },
+            columnStyles: { 0: { fontStyle: "bold", cellWidth: 35, halign: "left" } },
+            didParseCell: (data) => {
+                if (data.row.index === 3) {
+                    data.cell.styles.fillColor = [144, 238, 144];
+                    data.cell.styles.fontStyle = "bold";
+                }
+            }
+        });
+        lastY = doc.lastAutoTable.finalY + 15;
+
+        // ======================= BAGIAN 2: OPNAME FINAL =======================
+        if (submissions && submissions.length > 0) {
+            addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
+            
+            doc.setFontSize(12).setFont("helvetica", "bold");
+            doc.text("LAPORAN OPNAME FINAL (APPROVED)", margin, lastY);
+            doc.line(margin, lastY + 2, pageWidth - margin, lastY + 2);
+            lastY += 10;
+
+            // Grouping: Tambah vs Kurang -> Kategori
+            const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
+            submissions.forEach(it => {
+                const sel = toNumberVol_PDF(it.selisih);
+                if (sel !== 0) {
+                    const type = sel < 0 ? "PEKERJAAN KURANG" : "PEKERJAAN TAMBAH";
+                    groupsByType[type].push(it);
+                }
+            });
+
+            for (const [sectionName, itemsArr] of Object.entries(groupsByType)) {
+                if (itemsArr.length === 0) continue;
+
+                // Judul Section (Tambah/Kurang)
+                if (lastY + 20 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                doc.setFontSize(12).setFont("helvetica", "bold");
+                doc.text(sectionName, margin, lastY);
+                doc.setDrawColor(180, 180, 180); doc.line(margin, lastY+2, pageWidth-margin, lastY+2);
+                lastY += 10;
+
+                const catGroups = groupDataByCategory(itemsArr);
+                let kIdx = 1;
+
+                for (const [kategori, kItems] of Object.entries(catGroups)) {
+                    if (lastY + 20 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                    
+                    doc.setFontSize(11).setFont("helvetica", "bold");
+                    doc.text(`${kIdx}. ${kategori}`, margin, lastY);
+                    lastY += 10; kIdx++;
+
+                    const rows = kItems.map((item, idx) => {
+                        const sel = toNumberVol_PDF(item.selisih);
+                        const hMat = toNumberID_PDF(item.harga_material);
+                        const hUpah = toNumberID_PDF(item.harga_upah);
+                        const deltaNominal = sel * (hMat + hUpah);
+                        return [
+                            idx + 1, item.jenis_pekerjaan, item.vol_rab, item.satuan,
+                            item.volume_akhir, `${item.selisih} ${item.satuan}`, formatRupiah(deltaNominal)
+                        ];
+                    });
+
+                    doc.autoTable({
+                        head: [["NO.", "JENIS PEKERJAAN", "VOL RAB", "SATUAN", "VOLUME AKHIR", "SELISIH", "NILAI SELISIH (Rp)"]],
+                        body: rows,
+                        startY: lastY,
+                        margin: { left: margin, right: margin },
+                        theme: "grid",
+                        styles: { fontSize: 8, cellPadding: 3, lineWidth: 0.1 },
+                        headStyles: { fillColor: [205, 234, 242], textColor: [0,0,0], fontSize: 8.5, fontStyle: "bold", halign: "center" },
+                        columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
+                        didParseCell: (data) => {
+                            if(data.section === 'body' && kItems[data.row.index]?.is_il) {
+                                data.cell.styles.fillColor = [255, 245, 157];
+                            }
+                        }
+                    });
+                    lastY = doc.lastAutoTable.finalY + 10;
+                }
+
+                // Summary per Block
+                const totalRealBlock = itemsArr.reduce((sum, item) => {
+                    return sum + (toNumberVol_PDF(item.selisih) * (toNumberID_PDF(item.harga_material) + toNumberID_PDF(item.harga_upah)));
+                }, 0);
+                
+                const totalPembulatanBlock = totalRealBlock >= 0 
+                    ? Math.floor(totalRealBlock / 10000) * 10000 
+                    : Math.ceil(totalRealBlock / 10000) * 10000;
+                
+                const ppnBlock = totalPembulatanBlock * 0.11;
+                const grandTotalBlock = totalPembulatanBlock + ppnBlock;
+
+                if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                
+                doc.autoTable({
+                    body: [
+                        ["TOTAL " + sectionName, formatRupiah(totalRealBlock)],
+                        ["PEMBULATAN", formatRupiah(totalPembulatanBlock)],
+                        ["PPN 11%", formatRupiah(ppnBlock)],
+                        ["GRAND TOTAL " + sectionName, formatRupiah(grandTotalBlock)]
+                    ],
+                    startY: lastY,
+                    margin: { left: pageWidth - 90, right: margin },
+                    tableWidth: 80,
+                    theme: "grid",
+                    styles: { fontSize: 8, halign: "right" },
+                    columnStyles: { 0: { fontStyle: "bold", halign: "left" } },
+                    didParseCell: (data) => {
+                        if (data.row.index === 3) {
+                            data.cell.styles.fillColor = [144, 238, 144];
+                            data.cell.styles.fontStyle = "bold";
+                        }
+                    }
+                });
+                lastY = doc.lastAutoTable.finalY + 15;
+            }
+        }
+
+        // ======================= BAGIAN 3: STATUS PEKERJAAN =======================
+        addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
+
+        // Hitung Grand Total Opname
+        let totalTambah = 0; let totalKurang = 0;
+        submissions.forEach(item => {
+            const sel = toNumberVol_PDF(item.selisih);
+            const unit = toNumberID_PDF(item.harga_material) + toNumberID_PDF(item.harga_upah);
+            const delta = sel * unit;
+            if (delta > 0) totalTambah += delta;
+            else if (delta < 0) totalKurang += delta;
+        });
+
+        const ppnTambah = totalTambah * 0.11;
+        const ppnKurang = totalKurang * 0.11;
+        const totalTambahPPN = totalTambah + ppnTambah;
+        const totalKurangPPN = totalKurang + ppnKurang;
+        
+        const deltaPPN = totalTambahPPN + totalKurangPPN;
+        const totalSetelahPPNOpname = totalSetelahPPNRAB + deltaPPN;
+
+        doc.setFontSize(12).setFont("helvetica", "bold");
+        doc.text("STATUS PEKERJAAN", margin, lastY);
+        doc.line(margin, lastY+2, pageWidth-margin, lastY+2);
+        lastY += 10;
+
+        const deltaNominal = totalSetelahPPNOpname - totalSetelahPPNRAB;
+        let statusText = "Sesuai RAB";
+        if (deltaNominal > 0) statusText = "Pekerjaan Tambah";
+        if (deltaNominal < 0) statusText = "Pekerjaan Kurang";
+
+        const statusTableBody = [
+            [{ content: `STATUS: ${statusText}`, colSpan: 2, styles: { fillColor: [245, 245, 245], fontStyle: "bold", fontSize: 12 } }],
+            ["RAB Final (incl. PPN)", formatRupiah(totalSetelahPPNRAB)],
+            ["Pekerjaan Tambah (incl. PPN)", formatRupiah(totalTambahPPN)],
+            ["Pekerjaan Kurang (incl. PPN)", formatRupiah(totalKurangPPN)],
+            ["Selisih Pekerjaan Tambah dan Kurang", `${deltaNominal >= 0 ? "+" : ""}${formatRupiah(deltaNominal)}`],
+            ["Opname Final (incl. PPN)", formatRupiah(totalSetelahPPNOpname)]
+        ];
+
+        doc.autoTable({
+            body: statusTableBody,
+            startY: lastY,
+            margin: { left: margin, right: margin },
+            theme: "grid",
+            styles: { fontSize: 11, halign: "left", cellPadding: 4 },
+            columnStyles: { 1: { halign: "right", cellWidth: 80 } },
+            didParseCell: (data) => {
+                if (data.row.index === statusTableBody.length - 1) {
+                    data.cell.styles.fillColor = [144, 238, 144];
+                    data.cell.styles.fontStyle = "bold";
+                }
+            }
+        });
+        lastY = doc.lastAutoTable.finalY + 15;
+
+        // ======================= BAGIAN 4: LAMPIRAN FOTO =======================
+        const itemsWithPhotos = (submissions || []).filter(item => item.foto_url);
+        if (itemsWithPhotos.length > 0) {
+            addFooter(doc.getNumberOfPages()); doc.addPage();
+            let pageNum = doc.getNumberOfPages();
+
+            doc.setFontSize(12).setFont("helvetica", "bold");
+            doc.text("LAMPIRAN FOTO BUKTI", pageWidth / 2, 20, { align: "center" });
+            doc.line(margin, 25, pageWidth - margin, 25);
+
+            let photoY = 35;
+            let columnIndex = 0;
+            const columnWidth = (pageWidth - margin * 3) / 2;
+            const leftColumnX = margin;
+            const rightColumnX = margin + columnWidth + margin;
+
+            // Load Photos Parallel
+            const base64Photos = await Promise.all(itemsWithPhotos.map(it => toBase64(it.foto_url)));
+            
+            itemsWithPhotos.forEach((item, index) => {
+                const imgData = base64Photos[index];
+                if (imgData) {
+                    const imgProps = doc.getImageProperties(imgData);
+                    const maxWidth = columnWidth - 10;
+                    const maxHeight = 80;
+                    let imgWidth = maxWidth;
+                    let imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+                    if (imgHeight > maxHeight) {
+                        imgHeight = maxHeight;
+                        imgWidth = (imgProps.width * imgHeight) / imgProps.height;
+                    }
+
+                    if (photoY + imgHeight + 35 > pageHeight - 20) {
+                        addFooter(pageNum); doc.addPage(); pageNum++;
+                        photoY = 35; columnIndex = 0;
+                    }
+
+                    const currentX = columnIndex === 0 ? leftColumnX : rightColumnX;
+                    
+                    doc.setFontSize(9).setFont("helvetica", "bold");
+                    const titleLines = wrapText(doc, `${index+1}. ${item.jenis_pekerjaan}`, maxWidth);
+                    let titleY = photoY;
+                    titleLines.forEach(line => { doc.text(line, currentX, titleY); titleY += 5; });
+
+                    const imageStartY = photoY + (titleLines.length * 5) + 2;
+                    doc.setDrawColor(200); doc.rect(currentX, imageStartY, imgWidth + 4, imgHeight + 4);
+                    doc.addImage(imgData, currentX + 2, imageStartY + 2, imgWidth, imgHeight);
+
+                    if (columnIndex === 0) {
+                        columnIndex = 1;
+                    } else {
+                        columnIndex = 0;
+                        photoY = imageStartY + imgHeight + 25;
+                    }
+                }
+            });
+            addFooter(pageNum);
+        } else {
+            // Footer untuk halaman terakhir jika tidak ada foto
+            addFooter(doc.getNumberOfPages());
+        }
+
+        // Add Footer to ALL Pages (loop back)
+        const totalPages = doc.getNumberOfPages();
+        for (let i = 1; i < totalPages; i++) { // Skip last page handled above
+            doc.setPage(i);
+            addFooter(i);
+        }
+
+        doc.save(`BA_Opname_${selectedStore.kode_toko}_${selectedUlok}.pdf`);
+        console.log("PDF selesai dibuat.");
     }
 };
 
