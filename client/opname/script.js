@@ -893,110 +893,161 @@ const Render = {
     },
 
     storeSelection: async (container, type) => {
-        container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Sedang memuat data toko...</h3></div></div>';
+        container.innerHTML = `
+            <div class="container text-center" style="padding-top:40px;">
+                <div class="card">
+                    <h3>Memuat Data Toko & ULOK...</h3>
+                    <div style="margin-top:10px; font-size:0.9rem; color:#666;">Mohon tunggu sebentar</div>
+                </div>
+            </div>`;
 
         let url = "";
         const u = AppState.user;
-        if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') url = `${API_BASE_URL}/api/toko?username=${u.username}`;
-        else if (u.role === 'kontraktor') url = `${API_BASE_URL}/api/toko_kontraktor?username=${u.username}`;
-
-        try {
-            const res = await fetch(url);
-            AppState.stores = await res.json();
-            if(!Array.isArray(AppState.stores)) AppState.stores = [];
-        } catch (e) {
-            AppState.stores = [];
+        
+        // Tentukan URL untuk fetch Toko berdasarkan Role
+        if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
+            url = `${API_BASE_URL}/api/toko?username=${u.username}`;
+        } else if (u.role === 'kontraktor') {
+            url = `${API_BASE_URL}/api/toko_kontraktor?username=${u.username}`;
         }
 
-        const renderList = (filter = "") => {
-            const filtered = AppState.stores.filter(s => 
-                s.kode_toko.toLowerCase().includes(filter.toLowerCase()) || 
-                s.nama_toko.toLowerCase().includes(filter.toLowerCase())
-            );
+        try {
+            // 1. Fetch Daftar Toko
+            const res = await fetch(url);
+            const stores = await res.json();
+            
+            if (!Array.isArray(stores)) throw new Error("Format data toko salah");
 
-            let html = `
-                <div class="container" style="padding-top:20px;">
-                    <div class="card">
-                        <div class="d-flex align-center gap-2" style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:16px;">
-                            <button id="btn-back-store" class="btn btn-back">← Dashboard</button>
-                            <h2 style="color:var(--primary);">Pilih Toko (${type === 'opname' ? 'Input' : 'View'})</h2>
-                        </div>
-                        
-                        <div style="margin-bottom:24px;">
-                            <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Kode atau Nama Toko..." value="${filter}">
-                        </div>
-                        
-                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:16px;">
-                            ${filtered.map(toko => `
-                                <button class="btn btn-secondary store-item" data-kode="${toko.kode_toko}" style="height:auto; min-height:100px; flex-direction:column; align-items:flex-start; text-align:left; padding:16px; border-left:4px solid var(--secondary-yellow);">
-                                    <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700);">${toko.nama_toko}</div>
-                                    <div style="font-size:0.9rem; color:var(--text-muted);">Kode: <strong>${toko.kode_toko}</strong></div>
-                                </button>
-                            `).join('')}
-                        </div>
-                        ${filtered.length === 0 ? '<p class="text-center" style="padding:20px;">Toko tidak ditemukan.</p>' : ''}
-                    </div>
-                </div>
-            `;
-            container.innerHTML = html;
+            // 2. Fetch ULOK untuk SETIAP toko secara paralel
+            // Kita akan membuat daftar gabungan: [{ store: {...}, ulok: "001/..." }, ...]
+            const combinedList = [];
 
-            container.querySelector('#btn-back-store').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
-            const searchInput = document.getElementById('store-search');
-            searchInput.oninput = (e) => { renderList(e.target.value); document.getElementById('store-search').focus(); };
-
-            container.querySelectorAll('.store-item').forEach(btn => {
-                btn.onclick = async () => {
-                    const store = AppState.stores.find(s => s.kode_toko === btn.dataset.kode);
-                    AppState.selectedStore = store;
+            await Promise.all(stores.map(async (store) => {
+                try {
+                    const resUlok = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${store.kode_toko}`);
+                    const uloks = await resUlok.json();
                     
-                    // --- MODIFIKASI DIMULAI DARI SINI ---
-                    // Logika: Cek ULOK dulu, jika cuma 1 langsung set dan skip halaman pilih ULOK
-                    if (type === 'opname') {
-                        // Tampilkan efek loading pada tombol agar user tahu proses berjalan
-                        const originalHtml = btn.innerHTML;
-                        btn.innerHTML = `<div style="text-align:center;">⏳ Cek ULOK...</div>`;
-                        btn.disabled = true;
-
-                        try {
-                            const res = await fetch(`${API_BASE_URL}/api/uloks?kode_toko=${store.kode_toko}`);
-                            const uloks = await res.json();
-
-                            if (uloks && uloks.length === 1) {
-                                // SKENARIO SEDERHANA: Hanya ada 1 ULOK -> Langsung pilih & Lanjut ke Lingkup
-                                AppState.selectedUlok = uloks[0];
-                                AppState.selectedLingkup = null; 
-                                AppState.activeView = 'opname'; 
-                                Render.app(); // Ini akan langsung merender Step 2 (Lingkup) karena selectedUlok sudah terisi
-                            } else {
-                                // SKENARIO LAIN: 0 atau >1 ULOK -> Biarkan user memilih di halaman berikutnya
-                                AppState.selectedUlok = null;
-                                AppState.selectedLingkup = null;
-                                AppState.activeView = 'opname';
-                                Render.app();
-                            }
-                        } catch (err) {
-                            console.error("Gagal auto-check ULOK:", err);
-                            // Fallback ke manual jika fetch error
-                            AppState.selectedUlok = null;
-                            AppState.selectedLingkup = null;
-                            AppState.activeView = 'opname';
-                            Render.app();
-                        }
-                    } else {
-                        // Logika standar untuk menu lain (Final View / Approval / History)
-                        if(type === 'final-opname') AppState.activeView = 'final-opname-detail';
-                        else if(type === 'approval') AppState.activeView = 'approval-detail';
-                        else if(type === 'history') AppState.activeView = 'history-detail-kontraktor';
-                        
-                        AppState.selectedUlok = null;
-                        AppState.selectedLingkup = null;
-                        Render.app();
+                    if (Array.isArray(uloks) && uloks.length > 0) {
+                        uloks.forEach(ulokNo => {
+                            combinedList.push({
+                                store: store,
+                                ulok: ulokNo
+                            });
+                        });
                     }
-                    // --- MODIFIKASI SELESAI ---
+                } catch (err) {
+                    console.warn(`Gagal fetch ULOK untuk toko ${store.kode_toko}`, err);
+                }
+            }));
+
+            // Simpan ke state sementara jika perlu, atau langsung gunakan untuk render
+            // Kita urutkan agar rapi (misal berdasarkan Nama Toko)
+            combinedList.sort((a, b) => a.store.nama_toko.localeCompare(b.store.nama_toko));
+
+            // Fungsi Render List
+            const renderList = (filter = "") => {
+                const f = filter.toLowerCase();
+                // Filter berdasarkan Nama Toko, Kode Toko, ATAU No. ULOK
+                const filtered = combinedList.filter(item => 
+                    item.store.nama_toko.toLowerCase().includes(f) || 
+                    item.store.kode_toko.toLowerCase().includes(f) ||
+                    item.ulok.toLowerCase().includes(f)
+                );
+
+                let html = `
+                    <div class="container" style="padding-top:20px;">
+                        <div class="card">
+                            <div class="d-flex align-center gap-2" style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:16px;">
+                                <button id="btn-back-store" class="btn btn-back">← Dashboard</button>
+                                <div>
+                                    <h2 style="color:var(--primary); margin:0;">Pilih Pekerjaan</h2>
+                                    <span style="font-size:0.9rem; color:#666;">Pilih Toko & No. ULOK</span>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom:24px;">
+                                <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Toko atau No. ULOK..." value="${filter}">
+                            </div>
+                            
+                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
+                                ${filtered.map((item, idx) => `
+                                    <button class="btn btn-secondary job-item" data-idx="${idx}" style="height:auto; min-height:110px; flex-direction:column; align-items:flex-start; text-align:left; padding:16px; border-left:5px solid var(--secondary-yellow); position:relative; overflow:hidden;">
+                                        
+                                        <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); margin-bottom:4px;">
+                                            ${item.store.nama_toko}
+                                        </div>
+                                        
+                                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                                            Kode: <strong>${item.store.kode_toko}</strong>
+                                        </div>
+
+                                        <div class="badge badge-success" style="font-size:0.85rem; padding:6px 10px; background-color:#e0f2fe; color:#0284c7; border:1px solid #bae6fd;">
+                                            📄 ULOK: ${item.ulok}
+                                        </div>
+                                    </button>
+                                `).join('')}
+                            </div>
+                            
+                            ${filtered.length === 0 ? `
+                                <div class="text-center" style="padding:40px; color:#666;">
+                                    <div style="font-size:30px; margin-bottom:10px;">📭</div>
+                                    <p>Data pekerjaan tidak ditemukan.</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = html;
+
+                // Event Listeners
+                container.querySelector('#btn-back-store').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
+                
+                const searchInput = document.getElementById('store-search');
+                searchInput.oninput = (e) => { 
+                    renderList(e.target.value); 
+                    document.getElementById('store-search').focus(); 
                 };
-            });
-        };
-        renderList();
+
+                // Handle Klik Item
+                // Karena HTML dirender ulang saat filter, kita ambil data dari array `filtered` bukan `combinedList` secara langsung via index global,
+                // tapi cara paling aman adalah menyimpan data di DOM atau lookup ulang.
+                // Di sini kita pakai lookup sederhana via index array filtered saat render.
+                
+                container.querySelectorAll('.job-item').forEach((btn, index) => {
+                    btn.onclick = () => {
+                        const selectedItem = filtered[index]; // Ambil data yang sesuai tombol
+                        
+                        // Set State Global
+                        AppState.selectedStore = selectedItem.store;
+                        AppState.selectedUlok = selectedItem.ulok;
+                        
+                        // Reset Lingkup agar user memilih ulang lingkup
+                        AppState.selectedLingkup = null; 
+
+                        // Arahkan View
+                        if (type === 'opname') AppState.activeView = 'opname';
+                        else if (type === 'final-opname') AppState.activeView = 'final-opname-detail';
+                        else if (type === 'approval') AppState.activeView = 'approval-detail';
+                        else if (type === 'history') AppState.activeView = 'history-detail-kontraktor';
+                        
+                        Render.app();
+                    };
+                });
+            };
+
+            renderList();
+
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `
+                <div class="container" style="padding-top:40px;">
+                    <div class="alert-error">
+                        <h3>Gagal Memuat Data</h3>
+                        <p>${e.message}</p>
+                        <button class="btn btn-back" onclick="AppState.activeView='dashboard'; Render.app()" style="margin-top:10px;">Kembali ke Dashboard</button>
+                    </div>
+                </div>`;
+        }
     },
 
     opnameForm: async (container) => {
