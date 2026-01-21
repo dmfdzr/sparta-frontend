@@ -552,6 +552,7 @@ const Render = {
                     return;
                 }
                 
+                // Render List ULOK
                 container.innerHTML = `
                     <div class="container" style="padding-top:20px;">
                         <div class="card">
@@ -563,15 +564,23 @@ const Render = {
                         </div>
                     </div>
                 `;
-                container.querySelector('#btn-back-ulok').onclick = () => { AppState.activeView = 'store-selection-pic'; Render.app(); };
+                
+                // Event Listeners Step 1
+                container.querySelector('#btn-back-ulok').onclick = () => { 
+                    AppState.activeView = 'store-selection-pic'; 
+                    Render.app(); 
+                };
                 container.querySelectorAll('.ulok-btn').forEach(b => {
-                    b.onclick = () => { AppState.selectedUlok = b.dataset.ulok; Render.opnameForm(container); }
+                    b.onclick = () => { 
+                        AppState.selectedUlok = b.dataset.ulok; 
+                        Render.opnameForm(container); 
+                    }
                 });
             } catch (e) { container.innerHTML = `<div class="container"><div class="alert-error">Gagal memuat ULOK: ${e.message}</div></div>`; }
             return;
         }
 
-        // --- STEP 2: PILIH LINGKUP (FIXED BACK BUTTON) ---
+        // --- STEP 2: PILIH LINGKUP (PERBAIKAN TOMBOL KEMBALI) ---
         if (!AppState.selectedLingkup) {
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
@@ -587,13 +596,15 @@ const Render = {
                     </div>
                 </div>
             `;
+            
+            // Event Listeners Step 2 (Menggunakan JS handler, bukan onclick HTML)
             container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.opnameForm(container); };
             container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.opnameForm(container); };
             
-            // PERBAIKAN TOMBOL KEMBALI
+            // FIX: Handler Tombol Kembali
             container.querySelector('#btn-cancel-lingkup').onclick = () => { 
-                AppState.selectedUlok = null; // Reset ULOK agar kembali ke Step 1
-                Render.opnameForm(container); 
+                AppState.selectedUlok = null; // Reset pilihan ULOK
+                Render.opnameForm(container); // Render ulang (akan masuk ke Step 1)
             };
             return;
         }
@@ -614,7 +625,7 @@ const Render = {
                 const hargaMaterial = toNumID(task.harga_material);
                 const hargaUpah = toNumID(task.harga_upah);
                 
-                // Rumus: (Vol Akhir - RAB) * Harga Satuan
+                // Logic: Total Harga = (Vol Akhir - RAB) * Harga Satuan
                 const selisihNum = volAkhirNum - volRab;
                 const total_harga = selisihNum * (hargaMaterial + hargaUpah);
                 
@@ -761,7 +772,7 @@ const Render = {
                 
                 // --- EVENT HANDLERS ---
                 
-                // Back Button
+                // Back Button (Step 3)
                 container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
 
                 // Input Volume (Update Realtime Total)
