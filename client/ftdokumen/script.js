@@ -1,26 +1,26 @@
 // ==========================================
 // 1. GLOBAL STATE & CONFIG
 // ==========================================
-// Base URL Backend (Sesuai dengan auth/script.js)
+// Base URL Backend
 const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com";
 // URL untuk Logging ke Apps Script
 const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/AKfycbzPubDTa7E2gT5HeVLv9edAcn1xaTiT3J4BtAVYqaqiFAvFtp1qovTXpqpm-VuNOxQJ/exec";
 
-// State global menggantikan useState React
+// State global
 const STATE = {
     user: null,
     formData: {},
-    photos: {}, // { 1: { url, point, ... }, ... }
+    photos: {}, 
     currentPhotoNumber: 1,
     currentPage: 1,
     spkOptions: [],
     isCameraReady: false,
-    capturedBlob: null, // Blob foto sementara
-    currentPoint: null, // Titik yang sedang difoto
+    capturedBlob: null, 
+    currentPoint: null, 
     stream: null
 };
 
-// Data titik koordinat (dari React useMemo)
+// Data titik koordinat
 const PHOTO_POINTS = {
     1: [
         { id: 1, x: 67.8, y: 92.8, label: "KANAN 50 M" },
@@ -68,7 +68,6 @@ const PHOTO_POINTS = {
     ]
 };
 
-// Flatten semua point untuk akses mudah
 const ALL_POINTS = [
     ...PHOTO_POINTS[1], ...PHOTO_POINTS[2], ...PHOTO_POINTS[3]
 ].sort((a, b) => a.id - b.id);
@@ -78,20 +77,24 @@ const ALL_POINTS = [
 // 2. HELPER FUNCTIONS
 // ==========================================
 const getEl = (id) => document.getElementById(id);
-const hide = (el) => el.classList.add("hidden");
-const show = (el) => el.classList.remove("hidden");
+const hide = (el) => el && el.classList.add("hidden");
+const show = (el) => el && el.classList.remove("hidden");
 
 const showToast = (text, type = "success") => {
     const toast = getEl("form-status-toast");
-    toast.textContent = text;
-    toast.style.background = type === "success" ? "#333" : "#dc2626";
-    show(toast);
-    setTimeout(() => hide(toast), 3000);
+    if(toast){
+        toast.textContent = text;
+        toast.style.background = type === "success" ? "#333" : "#dc2626";
+        show(toast);
+        setTimeout(() => hide(toast), 3000);
+    }
 };
 
 const showLoading = (text = "Loading...") => {
-    getEl("loading-text").textContent = text;
-    show(getEl("loading-overlay"));
+    const txt = getEl("loading-text");
+    const ovl = getEl("loading-overlay");
+    if(txt) txt.textContent = text;
+    if(ovl) show(ovl);
 };
 
 const hideLoading = () => hide(getEl("loading-overlay"));
@@ -100,12 +103,12 @@ const hideLoading = () => hide(getEl("loading-overlay"));
 // 3. AUTH & INIT
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-    checkSession();
-    setInterval(checkTimeLimit, 60000); // Cek jam tiap menit
+    checkSession(); // Cek session saat load
+    setInterval(checkTimeLimit, 60000); 
     initEventListeners();
 });
 
-// Fungsi Logging ke Google Apps Script (Diambil dari auth/script.js)
+// Fungsi Logging
 async function logLoginAttempt(username, cabang, status) {
     const logData = {
         requestType: "loginAttempt",
@@ -113,43 +116,66 @@ async function logLoginAttempt(username, cabang, status) {
         cabang: cabang,
         status: status,
     };
-
     try {
-        // Menggunakan no-cors jika mengalami masalah CORS pada Apps Script, 
-        // tapi idealnya backend GAS harus support CORS.
         await fetch(APPS_SCRIPT_POST_URL, {
-            method: "POST",
-            redirect: "follow",
+            method: "POST", redirect: "follow",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(logData),
         });
-    } catch (error) {
-        console.error("Failed to log login attempt:", error);
+    } catch (error) { console.error("Log failed", error); }
+}
+
+// --- PERBAIKAN UTAMA DI SINI ---
+function checkSession() {
+    // 1. Cek SessionStorage (Login dari Auth/Dashboard Utama)
+    // Sesuai dengan auth/script.js: authenticated, loggedInUserEmail, loggedInUserCabang
+    const ssoAuth = sessionStorage.getItem("authenticated");
+    const ssoEmail = sessionStorage.getItem("loggedInUserEmail");
+    const ssoCabang = sessionStorage.getItem("loggedInUserCabang");
+    const ssoRole = sessionStorage.getItem("userRole");
+
+    // 2. Cek LocalStorage (Login Lokal di halaman ini jika ada)
+    const localUser = localStorage.getItem("user");
+
+    if (ssoAuth === "true" && ssoEmail && ssoCabang) {
+        // CASE A: User sudah login via Auth/Dashboard
+        console.log("Session detected from Auth System");
+        STATE.user = {
+            email: ssoEmail,
+            cabang: ssoCabang,
+            role: ssoRole || "USER",
+            source: "sso"
+        };
+        proceedToApp();
+        
+    } else if (localUser) {
+        // CASE B: User login lokal di halaman ini
+        console.log("Session detected from LocalStorage");
+        STATE.user = JSON.parse(localUser);
+        proceedToApp();
+        
+    } else {
+        // CASE C: Belum Login
+        switchToView("login");
+        checkTimeLimit();
     }
 }
 
-function checkSession() {
-    // Kita gunakan localStorage agar user tetap login saat refresh (sesuai behavior aplikasi sebelumnya)
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-        STATE.user = JSON.parse(userStr);
-        // Menampilkan Cabang/Role di Header
-        getEl("header-user-info").textContent = `Building & Maintenance — ${STATE.user.cabang || ""}`;
-        show(getEl("main-header"));
-        hide(getEl("view-login"));
-        
-        // Langsung masuk ke Form view
-        switchToView("form");
-        loadSpkData(STATE.user.cabang);
-    } else {
-        switchToView("login");
-        checkTimeLimit(); // Cek jam saat di login page
-    }
+function proceedToApp() {
+    // Tampilkan Header Info
+    const infoEl = getEl("header-user-info");
+    if(infoEl) infoEl.textContent = `Building & Maintenance — ${STATE.user.cabang || ""}`;
+    
+    show(getEl("main-header"));
+    hide(getEl("view-login"));
+    
+    // Masuk ke Form
+    switchToView("form");
+    loadSpkData(STATE.user.cabang);
 }
 
 function checkTimeLimit() {
     const now = new Date();
-    // UTC+7 setup
     const utc = now.getTime() + now.getTimezoneOffset() * 60000;
     const wib = new Date(utc + 7 * 60 * 60000);
     const hour = wib.getHours();
@@ -163,26 +189,24 @@ function checkTimeLimit() {
         const timeStr = `${hour.toString().padStart(2, "0")}:${wib.getMinutes().toString().padStart(2, "0")}`;
         const msg = `⏰ Login hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`;
         
-        if (isLoginView) {
+        if (isLoginView && msgContainer) {
             msgContainer.textContent = msg;
             show(msgContainer);
-            btnLogin.disabled = true;
-            btnLogin.style.cursor = "not-allowed";
-        } else if (STATE.user) {
+            if(btnLogin) { btnLogin.disabled = true; btnLogin.style.cursor = "not-allowed"; }
+        } else if (STATE.user && !isLoginView) {
             // Jika user sedang login tapi waktu habis
-            showWarningModal(msg, () => {
-                doLogout();
-            });
+            showWarningModal(msg, () => doLogout());
         }
     } else {
-        hide(msgContainer);
-        btnLogin.disabled = false;
-        btnLogin.style.cursor = "pointer";
+        if(msgContainer) hide(msgContainer);
+        if(btnLogin) { btnLogin.disabled = false; btnLogin.style.cursor = "pointer"; }
     }
 }
 
 function doLogout() {
+    // Bersihkan semua sesi
     localStorage.removeItem("user");
+    sessionStorage.clear(); // Hapus sesi SSO juga agar benar-benar logout
     STATE.user = null;
     location.reload();
 }
@@ -204,13 +228,10 @@ function switchToView(viewName) {
 // 4. API CALLS
 // ==========================================
 
-// INTEGRASI BARU: Login menggunakan endpoint /api/login
 async function apiLogin(username, password) {
-    // 1. Log percobaan login
     logLoginAttempt(username, password, "Attempt");
 
     try {
-        // Backend baru mengharapkan field 'cabang' sebagai password
         const res = await fetch(`${API_BASE_URL}/api/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -219,19 +240,15 @@ async function apiLogin(username, password) {
 
         const json = await res.json();
 
-        // Cek status response (backend baru menggunakan json.status === "success")
         if (res.ok && json.status === "success") {
             logLoginAttempt(username, password, "Success");
-            
-            // Format data user agar sesuai dengan struktur aplikasi Anda (STATE.user)
             return {
                 email: username,
-                cabang: password, // Di sistem ini password dianggap sebagai kode cabang
+                cabang: password,
                 role: (json.role || "").toUpperCase(),
-                ...json // Simpan sisa data jika ada
+                ...json
             };
         } else {
-            // Jika gagal
             const errMsg = json.message || "Username atau password salah.";
             logLoginAttempt(username, password, "Failed");
             throw new Error(errMsg);
@@ -243,6 +260,7 @@ async function apiLogin(username, password) {
 }
 
 async function loadSpkData(cabang) {
+    if(!cabang) return;
     try {
         const res = await fetch(`${API_BASE_URL}/spk-data`, {
             method: "POST",
@@ -273,90 +291,100 @@ async function saveTemp(payload) {
 }
 
 // ==========================================
-// 5. EVENT LISTENERS & LOGIC
+// 5. EVENT LISTENERS
 // ==========================================
 function initEventListeners() {
-    // LOGIN LISTENER
-    getEl("form-login").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const u = getEl("login-username").value;
-        const p = getEl("login-password").value;
-        const btn = getEl("btn-submit-login");
-        
-        btn.textContent = "Memproses...";
-        btn.disabled = true;
-        hide(getEl("login-error-msg"));
-
-        try {
-            // Panggil API Login yang baru
-            const user = await apiLogin(u, p);
+    // LOGIN FORM (Fallback jika login manual di halaman ini)
+    const formLogin = getEl("form-login");
+    if(formLogin) {
+        formLogin.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const u = getEl("login-username").value;
+            const p = getEl("login-password").value;
+            const btn = getEl("btn-submit-login");
             
-            // Simpan session
-            localStorage.setItem("user", JSON.stringify(user));
-            
-            // Transisi ke halaman utama
-            checkSession();
-        } catch (err) {
-            const errDiv = getEl("login-error-msg");
-            errDiv.textContent = err.message;
-            show(errDiv);
-        } finally {
-            btn.textContent = "Login";
-            btn.disabled = false;
-        }
-    });
+            btn.textContent = "Memproses...";
+            btn.disabled = true;
+            hide(getEl("login-error-msg"));
 
-    getEl("btn-toggle-pass").addEventListener("click", () => {
-        const inp = getEl("login-password");
-        const icon = getEl("btn-toggle-pass").querySelector("i");
-        if (inp.type === "password") {
-            inp.type = "text";
-            icon.classList.remove("fa-eye");
-            icon.classList.add("fa-eye-slash");
-        } else {
-            inp.type = "password";
-            icon.classList.remove("fa-eye-slash");
-            icon.classList.add("fa-eye");
-        }
-    });
+            try {
+                const user = await apiLogin(u, p);
+                
+                // Simpan ke LocalStorage agar persist
+                localStorage.setItem("user", JSON.stringify(user));
+                // Opsional: set juga session storage agar konsisten
+                sessionStorage.setItem("authenticated", "true");
+                sessionStorage.setItem("loggedInUserEmail", user.email);
+                sessionStorage.setItem("loggedInUserCabang", user.cabang);
 
-    getEl("btn-logout").addEventListener("click", doLogout);
+                checkSession();
+            } catch (err) {
+                const errDiv = getEl("login-error-msg");
+                errDiv.textContent = err.message;
+                show(errDiv);
+            } finally {
+                btn.textContent = "Login";
+                btn.disabled = false;
+            }
+        });
+    }
 
-    // FORM DATA
-    getEl("chk-manual-ulok").addEventListener("change", (e) => {
-        const isManual = e.target.checked;
-        const sel = getEl("sel-ulok");
-        const inp = getEl("inp-ulok-manual");
+    // Toggle Password
+    const btnToggle = getEl("btn-toggle-pass");
+    if(btnToggle) {
+        btnToggle.addEventListener("click", () => {
+            const inp = getEl("login-password");
+            const icon = btnToggle.querySelector("i");
+            if (inp.type === "password") {
+                inp.type = "text";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            } else {
+                inp.type = "password";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
+        });
+    }
 
-        if (isManual) {
-            hide(sel); show(inp);
-            STATE.formData.nomorUlok = inp.value;
-        } else {
-            show(sel); hide(inp);
-            STATE.formData.nomorUlok = sel.value;
-        }
-        STATE.formData.isManualUlok = isManual;
-    });
+    const btnLogout = getEl("btn-logout");
+    if(btnLogout) btnLogout.addEventListener("click", doLogout);
 
-    getEl("sel-ulok").addEventListener("change", async (e) => {
-        const val = e.target.value;
-        STATE.formData.nomorUlok = val;
-        
-        // Cari data detail dari opsi SPK
-        const found = STATE.spkOptions.find(o => o.nomorUlok === val);
-        if (found) populateForm(found);
+    // FORM INPUTS
+    const chkManual = getEl("chk-manual-ulok");
+    if(chkManual) {
+        chkManual.addEventListener("change", (e) => {
+            const isManual = e.target.checked;
+            const sel = getEl("sel-ulok");
+            const inp = getEl("inp-ulok-manual");
 
-        // Cek data temp di server
-        await loadTempData(val);
-    });
+            if (isManual) { hide(sel); show(inp); STATE.formData.nomorUlok = inp.value; } 
+            else { show(sel); hide(inp); STATE.formData.nomorUlok = sel.value; }
+            STATE.formData.isManualUlok = isManual;
+        });
+    }
 
-    getEl("inp-ulok-manual").addEventListener("change", async (e) => {
-        const val = e.target.value.toUpperCase();
-        STATE.formData.nomorUlok = val;
-        await loadTempData(val);
-    });
+    const selUlok = getEl("sel-ulok");
+    if(selUlok) {
+        selUlok.addEventListener("change", async (e) => {
+            const val = e.target.value;
+            STATE.formData.nomorUlok = val;
+            const found = STATE.spkOptions.find(o => o.nomorUlok === val);
+            if (found) populateForm(found);
+            await loadTempData(val);
+        });
+    }
 
-    // Auto-save fields on change
+    const inpUlokMan = getEl("inp-ulok-manual");
+    if(inpUlokMan) {
+        inpUlokMan.addEventListener("change", async (e) => {
+            const val = e.target.value.toUpperCase();
+            STATE.formData.nomorUlok = val;
+            await loadTempData(val);
+        });
+    }
+
+    // Auto-save fields
     const inputs = document.querySelectorAll("#data-input-form input");
     inputs.forEach(inp => {
         inp.addEventListener("change", (e) => {
@@ -366,17 +394,18 @@ function initEventListeners() {
         });
     });
 
-    getEl("data-input-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-        // Simpan data terakhir
-        updateStateFormData();
-        saveFormDataBackground().then(() => {
-            switchToView("floorplan");
+    const formInput = getEl("data-input-form");
+    if(formInput) {
+        formInput.addEventListener("submit", (e) => {
+            e.preventDefault();
+            updateStateFormData();
+            saveFormDataBackground().then(() => switchToView("floorplan"));
         });
-    });
+    }
 
-    // FLOOR PLAN NAV
-    getEl("btn-back-form").addEventListener("click", () => switchToView("form"));
+    // NAV
+    const btnBack = getEl("btn-back-form");
+    if(btnBack) btnBack.addEventListener("click", () => switchToView("form"));
     
     document.querySelectorAll(".pagination-btn").forEach(btn => {
         btn.addEventListener("click", (e) => {
@@ -387,38 +416,47 @@ function initEventListeners() {
         });
     });
 
-    // CAMERA & MODAL
-    getEl("btn-close-cam").addEventListener("click", closeCamera);
+    // CAMERA & ACTIONS
+    const btnCloseCam = getEl("btn-close-cam");
+    if(btnCloseCam) btnCloseCam.addEventListener("click", closeCamera);
     
-    getEl("btn-snap").addEventListener("click", capturePhoto);
-    getEl("btn-retake").addEventListener("click", resetCameraUI);
+    const btnSnap = getEl("btn-snap");
+    if(btnSnap) btnSnap.addEventListener("click", capturePhoto);
+
+    const btnRetake = getEl("btn-retake");
+    if(btnRetake) btnRetake.addEventListener("click", resetCameraUI);
     
-    getEl("btn-confirm-snap").addEventListener("click", async () => {
+    const btnConfirm = getEl("btn-confirm-snap");
+    if(btnConfirm) btnConfirm.addEventListener("click", async () => {
         if (!STATE.capturedBlob && !STATE.currentPhotoNote) return;
         await saveCapturedPhoto();
     });
 
-    getEl("inp-file-upload").addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            handlePreviewAndSave(evt.target.result); // base64
-        };
-        reader.readAsDataURL(file);
-    });
+    const inpFile = getEl("inp-file-upload");
+    if(inpFile) {
+        inpFile.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => handlePreviewAndSave(evt.target.result);
+            reader.readAsDataURL(file);
+        });
+    }
 
-    getEl("btn-cant-snap").addEventListener("click", () => {
-        // Mode "Tidak Bisa Difoto"
-        STATE.capturedBlob = "TIDAK_BISA_DIFOTO";
-        STATE.currentPhotoNote = "TIDAK BISA DIFOTO";
-        saveCapturedPhoto();
-    });
+    const btnCant = getEl("btn-cant-snap");
+    if(btnCant) {
+        btnCant.addEventListener("click", () => {
+            STATE.capturedBlob = "TIDAK_BISA_DIFOTO";
+            STATE.currentPhotoNote = "TIDAK BISA DIFOTO";
+            saveCapturedPhoto();
+        });
+    }
 
-    getEl("btn-warning-ok").addEventListener("click", () => hide(getEl("warning-modal")));
+    const btnWarnOk = getEl("btn-warning-ok");
+    if(btnWarnOk) btnWarnOk.addEventListener("click", () => hide(getEl("warning-modal")));
 
-    // PDF GENERATION
-    getEl("btn-save-pdf").addEventListener("click", generateAndSendPDF);
+    const btnPdf = getEl("btn-save-pdf");
+    if(btnPdf) btnPdf.addEventListener("click", generateAndSendPDF);
 }
 
 // ==========================================
@@ -426,6 +464,7 @@ function initEventListeners() {
 // ==========================================
 function renderSpkOptions() {
     const sel = getEl("sel-ulok");
+    if(!sel) return;
     sel.innerHTML = '<option value="">-- pilih nomor ulok --</option>';
     STATE.spkOptions.forEach(opt => {
         const op = document.createElement("option");
@@ -447,7 +486,6 @@ function mapInputToKey(id) {
 }
 
 function updateStateFormData() {
-    // Sync semua input ke STATE
     const map = {
         "inp-cabang": "cabang", "inp-sipil": "kontraktorSipil", "inp-me": "kontraktorMe",
         "inp-spk-awal": "spkAwal", "inp-spk-akhir": "spkAkhir", "inp-nama-toko": "namaToko", 
@@ -455,7 +493,8 @@ function updateStateFormData() {
         "inp-tgl-foto": "tanggalAmbilFoto"
     };
     for(let id in map) {
-        STATE.formData[map[id]] = getEl(id).value;
+        const el = getEl(id);
+        if(el) STATE.formData[map[id]] = el.value;
     }
 }
 
@@ -463,16 +502,19 @@ function populateForm(data) {
     if(!data) return;
     STATE.formData = { ...STATE.formData, ...data };
     
-    getEl("inp-cabang").value = data.cabang || STATE.user?.cabang || "";
-    getEl("inp-sipil").value = data.kontraktorSipil || "";
-    getEl("inp-me").value = data.kontraktorMe || "";
-    getEl("inp-spk-awal").value = formatDateInput(data.spkAwal);
-    getEl("inp-spk-akhir").value = formatDateInput(data.spkAkhir);
-    getEl("inp-nama-toko").value = data.namaToko || "";
-    getEl("inp-kode-toko").value = data.kodeToko || "";
-    getEl("inp-tgl-go").value = formatDateInput(data.tanggalGo);
-    getEl("inp-tgl-st").value = formatDateInput(data.tanggalSt);
-    getEl("inp-tgl-foto").value = formatDateInput(data.tanggalAmbilFoto);
+    // Safety check if elements exist
+    const safeSet = (id, val) => { const el = getEl(id); if(el) el.value = val || ""; };
+    
+    safeSet("inp-cabang", data.cabang || STATE.user?.cabang);
+    safeSet("inp-sipil", data.kontraktorSipil);
+    safeSet("inp-me", data.kontraktorMe);
+    safeSet("inp-spk-awal", formatDateInput(data.spkAwal));
+    safeSet("inp-spk-akhir", formatDateInput(data.spkAkhir));
+    safeSet("inp-nama-toko", data.namaToko);
+    safeSet("inp-kode-toko", data.kodeToko);
+    safeSet("inp-tgl-go", formatDateInput(data.tanggalGo));
+    safeSet("inp-tgl-st", formatDateInput(data.tanggalSt));
+    safeSet("inp-tgl-foto", formatDateInput(data.tanggalAmbilFoto));
 }
 
 function formatDateInput(dateStr) {
@@ -487,24 +529,18 @@ async function loadTempData(ulok) {
     try {
         const res = await getTempByUlok(ulok);
         if (res.ok && res.data) {
-            // Restore form
             populateForm(res.data);
-            
-            // Restore Photos
             if (Array.isArray(res.data.photos)) {
                 STATE.photos = {};
-                // Preload photos
                 const promises = res.data.photos.map((pid, idx) => {
                     if(!pid) return null;
                     const id = idx + 1;
                     const url = `${API_BASE_URL}/view-photo/${pid}`;
-                    // Object structure for photos
                     STATE.photos[id] = {
                         url: url,
                         point: ALL_POINTS.find(p => p.id === id),
                         timestamp: new Date().toISOString()
                     };
-                    // Simple preload image
                     return new Promise(r => { 
                         const img = new Image(); 
                         img.onload = r; img.onerror = r; 
@@ -513,80 +549,76 @@ async function loadTempData(ulok) {
                 });
                 await Promise.all(promises);
                 
-                // Hitung next photo number
                 const taken = Object.keys(STATE.photos).map(Number);
                 const next = taken.length > 0 ? Math.max(...taken) + 1 : 1;
                 STATE.currentPhotoNumber = next > 38 ? 38 : next;
             }
         }
-    } catch(e) {
-        console.error(e);
-    } finally {
-        hideLoading();
-    }
+    } catch(e) { console.error(e); } 
+    finally { hideLoading(); }
 }
 
 async function saveFormDataBackground() {
-    try {
-        await saveTemp(STATE.formData);
-        console.log("Form saved background");
-    } catch(e) { console.error("Save fail", e); }
+    try { await saveTemp(STATE.formData); console.log("Form saved background"); } 
+    catch(e) { console.error("Save fail", e); }
 }
 
 // ==========================================
-// 7. FLOOR PLAN & CAMERA LOGIC
+// 7. FLOOR PLAN & CAMERA
 // ==========================================
 function renderFloorPlan() {
-    // Update Header Info
-    getEl("fp-store-name").textContent = `${STATE.formData.namaToko || "-"} (${STATE.formData.kodeToko || "-"})`;
-    getEl("fp-date").textContent = STATE.formData.tanggalAmbilFoto || "-";
+    const tStore = getEl("fp-store-name");
+    if(tStore) tStore.textContent = `${STATE.formData.namaToko || "-"} (${STATE.formData.kodeToko || "-"})`;
     
-    // Update Progress
+    const tDate = getEl("fp-date");
+    if(tDate) tDate.textContent = STATE.formData.tanggalAmbilFoto || "-";
+    
     const completed = Object.keys(STATE.photos).length;
-    getEl("progress-text").textContent = `Progress: ${completed}/38 foto`;
-    getEl("progress-fill").style.width = `${(completed/38)*100}%`;
+    const txtProg = getEl("progress-text");
+    if(txtProg) txtProg.textContent = `Progress: ${completed}/38 foto`;
     
-    // Show Completion?
-    if (completed === 38) show(getEl("completion-section"));
-    else hide(getEl("completion-section"));
+    const fillProg = getEl("progress-fill");
+    if(fillProg) fillProg.style.width = `${(completed/38)*100}%`;
+    
+    const compSec = getEl("completion-section");
+    if(compSec) {
+        if (completed === 38) show(compSec); else hide(compSec);
+    }
 
-    // Render Image
     const imgMap = { 1: "floor.png", 2: "floor3.jpeg", 3: "floor2.jpeg" };
-    getEl("floor-img").src = imgMap[STATE.currentPage] || "floor.png";
+    const floorImg = getEl("floor-img");
+    if(floorImg) floorImg.src = imgMap[STATE.currentPage] || "floor.png";
 
-    // Render Points
     const container = getEl("points-container");
-    container.innerHTML = "";
-    
-    const pagePoints = PHOTO_POINTS[STATE.currentPage] || [];
-    pagePoints.forEach(p => {
-        const btn = document.createElement("button");
-        let status = "pending";
-        if (STATE.photos[p.id]) status = "completed";
-        else if (p.id === STATE.currentPhotoNumber) status = "active";
-        else if (p.id < STATE.currentPhotoNumber) status = "missed"; // missed logic
+    if(container) {
+        container.innerHTML = "";
+        const pagePoints = PHOTO_POINTS[STATE.currentPage] || [];
+        pagePoints.forEach(p => {
+            const btn = document.createElement("button");
+            let status = "pending";
+            if (STATE.photos[p.id]) status = "completed";
+            else if (p.id === STATE.currentPhotoNumber) status = "active";
+            else if (p.id < STATE.currentPhotoNumber) status = "missed";
 
-        btn.className = `photo-point ${status}`;
-        btn.style.left = `${p.x}%`;
-        btn.style.top = `${p.y}%`;
-        btn.textContent = p.id;
-        
-        // Disable click logic
-        if (p.id > STATE.currentPhotoNumber && !STATE.photos[p.id]) {
-            btn.disabled = true;
-            btn.style.opacity = 0.6;
-        } else {
-            btn.onclick = () => openCamera(p);
-        }
-
-        container.appendChild(btn);
-    });
-
+            btn.className = `photo-point ${status}`;
+            btn.style.left = `${p.x}%`;
+            btn.style.top = `${p.y}%`;
+            btn.textContent = p.id;
+            
+            if (p.id > STATE.currentPhotoNumber && !STATE.photos[p.id]) {
+                btn.disabled = true; btn.style.opacity = 0.6;
+            } else {
+                btn.onclick = () => openCamera(p);
+            }
+            container.appendChild(btn);
+        });
+    }
     renderPhotoList();
 }
 
 function renderPhotoList() {
     const list = getEl("photo-list-grid");
+    if(!list) return;
     list.innerHTML = "";
     
     ALL_POINTS.forEach(p => {
@@ -612,7 +644,6 @@ function renderPhotoList() {
     });
 }
 
-// --- CAMERA FUNCTIONS ---
 async function openCamera(point) {
     STATE.currentPoint = point;
     getEl("cam-title").textContent = `Foto #${point.id}: ${point.label}`;
@@ -634,22 +665,17 @@ async function openCamera(point) {
 }
 
 function closeCamera() {
-    if (STATE.stream) {
-        STATE.stream.getTracks().forEach(t => t.stop());
-        STATE.stream = null;
-    }
+    if (STATE.stream) { STATE.stream.getTracks().forEach(t => t.stop()); STATE.stream = null; }
     STATE.isCameraReady = false;
     hide(getEl("camera-modal"));
 }
 
 function capturePhoto() {
     if (!STATE.isCameraReady) return;
-    
     const vid = getEl("cam-video");
     const cvs = getEl("cam-canvas");
     const ctx = cvs.getContext("2d");
     
-    // Resize logic (Max 1280px)
     const MAX = 1280;
     let w = vid.videoWidth, h = vid.videoHeight;
     if (w > MAX || h > MAX) {
@@ -662,13 +688,9 @@ function capturePhoto() {
     cvs.toBlob(blob => {
         STATE.capturedBlob = blob;
         const url = URL.createObjectURL(blob);
-        
-        // Show result
         getEl("captured-img").src = url;
         hide(getEl("cam-preview-container"));
         show(getEl("photo-result-container"));
-        
-        // Toggle buttons
         hide(getEl("actions-pre-capture"));
         show(getEl("actions-post-capture"));
     }, "image/jpeg", 0.7);
@@ -682,9 +704,7 @@ function resetCameraUI() {
     hide(getEl("actions-post-capture"));
 }
 
-// Handle upload dari file
 async function handlePreviewAndSave(base64) {
-    // Langsung save
     await savePhotoToBackend(base64, null);
 }
 
@@ -692,8 +712,7 @@ async function saveCapturedPhoto() {
     showLoading("Menyimpan foto...");
     try {
         let base64 = null;
-        let note = STATE.currentPhotoNote || null; // Jika "TIDAK BISA DIFOTO"
-
+        let note = STATE.currentPhotoNote || null;
         if (STATE.capturedBlob && STATE.capturedBlob !== "TIDAK_BISA_DIFOTO") {
             base64 = await new Promise((resolve) => {
                 const reader = new FileReader();
@@ -701,56 +720,45 @@ async function saveCapturedPhoto() {
                 reader.readAsDataURL(STATE.capturedBlob);
             });
         }
-        
         await savePhotoToBackend(base64, note);
-
-    } catch (e) {
-        alert("Gagal simpan: " + e.message);
-    } finally {
-        hideLoading();
-    }
+    } catch (e) { alert("Gagal simpan: " + e.message); } 
+    finally { hideLoading(); }
 }
 
 async function savePhotoToBackend(base64, note) {
     const pointId = STATE.currentPoint.id;
-    
-    // Payload
     const payload = {
         nomorUlok: STATE.formData.nomorUlok,
         photoId: pointId,
         photoNote: note,
         photoBase64: base64
     };
-
     const res = await saveTemp(payload);
     if (!res.ok) throw new Error(res.error || "Gagal save server");
 
-    // Update LOCAL STATE
     STATE.photos[pointId] = {
-        url: base64 || "fototidakbisadiambil.jpeg", // Preview local
+        url: base64 || "fototidakbisadiambil.jpeg",
         point: STATE.currentPoint,
         timestamp: new Date().toISOString(),
         note: note
     };
 
-    // Update Photo Number jika foto baru
     if (pointId === STATE.currentPhotoNumber) {
         let next = pointId + 1;
         if (next > 38) next = 38;
         STATE.currentPhotoNumber = next;
     }
-
-    STATE.currentPhotoNote = null; // reset note
+    STATE.currentPhotoNote = null;
     closeCamera();
-    renderFloorPlan(); // Refresh UI
+    renderFloorPlan();
     showToast(`Foto #${pointId} tersimpan!`);
 }
 
 function showWarningModal(msg, onOk) {
-    getEl("warning-msg").textContent = msg;
-    const btn = getEl("btn-warning-ok");
+    const msgEl = getEl("warning-msg");
+    if(msgEl) msgEl.textContent = msg;
     
-    // Hapus event lama agar tidak menumpuk
+    const btn = getEl("btn-warning-ok");
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
     
@@ -761,14 +769,11 @@ function showWarningModal(msg, onOk) {
     show(getEl("warning-modal"));
 }
 
-
 // ==========================================
-// 8. PDF WORKER INTEGRATION
+// 8. PDF GENERATION
 // ==========================================
 function generateAndSendPDF() {
-    showLoading("Membuat PDF (Mohon Tunggu)...");
-    
-    // Pastikan file pdf.worker.js ada di folder yang sama
+    showLoading("Membuat PDF...");
     const worker = new Worker("pdf.worker.js", { type: "module" });
 
     worker.postMessage({
@@ -779,31 +784,18 @@ function generateAndSendPDF() {
 
     worker.onmessage = async (e) => {
         const { ok, pdfBase64, pdfBlob, error } = e.data;
-        
         if(!ok) {
-            console.error(error);
-            alert("Gagal membuat PDF");
-            hideLoading();
-            worker.terminate();
-            return;
+            console.error(error); alert("Gagal membuat PDF");
+            hideLoading(); worker.terminate(); return;
         }
 
         try {
-            // Logic Save to SpreadSheet & Email (dari api.js lama)
-            // Kita implementasi ulang fetch-nya di sini agar tidak ribet import
-            
             showLoading("Mengirim PDF ke Email...");
-            
             const user = STATE.user;
             const safeDate = STATE.formData.tanggalAmbilFoto || "unknown";
             const filename = `Dokumentasi_${STATE.formData.kodeToko}_${safeDate}.pdf`;
 
-            // 1. Save Toko (Drive + Sheet)
-            const payload = {
-                ...STATE.formData,
-                pdfBase64, 
-                emailPengirim: user.email || ""
-            };
+            const payload = { ...STATE.formData, pdfBase64, emailPengirim: user.email || "" };
             
             const resSave = await fetch(`${API_BASE_URL}/save-toko`, {
                 method: "POST", headers:{"Content-Type":"application/json"},
@@ -812,36 +804,26 @@ function generateAndSendPDF() {
             const jsonSave = await resSave.json();
             if(!jsonSave.ok) throw new Error("Gagal simpan ke Spreadsheet");
 
-            // 2. Kirim Email
-            const resEmail = await fetch(`${API_BASE_URL}/send-pdf-email`, {
+            await fetch(`${API_BASE_URL}/send-pdf-email`, {
                 method:"POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify({
-                    email: user.email,
-                    pdfBase64, filename, pdfUrl: jsonSave.pdfUrl,
-                    ...STATE.formData
+                    email: user.email, pdfBase64, filename, pdfUrl: jsonSave.pdfUrl, ...STATE.formData
                 })
             });
 
-            // Download lokal
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url; a.download = filename;
             document.body.appendChild(a); a.click(); a.remove();
 
             showToast("Berhasil disimpan & dikirim! ✅");
-            
         } catch(err) {
-            console.error(err);
-            alert("Error upload: " + err.message);
+            console.error(err); alert("Error upload: " + err.message);
         } finally {
-            hideLoading();
-            worker.terminate();
+            hideLoading(); worker.terminate();
         }
     };
-
     worker.onerror = (e) => {
-        console.error("Worker Error", e);
-        hideLoading();
-        worker.terminate();
+        console.error("Worker Error", e); hideLoading(); worker.terminate();
     };
 }
