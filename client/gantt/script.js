@@ -693,6 +693,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.createRangeHTML = function (taskId, idx, start, end, isSaved = false) {
         const btnColor = isSaved ? 'background: #fed7d7; color: #c53030;' : 'background: #e2e8f0; color: #4a5568;';
+        const maxVal = currentProject && currentProject.duration ? parseInt(currentProject.duration) : '';
+        const maxAttr = maxVal ? `max="${maxVal}"` : '';
         return `
         <div class="range-input-group" id="range-group-${taskId}-${idx}" data-range-idx="${idx}">
             <div class="input-group">
@@ -974,11 +976,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.applyTaskSchedule = function () {
         let tempTasks = [];
         let error = false;
+        const maxAllowedDay = parseInt(currentProject.duration) || 999;
 
         // 1. AMBIL DATA DARI INPUT (Range & Dependency)
         currentTasks.forEach(t => {
             const container = document.getElementById(`ranges-${t.id}`);
-            // Ambil value dependency dari dropdown
             const depSelect = document.querySelector(`.dep-select[data-task-id="${t.id}"]`);
             const depValue = depSelect ? depSelect.value : "";
 
@@ -995,6 +997,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e < s && e !== 0) {
                     error = true;
                     alert(`Error Tahapan ${t.name}: Hari Selesai lebih kecil dari Mulai`);
+                }
+
+                if (e > maxAllowedDay) {
+                    error = true;
+                    alert(`Error Tahapan ${t.name}: Hari Selesai (${e}) tidak boleh melebihi Durasi Pekerjaan (${maxAllowedDay} Hari).`);
                 }
                 newRanges.push({ start: s, end: e, duration: (e > 0 ? e - s + 1 : 0) });
             });
@@ -1268,10 +1275,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const totalDaysToRender = Math.max(
-            (currentProject.work === 'ME' ? totalDaysME : totalDaysSipil),
-            maxTaskEndDay + 10
-        );
+        const projectDuration = parseInt(currentProject.duration) || (currentProject.work === 'ME' ? 100 : 205);
+        const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay) + 2;
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
         const projectStartDate = new Date(currentProject.startDate);
 
