@@ -1416,9 +1416,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const durationDisplay = currentProject.duration ? `${currentProject.duration} Hari` : '-';
         document.getElementById("projectInfo").innerHTML = `
             <div class="project-detail"><div class="project-label">No. Ulok</div><div class="project-value">${currentProject.ulokClean}</div></div>
-            <div class="project-detail"><div class="project-label">Toko</div><div class="project-value">${currentProject.store}</div></div>
-            <div class="project-detail"><div class="project-label">Lingkup</div><div class="project-value">${currentProject.work}</div></div>
-            <div class="project-detail"><div class="project-label">Durasi</div><div class="project-value">${durationDisplay}</div></div>
+            <div class="project-detail"><div class="project-label">Nama Toko</div><div class="project-value">${currentProject.store}</div></div>
+            <div class="project-detail"><div class="project-label">Lingkup Pekerjaan</div><div class="project-value">${currentProject.work}</div></div>
+            <div class="project-detail"><div class="project-label">Durasi Pekerjaan</div><div class="project-value">${durationDisplay}</div></div>
         `;
     }
 
