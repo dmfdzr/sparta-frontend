@@ -17,7 +17,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif; /* Font RAB */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.5;
@@ -30,9 +30,9 @@ body {
    HEADER / NAVBAR
    ========================================= */
 .app-header {
-    background-color: #ffffff; /* Navbar Putih Bersih ala Dashboard */
+    background-color: #ffffff;
     border-bottom: 1px solid var(--border-color);
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.5rem;
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -42,26 +42,17 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
-.header-top h1 {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: var(--primary-color); /* Judul Merah */
-    letter-spacing: -0.025em;
-}
-
-.header-bottom {
+.header-brand {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 12px;
 }
 
-.header-left {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    background: #f3f4f6;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
+.header-brand h1 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    letter-spacing: -0.01em;
 }
 
 .btn-logout {
@@ -74,6 +65,7 @@ body {
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px;
 }
 
 .btn-logout:hover {
@@ -81,12 +73,52 @@ body {
 }
 
 /* =========================================
+   SUB-HEADER (USER INFO)
+   ========================================= */
+.app-subheader {
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem 0; /* Padding vertikal kecil agar ramping */
+    margin-bottom: 1.5rem;
+}
+
+.subheader-container {
+    max-width: 1200px; /* Sejajar dengan container utama */
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    background-color: #f3f4f6;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    border: 1px solid #e5e7eb;
+}
+
+.user-badge i { color: var(--text-muted); }
+
+.date-badge {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* =========================================
    MAIN LAYOUT
    ========================================= */
 .main-content {
-    max-width: 1200px; /* Lebar ala Container RAB */
-    margin: 2rem auto;
+    max-width: 1200px;
+    margin: 0 auto;
     padding: 0 1rem;
+    padding-bottom: 3rem;
 }
 
 /* =========================================

@@ -105,6 +105,15 @@ const hideLoading = () => hide(getEl("loading-overlay"));
 document.addEventListener("DOMContentLoaded", () => {
     checkSession(); // Cek session saat load
     setInterval(checkTimeLimit, 60000); 
+    
+    // Tampilkan tanggal hari ini di sub-header (optional tapi bagus)
+    const dateEl = getEl("current-date-display");
+    if(dateEl) {
+        const d = new Date();
+        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateEl.textContent = d.toLocaleDateString('id-ID', opts);
+    }
+    
     initEventListeners();
 });
 
@@ -125,20 +134,15 @@ async function logLoginAttempt(username, cabang, status) {
     } catch (error) { console.error("Log failed", error); }
 }
 
-// --- PERBAIKAN UTAMA DI SINI ---
 function checkSession() {
-    // 1. Cek SessionStorage (Login dari Auth/Dashboard Utama)
-    // Sesuai dengan auth/script.js: authenticated, loggedInUserEmail, loggedInUserCabang
     const ssoAuth = sessionStorage.getItem("authenticated");
     const ssoEmail = sessionStorage.getItem("loggedInUserEmail");
     const ssoCabang = sessionStorage.getItem("loggedInUserCabang");
     const ssoRole = sessionStorage.getItem("userRole");
 
-    // 2. Cek LocalStorage (Login Lokal di halaman ini jika ada)
     const localUser = localStorage.getItem("user");
 
     if (ssoAuth === "true" && ssoEmail && ssoCabang) {
-        // CASE A: User sudah login via Auth/Dashboard
         console.log("Session detected from Auth System");
         STATE.user = {
             email: ssoEmail,
@@ -149,27 +153,26 @@ function checkSession() {
         proceedToApp();
         
     } else if (localUser) {
-        // CASE B: User login lokal di halaman ini
         console.log("Session detected from LocalStorage");
         STATE.user = JSON.parse(localUser);
         proceedToApp();
         
     } else {
-        // CASE C: Belum Login
         switchToView("login");
         checkTimeLimit();
     }
 }
 
 function proceedToApp() {
-    // Tampilkan Header Info
     const infoEl = getEl("header-user-info");
     if(infoEl) infoEl.textContent = `Building & Maintenance — ${STATE.user.cabang || ""}`;
     
+    // Tampilkan Header DAN Sub-Header
     show(getEl("main-header"));
+    show(getEl("sub-header")); // <-- Perubahan Disini
+    
     hide(getEl("view-login"));
     
-    // Masuk ke Form
     switchToView("form");
     loadSpkData(STATE.user.cabang);
 }
@@ -194,7 +197,6 @@ function checkTimeLimit() {
             show(msgContainer);
             if(btnLogin) { btnLogin.disabled = true; btnLogin.style.cursor = "not-allowed"; }
         } else if (STATE.user && !isLoginView) {
-            // Jika user sedang login tapi waktu habis
             showWarningModal(msg, () => doLogout());
         }
     } else {
@@ -204,9 +206,8 @@ function checkTimeLimit() {
 }
 
 function doLogout() {
-    // Bersihkan semua sesi
     localStorage.removeItem("user");
-    sessionStorage.clear(); // Hapus sesi SSO juga agar benar-benar logout
+    sessionStorage.clear();
     STATE.user = null;
     location.reload();
 }
@@ -216,7 +217,12 @@ function switchToView(viewName) {
     hide(getEl("view-form"));
     hide(getEl("view-floorplan"));
 
-    if (viewName === "login") show(getEl("view-login"));
+    if (viewName === "login") {
+        show(getEl("view-login"));
+        // Sembunyikan Header & Sub-Header saat di login screen
+        hide(getEl("main-header"));
+        hide(getEl("sub-header"));
+    }
     else if (viewName === "form") show(getEl("view-form"));
     else if (viewName === "floorplan") {
         show(getEl("view-floorplan"));
@@ -294,7 +300,6 @@ async function saveTemp(payload) {
 // 5. EVENT LISTENERS
 // ==========================================
 function initEventListeners() {
-    // LOGIN FORM (Fallback jika login manual di halaman ini)
     const formLogin = getEl("form-login");
     if(formLogin) {
         formLogin.addEventListener("submit", async (e) => {
@@ -310,9 +315,7 @@ function initEventListeners() {
             try {
                 const user = await apiLogin(u, p);
                 
-                // Simpan ke LocalStorage agar persist
                 localStorage.setItem("user", JSON.stringify(user));
-                // Opsional: set juga session storage agar konsisten
                 sessionStorage.setItem("authenticated", "true");
                 sessionStorage.setItem("loggedInUserEmail", user.email);
                 sessionStorage.setItem("loggedInUserCabang", user.cabang);
@@ -329,7 +332,6 @@ function initEventListeners() {
         });
     }
 
-    // Toggle Password
     const btnToggle = getEl("btn-toggle-pass");
     if(btnToggle) {
         btnToggle.addEventListener("click", () => {
@@ -350,7 +352,6 @@ function initEventListeners() {
     const btnLogout = getEl("btn-logout");
     if(btnLogout) btnLogout.addEventListener("click", doLogout);
 
-    // FORM INPUTS
     const chkManual = getEl("chk-manual-ulok");
     if(chkManual) {
         chkManual.addEventListener("change", (e) => {
@@ -384,7 +385,6 @@ function initEventListeners() {
         });
     }
 
-    // Auto-save fields
     const inputs = document.querySelectorAll("#data-input-form input");
     inputs.forEach(inp => {
         inp.addEventListener("change", (e) => {
@@ -403,7 +403,6 @@ function initEventListeners() {
         });
     }
 
-    // NAV
     const btnBack = getEl("btn-back-form");
     if(btnBack) btnBack.addEventListener("click", () => switchToView("form"));
     
@@ -416,7 +415,6 @@ function initEventListeners() {
         });
     });
 
-    // CAMERA & ACTIONS
     const btnCloseCam = getEl("btn-close-cam");
     if(btnCloseCam) btnCloseCam.addEventListener("click", closeCamera);
     
@@ -502,7 +500,6 @@ function populateForm(data) {
     if(!data) return;
     STATE.formData = { ...STATE.formData, ...data };
     
-    // Safety check if elements exist
     const safeSet = (id, val) => { const el = getEl(id); if(el) el.value = val || ""; };
     
     safeSet("inp-cabang", data.cabang || STATE.user?.cabang);
@@ -769,9 +766,6 @@ function showWarningModal(msg, onOk) {
     show(getEl("warning-modal"));
 }
 
-// ==========================================
-// 8. PDF GENERATION
-// ==========================================
 function generateAndSendPDF() {
     showLoading("Membuat PDF...");
     const worker = new Worker("pdf.worker.js", { type: "module" });

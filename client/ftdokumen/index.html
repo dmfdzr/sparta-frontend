@@ -11,21 +11,33 @@
 <body>
 
     <header class="app-header hidden" id="main-header">
-        <div class="header-top">
-            <h1>Dokumentasi Bangunan Toko Baru Alfamart</h1>
+        <div class="header-brand">
+            <i class="fa-solid fa-building" style="color: #d0021b; font-size: 1.2rem;"></i>
+            <h1>Dokumentasi Bangunan</h1>
         </div>
-        <div class="header-bottom">
-            <span class="header-left" id="header-user-info">Building & Maintenance</span>
-            <button class="btn-logout" id="btn-logout">Logout</button>
-        </div>
+        <button class="btn-logout" id="btn-logout">
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
     </header>
+
+    <div id="sub-header" class="app-subheader hidden">
+        <div class="subheader-container">
+            <div class="user-badge">
+                <i class="fa-solid fa-user-circle"></i>
+                <span id="header-user-info">Building & Maintenance</span>
+            </div>
+            <div class="date-badge">
+                <span id="current-date-display"></span>
+            </div>
+        </div>
+    </div>
 
     <main class="main-content">
         
         <div id="view-login" class="login-container">
             <div class="login-box">
                 <div class="login-logo">
-                    <img src="logoalfamart.png" alt="Alfamart Logo">
+                    <img src="logoalfamart.png" alt="Alfamart Logo" onerror="this.style.display='none'">
                 </div>
                 <h2>Building & Maintenance</h2>
                 <p>Foto Dokumentasi Bangunan Toko Baru</p>
