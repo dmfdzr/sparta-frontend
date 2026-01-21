@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             html += `   </div>
-                        <button class="btn-add-range" onclick="addRange(${task.id})" style="margin-top:8px;">+ Tambah Durasi Lain</button>
+                        <button class="btn-add-range" onclick="addRange(${task.id})" style="margin-top:8px;">+ Tambah Durasi</button>
                     </div>
                 </div>
             </div>`;
