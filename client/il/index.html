@@ -16,6 +16,7 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  
   <script src="script.js" defer></script>
 </head>
 
@@ -23,18 +24,15 @@
   <header>
     <img src="../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
     <h1 class="text-xl font-bold">Instruksi Lapangan</h1>
-    <button class="header-logout" id="btn-logout" title="Kembali">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-      </svg>
-    </button>
+    <button class="header-logout" id="btn-logout">Logout</button>
   </header>
 
-  <div class="container mx-auto px-4 py-6 pb-24 max-w-4xl">
+  <div class="container mx-auto px-4 py-6 pb-24 max-w-5xl">
     <div id="message" role="alert"></div>
 
-    <form id="form" class="space-y-6 bg-white p-6 rounded-lg shadow-md">
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <form id="form" class="space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Nama Toko</label>
           <input type="text" id="nama_toko" name="Nama_Toko" class="form-input w-full" placeholder="Masukkan nama toko" required />
@@ -48,23 +46,23 @@
       </div>
 
       <div id="location-inputs">
-           <div class="bg-blue-50 p-4 rounded-md border border-blue-100">
+           <div class="bg-blue-50 p-5 rounded-lg border border-blue-100">
             <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Ulok</label>
             <div class="flex flex-wrap items-center gap-2">
               <select id="lokasi_cabang" class="form-select w-24 text-center font-mono" required></select>
-              <span class="text-gray-400">-</span>
-              <input type="text" id="lokasi_tanggal" class="form-input w-20 text-center font-mono" placeholder="MMYY" maxlength="4" required />
-              <span class="text-gray-400">-</span>
-              <input type="text" id="lokasi_manual" class="form-input w-20 text-center font-mono" placeholder="0001" maxlength="4" required />
+              <span class="text-gray-400 font-bold">-</span>
+              <input type="text" id="lokasi_tanggal" class="form-input w-24 text-center font-mono" placeholder="MMYY" maxlength="4" required />
+              <span class="text-gray-400 font-bold">-</span>
+              <input type="text" id="lokasi_manual" class="form-input w-24 text-center font-mono" placeholder="0001" maxlength="4" required />
               
-              <span id="separator_renov" class="text-gray-400" style="display:none;">-</span>
-              <input type="text" id="suffix_renov" class="form-input w-12 text-center font-mono bg-gray-100" value="R" readonly style="display:none;" />
+              <span id="separator_renov" class="text-gray-400 font-bold" style="display:none;">-</span>
+              <input type="text" id="suffix_renov" class="form-input w-14 text-center font-mono bg-gray-100" value="R" readonly style="display:none;" />
               
               <input type="hidden" id="lokasi" name="Nomor Ulok" />
             </div>
             
-            <div class="mt-3 flex items-center">
-                <input type="checkbox" id="toggle_renovasi" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+            <div class="mt-4 flex items-center p-2 bg-white rounded border border-blue-100 w-fit">
+                <input type="checkbox" id="toggle_renovasi" class="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500 cursor-pointer">
                 <label for="toggle_renovasi" class="ml-2 text-sm text-gray-700 font-medium cursor-pointer">Proyek Renovasi (Akhiran 'R')</label>
             </div>
           </div>
@@ -79,41 +77,43 @@
         </select>
       </div>
 
-      <div id="sipil-tables-wrapper" class="hidden space-y-8"></div>
-      <div id="me-tables-wrapper" class="hidden space-y-8"></div>
+      <div id="sipil-tables-wrapper" class="hidden space-y-8 animate-fade-in"></div>
+      <div id="me-tables-wrapper" class="hidden space-y-8 animate-fade-in"></div>
 
-      <div class="mt-6">
+      <div class="mt-8 pt-6 border-t border-gray-100">
         <label class="block text-sm font-medium text-gray-700 mb-2">Upload Lampiran (PDF)</label>
-        <div class="file-upload-wrapper border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-            <input type="file" id="attachment_pdf" name="file_pdf" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-            <div class="pointer-events-none">
+        <div class="file-upload-wrapper border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative group">
+            <input type="file" id="attachment_pdf" name="file_pdf" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+            <div class="pointer-events-none group-hover:scale-105 transition-transform duration-200">
                 <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                     <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                <p class="mt-1 text-sm text-gray-600 file-info-label">Klik atau seret file PDF ke sini</p>
+                <p class="mt-2 text-sm font-medium text-gray-600 file-info-label">Klik atau seret file PDF ke sini</p>
+                <p class="text-xs text-gray-400 mt-1">Maksimal 5MB</p>
             </div>
         </div>
       </div>
 
-      <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 space-y-2 mt-6">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #555;">
-              <span class="text-md">Pembulatan:</span>
-              <span id="pembulatan-amount" class="text-md font-medium">Rp 0</span>
+      <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-3 mt-6">
+          <div class="flex justify-between items-center text-gray-600">
+              <span class="text-sm font-medium">Pembulatan:</span>
+              <span id="pembulatan-amount" class="font-mono font-medium">Rp 0</span>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #555;">
-              <span class="text-md">PPN 11%:</span>
-              <span id="ppn-amount" class="text-md font-medium">Rp 0</span>
+          <div class="flex justify-between items-center text-gray-600">
+              <span class="text-sm font-medium">PPN 11%:</span>
+              <span id="ppn-amount" class="font-mono font-medium">Rp 0</span>
           </div>
-          <hr style="border-top: 1px solid #bbb; margin: 10px 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span class="text-lg font-bold" style="color: #0056b3;">Grand Total:</span>
-              <span id="final-total-amount" class="text-2xl font-extrabold" style="color: #0056b3;">Rp 0</span>
+          <div class="border-t border-gray-300 my-2"></div>
+          <div class="flex justify-between items-center">
+              <span class="text-lg font-bold text-gray-800">Grand Total:</span>
+              <span id="final-total-amount" class="text-2xl font-extrabold text-blue-700">Rp 0</span>
+              <span id="grand-total-amount" class="hidden"></span>
           </div>
       </div>
 
-      <div class="button-group flex gap-4 mt-6">
-        <button type="submit" id="submit-button" class="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition shadow-lg">Kirim</button>
-        <button type="reset" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-300 transition">Ulang</button>
+      <div class="button-group">
+        <button type="submit" id="submit-button">Kirim Data</button>
+        <button type="reset">Reset Form</button>
       </div>
     </form>
   </div>
