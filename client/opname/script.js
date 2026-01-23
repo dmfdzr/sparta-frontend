@@ -130,7 +130,7 @@ const Auth = {
         // Cek jika user berasal dari Sparta Main App
         if (sessionStorage.getItem("authenticated") === "true") {
             // Redirect kembali ke Dashboard Utama Sparta
-            window.location.href = "/client/dashboard/index.html";
+            window.location.href = "../../dashboard/index.html";
         } else {
             // Jika login mandiri di Opname, kembali ke form login Opname
             Render.app();
@@ -1081,7 +1081,7 @@ const Render = {
                     <div class="alert-error">
                         <h3>Gagal Memuat Data</h3>
                         <p>${e.message}</p>
-                        <button class="btn btn-back" onclick="AppState.activeView='dashboard'; Render.app()" style="margin-top:10px;">Kembali ke Dashboard</button>
+                        <button class="btn btn-back" onclick="AppState.activeView='dashboard'; Render.app()" style="margin-top:10px;">Dashboard</button>
                     </div>
                 </div>`;
         }
