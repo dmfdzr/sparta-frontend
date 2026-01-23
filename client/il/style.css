@@ -49,7 +49,7 @@ header h1 {
 }
 
 /* Tombol Logout di Header */
-#logout-button-form {
+.btn-logout-form {
   position: absolute;
   right: 25px;
   top: 50%;
@@ -67,7 +67,7 @@ header h1 {
   z-index: 20;
 }
 
-#logout-button-form:hover {
+.btn-logout-form:hover {
   background-color: #fef2f2;
   transform: translateY(-50%) scale(1.05);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
