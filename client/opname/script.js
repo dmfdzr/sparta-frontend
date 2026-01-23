@@ -44,10 +44,17 @@ const AppState = {
     idleTimer: null,
 };
 
-/* ======================== AUTH SYSTEM ======================== */
+/* ======================== AUTH SYSTEM (INTEGRATED) ======================== */
 const Auth = {
-    init: () => {
+    init: async () => {
+        // 1. Cek apakah ada session yang tersimpan spesifik di Opname (localStorage/sessionStorage lokal)
         const savedUser = sessionStorage.getItem("user");
+        
+        // 2. Cek apakah ada session dari Main Auth (Sparta Parent App)
+        // Kunci ini berasal dari client/auth/script.js
+        const mainAuthEmail = sessionStorage.getItem("loggedInUserEmail");
+        const mainAuthCabang = sessionStorage.getItem("loggedInUserCabang"); // Password disimpan di sini
+
         if (savedUser) {
             try {
                 AppState.user = JSON.parse(savedUser);
@@ -55,7 +62,24 @@ const Auth = {
             } catch {
                 sessionStorage.removeItem("user");
             }
+        } 
+        // INTEGRASI BARU: Jika belum login Opname tapi sudah login Sparta Main App
+        else if (mainAuthEmail && mainAuthCabang) {
+            console.log("Mendeteksi sesi Sparta Utama. Mencoba login otomatis ke Opname...");
+            try {
+                // Lakukan login otomatis (silent login) menggunakan kredensial dari Main Auth
+                const result = await Auth.login(mainAuthEmail, mainAuthCabang);
+                if (result.success) {
+                    console.log("Auto-login Opname berhasil.");
+                } else {
+                    console.warn("Auto-login Opname gagal:", result.message);
+                    // Jika gagal (misal jam operasional tutup), user akan tetap melihat error di layar login nanti
+                }
+            } catch (e) {
+                console.error("Kesalahan saat auto-login:", e);
+            }
         }
+
         AppState.loading = false;
         Render.app();
     },
@@ -66,6 +90,7 @@ const Auth = {
             const wibTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
             const hour = wibTime.getHours();
             
+            // Validasi Jam Operasional
             if (hour < 6 || hour >= 24) {
                 const currentTime = wibTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
                 throw new Error(`Sesi habis. Login 06.00–24.00 WIB. (Saat ini: ${currentTime})`);
@@ -79,10 +104,15 @@ const Auth = {
             const userData = await res.json();
             if (!res.ok) throw new Error(userData.message || "Login failed");
 
+            // Mapping user role dari backend Opname jika diperlukan
+            // Backend Opname biasanya mengembalikan role 'pic' atau 'kontraktor'
             AppState.user = userData;
             sessionStorage.setItem("user", JSON.stringify(userData));
+            
             Auth.startIdleTimer();
-            Render.app();
+            
+            // Jika dipanggil dari form login manual, kita refresh tampilan
+            // Jika dari init (auto-login), Render.app() akan dipanggil setelah ini selesai di init
             return { success: true };
         } catch (error) {
             return { success: false, message: error.message };
@@ -90,12 +120,21 @@ const Auth = {
     },
 
     logout: () => {
+        // Hapus session Opname
         AppState.user = null;
         sessionStorage.removeItem("user");
         clearTimeout(AppState.idleTimer);
         AppState.activeView = 'dashboard';
         AppState.selectedStore = null;
-        Render.app();
+
+        // Cek jika user berasal dari Sparta Main App
+        if (sessionStorage.getItem("authenticated") === "true") {
+            // Redirect kembali ke Dashboard Utama Sparta
+            window.location.href = "/client/dashboard/index.html";
+        } else {
+            // Jika login mandiri di Opname, kembali ke form login Opname
+            Render.app();
+        }
     },
 
     startIdleTimer: () => {
@@ -737,6 +776,11 @@ const Render = {
     header: () => {
         const header = document.createElement('header');
         header.className = 'app-header';
+        
+        // Ubah teks tombol logout tergantung konteks
+        const isFromMainAuth = sessionStorage.getItem("authenticated") === "true";
+        const logoutText = isFromMainAuth ? "Kembali ke Dashboard" : "Keluar";
+
         header.innerHTML = `
             <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart" class="header-logo" onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('afterbegin', '<b style=\\'position:absolute;left:20px;color:white\\'>ALFAMART</b>')">
             <div style="text-align:center;">
@@ -747,7 +791,7 @@ const Render = {
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
-                <span>Keluar</span>
+                <span>${logoutText}</span>
             </button>
         `;
         header.querySelector('#btn-logout').onclick = () => Auth.logout();
