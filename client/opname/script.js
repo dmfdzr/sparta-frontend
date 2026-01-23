@@ -47,13 +47,9 @@ const AppState = {
 /* ======================== AUTH SYSTEM (INTEGRATED) ======================== */
 const Auth = {
     init: async () => {
-        // 1. Cek apakah ada session yang tersimpan spesifik di Opname (localStorage/sessionStorage lokal)
         const savedUser = sessionStorage.getItem("user");
-        
-        // 2. Cek apakah ada session dari Main Auth (Sparta Parent App)
-        // Kunci ini berasal dari client/auth/script.js
         const mainAuthEmail = sessionStorage.getItem("loggedInUserEmail");
-        const mainAuthCabang = sessionStorage.getItem("loggedInUserCabang"); // Password disimpan di sini
+        const mainAuthCabang = sessionStorage.getItem("loggedInUserCabang");
 
         if (savedUser) {
             try {
@@ -63,17 +59,14 @@ const Auth = {
                 sessionStorage.removeItem("user");
             }
         } 
-        // INTEGRASI BARU: Jika belum login Opname tapi sudah login Sparta Main App
         else if (mainAuthEmail && mainAuthCabang) {
             console.log("Mendeteksi sesi Sparta Utama. Mencoba login otomatis ke Opname...");
             try {
-                // Lakukan login otomatis (silent login) menggunakan kredensial dari Main Auth
                 const result = await Auth.login(mainAuthEmail, mainAuthCabang);
                 if (result.success) {
                     console.log("Auto-login Opname berhasil.");
                 } else {
                     console.warn("Auto-login Opname gagal:", result.message);
-                    // Jika gagal (misal jam operasional tutup), user akan tetap melihat error di layar login nanti
                 }
             } catch (e) {
                 console.error("Kesalahan saat auto-login:", e);
@@ -90,7 +83,6 @@ const Auth = {
             const wibTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
             const hour = wibTime.getHours();
             
-            // Validasi Jam Operasional
             if (hour < 6 || hour >= 24) {
                 const currentTime = wibTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
                 throw new Error(`Sesi habis. Login 06.00–24.00 WIB. (Saat ini: ${currentTime})`);
@@ -104,15 +96,9 @@ const Auth = {
             const userData = await res.json();
             if (!res.ok) throw new Error(userData.message || "Login failed");
 
-            // Mapping user role dari backend Opname jika diperlukan
-            // Backend Opname biasanya mengembalikan role 'pic' atau 'kontraktor'
             AppState.user = userData;
             sessionStorage.setItem("user", JSON.stringify(userData));
-            
             Auth.startIdleTimer();
-            
-            // Jika dipanggil dari form login manual, kita refresh tampilan
-            // Jika dari init (auto-login), Render.app() akan dipanggil setelah ini selesai di init
             return { success: true };
         } catch (error) {
             return { success: false, message: error.message };
@@ -120,19 +106,15 @@ const Auth = {
     },
 
     logout: () => {
-        // Hapus session Opname
         AppState.user = null;
         sessionStorage.removeItem("user");
         clearTimeout(AppState.idleTimer);
         AppState.activeView = 'dashboard';
         AppState.selectedStore = null;
 
-        // Cek jika user berasal dari Sparta Main App
         if (sessionStorage.getItem("authenticated") === "true") {
-            // Redirect kembali ke Dashboard Utama Sparta
             window.location.href = "../../dashboard/index.html";
         } else {
-            // Jika login mandiri di Opname, kembali ke form login Opname
             Render.app();
         }
     },
@@ -149,15 +131,12 @@ const Auth = {
     }
 };
 
-/* ======================== PDF HELPER FUNCTIONS (From Repo) ======================== */
-// Konfigurasi Konstanta PDF
+/* ======================== PDF HELPER FUNCTIONS ======================== */
+// (Bagian PDF Helper tetap sama, tidak perlu diubah)
 const COMPANY_NAME = "PT. SUMBER ALFARIA TRIJAYA, Tbk";
 const REPORT_TITLE = "BERITA ACARA OPNAME PEKERJAAN";
-// Gunakan logo lokal jika ada, atau fallback ke URL publik
 const LOGO_URL_FALLBACK = "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Alfamart_logo.svg/1280px-Alfamart_logo.svg.png";
-const LOCAL_LOGO_PATH = "../../assets/Alfamart-Emblem.png"; // Sesuaikan path jika perlu
 
-// Helper Konversi Angka yang Kuat (Persis dari repo)
 const toNumberID_PDF = (v) => {
     if (v === null || v === undefined) return 0;
     const s = String(v).trim();
@@ -181,7 +160,6 @@ const toNumberVol_PDF = (v) => {
     return Number.isFinite(n) ? n : 0;
 };
 
-// Helper Fetching Data Khusus PDF
 const fetchRabData = async (kode_toko, no_ulok, lingkup) => {
     try {
         const url = new URL(`${API_BASE_URL}/api/rab`);
@@ -232,11 +210,9 @@ const fetchPicKontraktorOpnameData = async (noUlok) => {
     } catch (e) { return { pic_username: "N/A", kontraktor_username: "N/A", name: "" }; }
 };
 
-// Helper Gambar ke Base64
 const toBase64 = async (url) => {
     try {
         if (!url) return null;
-        // Gunakan proxy jika URL beda origin, atau fetch langsung jika sama/cors allow
         const proxyUrl = `${API_BASE_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
         const response = await fetch(proxyUrl).catch(() => fetch(url)); 
         if (!response.ok) throw new Error(`Status: ${response.status}`);
@@ -281,7 +257,6 @@ const wrapText = (doc, text, maxWidth) => {
     return lines;
 };
 
-/* ======================== PDF GENERATOR (REVISED) ======================== */
 const PDFGenerator = {
     generateFinalOpnamePDF: async (submissions, selectedStore, selectedUlok, selectedLingkup, user) => {
         if (!window.jspdf) { alert("Library PDF belum dimuat."); return; }
@@ -291,7 +266,6 @@ const PDFGenerator = {
         const doc = new jsPDF();
         const currentDate = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
 
-        // --- FOOTER FUNCTION ---
         const addFooter = (pageNum) => {
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
@@ -304,13 +278,9 @@ const PDFGenerator = {
             doc.setTextColor(0, 0, 0);
         };
 
-        // --- PREPARE DATA ---
         const lingkupFix = (selectedLingkup || "").toUpperCase();
         
-        // 1. Fetch RAB
         const rabData = await fetchRabData(selectedStore.kode_toko, selectedUlok, lingkupFix);
-        
-        // 2. Fetch PIC Info
         const picKontraktorData = await fetchPicKontraktorData(selectedUlok);
         const fromOpname = await fetchPicKontraktorOpnameData(selectedUlok);
         
@@ -324,17 +294,13 @@ const PDFGenerator = {
 
         const picList = await fetchPicList({ noUlok: selectedUlok, lingkup: lingkupFix, kodeToko: selectedStore.kode_toko });
 
-        // --- SETUP HALAMAN ---
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 14;
         let startY = 12;
 
-        // --- HEADER ---
-        // 1. Logo
         let logoData = null;
         try {
-           // Coba load logo
            logoData = await toBase64(LOGO_URL_FALLBACK);
         } catch(e) {}
 
@@ -343,9 +309,8 @@ const PDFGenerator = {
             doc.addImage(logoData, "PNG", (pageWidth - logoW) / 2, startY, logoW, logoH);
         }
         startY += logoH + 6;
-        startY += 6; // Spasi
+        startY += 6;
 
-        // 2. Identitas
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
@@ -362,7 +327,6 @@ const PDFGenerator = {
         }
         startY += 6;
 
-        // 3. Judul
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
         doc.text(REPORT_TITLE, pageWidth / 2, startY, { align: "center" });
@@ -370,7 +334,6 @@ const PDFGenerator = {
         doc.setFont("helvetica", "normal");
         startY += 8;
 
-        // --- INFO PROYEK ---
         doc.setFontSize(10);
         const dataOpname = submissions && submissions.length > 0 ? submissions[0] : {};
         const finalNamaToko = dataOpname.nama_toko || selectedStore.nama_toko || "-";
@@ -385,7 +348,6 @@ const PDFGenerator = {
         doc.text(`NAMA PIC : ${picLine}`, margin, startY); startY += 7;
         doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, startY); startY += 15;
 
-        // ======================= BAGIAN 1: RAB FINAL =======================
         doc.setFontSize(12).setFont("helvetica", "bold");
         doc.text("RAB FINAL", margin, startY);
         doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
@@ -428,7 +390,6 @@ const PDFGenerator = {
                 ];
             });
 
-            // Subtotal row
             categoryTableBody.push(["", "", "", "", "", "SUB TOTAL", formatRupiah(catMaterialTotal), formatRupiah(catUpahTotal), formatRupiah(catMaterialTotal + catUpahTotal)]);
 
             doc.autoTable({
@@ -448,7 +409,6 @@ const PDFGenerator = {
                     8: { fontStyle: "bold", halign: "right" }
                 },
                 didParseCell: (data) => {
-                    // Warna kuning utk IL, abu utk subtotal
                     if(data.section === 'body') {
                         const original = rabCategories[categoryName];
                         if (data.row.index < original.length && original[data.row.index].is_il) {
@@ -465,7 +425,6 @@ const PDFGenerator = {
             lastY = doc.lastAutoTable.finalY + 10;
         }
 
-        // --- SUMMARY RAB ---
         const totalRealRAB = grandTotalRAB;
         const totalPembulatanRAB = Math.floor(totalRealRAB / 10000) * 10000;
         const ppnRAB = totalPembulatanRAB * 0.11;
@@ -495,7 +454,6 @@ const PDFGenerator = {
         });
         lastY = doc.lastAutoTable.finalY + 15;
 
-        // ======================= BAGIAN 2: OPNAME FINAL =======================
         if (submissions && submissions.length > 0) {
             addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
             
@@ -504,7 +462,6 @@ const PDFGenerator = {
             doc.line(margin, lastY + 2, pageWidth - margin, lastY + 2);
             lastY += 10;
 
-            // Grouping: Tambah vs Kurang -> Kategori
             const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
             submissions.forEach(it => {
                 const sel = toNumberVol_PDF(it.selisih);
@@ -517,7 +474,6 @@ const PDFGenerator = {
             for (const [sectionName, itemsArr] of Object.entries(groupsByType)) {
                 if (itemsArr.length === 0) continue;
 
-                // Judul Section (Tambah/Kurang)
                 if (lastY + 20 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
                 doc.setFontSize(12).setFont("helvetica", "bold");
                 doc.text(sectionName, margin, lastY);
@@ -563,7 +519,6 @@ const PDFGenerator = {
                     lastY = doc.lastAutoTable.finalY + 10;
                 }
 
-                // Summary per Block
                 const totalRealBlock = itemsArr.reduce((sum, item) => {
                     return sum + (toNumberVol_PDF(item.selisih) * (toNumberID_PDF(item.harga_material) + toNumberID_PDF(item.harga_upah)));
                 }, 0);
@@ -601,10 +556,8 @@ const PDFGenerator = {
             }
         }
 
-        // ======================= BAGIAN 3: STATUS PEKERJAAN =======================
         addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
 
-        // Hitung Grand Total Opname
         let totalTambah = 0; let totalKurang = 0;
         submissions.forEach(item => {
             const sel = toNumberVol_PDF(item.selisih);
@@ -657,7 +610,6 @@ const PDFGenerator = {
         });
         lastY = doc.lastAutoTable.finalY + 15;
 
-        // ======================= BAGIAN 4: LAMPIRAN FOTO =======================
         const itemsWithPhotos = (submissions || []).filter(item => item.foto_url);
         if (itemsWithPhotos.length > 0) {
             addFooter(doc.getNumberOfPages()); doc.addPage();
@@ -673,7 +625,6 @@ const PDFGenerator = {
             const leftColumnX = margin;
             const rightColumnX = margin + columnWidth + margin;
 
-            // Load Photos Parallel
             const base64Photos = await Promise.all(itemsWithPhotos.map(it => toBase64(it.foto_url)));
             
             itemsWithPhotos.forEach((item, index) => {
@@ -715,13 +666,11 @@ const PDFGenerator = {
             });
             addFooter(pageNum);
         } else {
-            // Footer untuk halaman terakhir jika tidak ada foto
             addFooter(doc.getNumberOfPages());
         }
 
-        // Add Footer to ALL Pages (loop back)
         const totalPages = doc.getNumberOfPages();
-        for (let i = 1; i < totalPages; i++) { // Skip last page handled above
+        for (let i = 1; i < totalPages; i++) {
             doc.setPage(i);
             addFooter(i);
         }
@@ -772,14 +721,11 @@ const Render = {
         }
     },
 
-    // --- UPDATED HEADER ---
     header: () => {
         const header = document.createElement('header');
         header.className = 'app-header';
-        
-        // Ubah teks tombol logout tergantung konteks
         const isFromMainAuth = sessionStorage.getItem("authenticated") === "true";
-        const logoutText = isFromMainAuth ? "Dashboard" : "Keluar";
+        const logoutText = isFromMainAuth ? "Kembali ke Dashboard" : "Keluar";
 
         header.innerHTML = `
             <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart" class="header-logo" onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('afterbegin', '<b style=\\'position:absolute;left:20px;color:white\\'>ALFAMART</b>')">
@@ -811,13 +757,11 @@ const Render = {
     },
 
     login: (container) => {
-        // SVG Icons
         const eyeOpen = `
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>`;
-            
         const eyeClosed = `
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L6.228 6.228" />
@@ -866,7 +810,6 @@ const Render = {
         const pwInput = document.getElementById('password');
         const toggleBtn = document.getElementById('toggle-pw');
 
-        // Logic Toggle Password dengan update Icon
         toggleBtn.onclick = () => {
             const isPassword = pwInput.type === 'password';
             pwInput.type = isPassword ? 'text' : 'password';
@@ -874,7 +817,6 @@ const Render = {
             toggleBtn.title = isPassword ? "Sembunyikan password" : "Lihat password";
         };
 
-        // Logic Submit (Tetap Sama)
         form.onsubmit = async (e) => {
             e.preventDefault();
             const btn = form.querySelector('button[type="submit"]');
@@ -948,7 +890,6 @@ const Render = {
         let url = "";
         const u = AppState.user;
         
-        // Tentukan endpoint berdasarkan Role
         if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
             url = `${API_BASE_URL}/api/toko?username=${u.username}`;
         } else if (u.role === 'kontraktor') {
@@ -961,15 +902,9 @@ const Render = {
             
             if (!Array.isArray(stores)) throw new Error("Gagal mengambil data toko.");
 
-            // --- PERBAIKAN UTAMA DI SINI ---
-            // Kita tidak lagi fetch ke /api/uloks satu per satu.
-            // Kita gunakan array 'no_uloks' yang sudah dikirim oleh backend di dalam objek store.
-            // Ini menjamin data ULOK benar-benar milik toko tersebut sesuai RAB.
-            
             const combinedList = [];
 
             stores.forEach(store => {
-                // Cek apakah toko ini memiliki ULOK (berarti ada RAB)
                 if (store.no_uloks && Array.isArray(store.no_uloks) && store.no_uloks.length > 0) {
                     store.no_uloks.forEach(ulokNo => {
                         combinedList.push({
@@ -980,14 +915,12 @@ const Render = {
                 }
             });
 
-            // Urutkan agar rapi: Nama Toko (A-Z) -> No ULOK (A-Z)
             combinedList.sort((a, b) => {
                 const nameCompare = a.store.nama_toko.localeCompare(b.store.nama_toko);
                 if (nameCompare !== 0) return nameCompare;
                 return a.ulok.localeCompare(b.ulok);
             });
 
-            // Fungsi Render Halaman
             const renderList = (filter = "") => {
                 const f = filter.toLowerCase();
                 const filtered = combinedList.filter(item => 
@@ -1041,7 +974,6 @@ const Render = {
                 `;
                 container.innerHTML = html;
 
-                // Event Listeners
                 container.querySelector('#btn-back-store').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
                 
                 const searchInput = document.getElementById('store-search');
@@ -1050,18 +982,13 @@ const Render = {
                     document.getElementById('store-search').focus(); 
                 };
 
-                // Handle Klik Item
                 container.querySelectorAll('.job-item').forEach((btn, index) => {
                     btn.onclick = () => {
-                        // Gunakan index dari array 'filtered' karena tombol dirender berdasarkan itu
                         const selectedItem = filtered[index];
-                        
-                        // Set State Global
                         AppState.selectedStore = selectedItem.store;
                         AppState.selectedUlok = selectedItem.ulok;
-                        AppState.selectedLingkup = null; // Reset lingkup agar user memilih ulang
+                        AppState.selectedLingkup = null; 
 
-                        // Arahkan View
                         if (type === 'opname') AppState.activeView = 'opname';
                         else if (type === 'final-opname') AppState.activeView = 'final-opname-detail';
                         else if (type === 'approval') AppState.activeView = 'approval-detail';
@@ -1088,15 +1015,12 @@ const Render = {
     },
 
     opnameForm: async (container) => {
-        // --- STEP 1: Cek ULOK (Safety Check) ---
-        // Jika karena suatu hal ULOK belum terpilih, kembalikan ke daftar toko
         if (!AppState.selectedUlok) {
             AppState.activeView = 'store-selection-pic';
             Render.app();
             return;
         }
 
-        // --- STEP 2: PILIH LINGKUP ---
         if (!AppState.selectedLingkup) {
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
@@ -1113,30 +1037,25 @@ const Render = {
                 </div>
             `;
             
-            // Event Listeners Step 2
             container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.opnameForm(container); };
             container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.opnameForm(container); };
             
-            // --- PERBAIKAN DI SINI: Kembali ke Store Selection ---
             container.querySelector('#btn-cancel-lingkup').onclick = () => { 
                 AppState.selectedStore = null;
                 AppState.selectedUlok = null;
-                AppState.activeView = 'store-selection-pic'; // Kembali ke list pekerjaan
+                AppState.activeView = 'store-selection-pic'; 
                 Render.app(); 
             };
             return;
         }
 
-        // --- STEP 3: RENDER TABLE & BUTTONS (Input Form) ---
         container.innerHTML = '<div class="loading-screen"><h3>Memuat Data...</h3></div>';
         
         try {
-            // 1. Fetch Data Items
             const base = `${API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
             const res = await fetch(base);
             let data = await res.json();
             
-            // 2. Mapping Data
             AppState.opnameItems = data.map((task, index) => {
                 const volRab = toNumInput(task.vol_rab);
                 const volAkhirNum = toNumInput(task.volume_akhir);
@@ -1162,7 +1081,6 @@ const Render = {
                 };
             });
 
-            // 3. Cek Status Final (Locked)
             let isFinalized = false;
             let canFinalize = false;
             let statusMessage = "Menunggu Approval Semua Item";
@@ -1199,6 +1117,21 @@ const Render = {
                 let btnColor = '#6c757d'; 
                 if (isFinalized) btnColor = '#28a745'; 
                 else if (canFinalize) btnColor = '#007bff';
+
+                // --- INTEGRASI LINK IL DENGAN TOKEN ---
+                // Kita akan membuat link ke IL yang menyertakan data login
+                // Pastikan email & cabang tersedia
+                const email = sessionStorage.getItem("loggedInUserEmail") || "";
+                const cabang = sessionStorage.getItem("loggedInUserCabang") || "";
+                
+                let ilLink = "../il/index.html";
+                // Jika data ada, kita encode dan tambahkan ke URL
+                if(email && cabang) {
+                   try {
+                     const token = btoa(JSON.stringify({ email, cabang }));
+                     ilLink = `../il/index.html?user=${token}`;
+                   } catch(e) { console.error("Gagal encode user IL", e); }
+                }
 
                 let html = `
                 <div class="container" style="padding-top:20px; padding-left:10px; padding-right:10px; max-width:100%;">
@@ -1262,9 +1195,9 @@ const Render = {
                         </div>
 
                         <div style="margin-top: 20px; margin-bottom: 0px;">
-                            <a href="../../il/index.html" target="_blank" rel="noopener noreferrer" class="btn" 
+                            <a href="${ilLink}" class="btn" 
                             style="width: 100%; background-color: #FFC107; font-weight: bold; color: #000; text-decoration: none; display: block; text-align: center; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                Instruksi Lapangan
+                                📋 INSTRUKSI LAPANGAN
                             </a>
                         </div>
 
@@ -1287,11 +1220,8 @@ const Render = {
                 
                 container.innerHTML = html;
                 
-                // Back Button (Step 3)
-                // Kembali ke Step 2 (Pilih Lingkup)
                 container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
 
-                // Input Volume (Update Realtime Total)
                 container.querySelectorAll('.vol-input').forEach(input => {
                     input.oninput = (e) => {
                         const id = parseInt(e.target.dataset.id);
@@ -1315,7 +1245,6 @@ const Render = {
                     }
                 });
 
-                // File Upload
                 container.querySelectorAll('.file-input').forEach(inp => {
                     inp.onchange = async (e) => {
                         const f = e.target.files[0];
@@ -1331,7 +1260,6 @@ const Render = {
                     }
                 });
 
-                // Save Item
                 container.querySelectorAll('.save-btn').forEach(btn => {
                     btn.onclick = async () => {
                         const id = parseInt(btn.dataset.id);
@@ -1364,7 +1292,6 @@ const Render = {
                     }
                 });
 
-                // Perbaiki Item
                 container.querySelectorAll('.perbaiki-btn').forEach(btn => {
                     btn.onclick = () => {
                         const id = parseInt(btn.dataset.id);
@@ -1378,7 +1305,6 @@ const Render = {
                     }
                 });
 
-                // Opname Final Action
                 if(canFinalize && !isFinalized) {
                     const bf = container.querySelector('#btn-final');
                     bf.onclick = async () => {
@@ -1402,16 +1328,13 @@ const Render = {
     },
 
     finalOpnameView: async (container) => {
-        // --- STEP 1: Safety Check ---
         if (!AppState.selectedUlok) {
-            // Tentukan mau balik kemana berdasarkan role
             if (AppState.user.role === 'pic') AppState.activeView = 'final-opname-selection';
             else AppState.activeView = 'history-selection-kontraktor';
             Render.app();
             return;
         }
 
-        // --- STEP 2: PILIH LINGKUP ---
         if (!AppState.selectedLingkup) {
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
@@ -1430,11 +1353,9 @@ const Render = {
             container.querySelector('#btn-sipil-final').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.finalOpnameView(container); };
             container.querySelector('#btn-me-final').onclick = () => { AppState.selectedLingkup = 'ME'; Render.finalOpnameView(container); };
             
-            // --- PERBAIKAN DI SINI ---
             container.querySelector('#btn-cancel-lingkup-final').onclick = () => { 
                 AppState.selectedStore = null;
                 AppState.selectedUlok = null;
-                // Cek Role untuk menentukan tombol kembali arahnya ke mana
                 if (AppState.user.role === 'pic') {
                     AppState.activeView = 'final-opname-selection';
                 } else {
@@ -1445,7 +1366,6 @@ const Render = {
             return;
         }
 
-        // --- STEP 3: FETCH DATA FINAL ---
         container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Final...</h3></div></div>';
         
         try {
@@ -1471,7 +1391,6 @@ const Render = {
                 return;
             }
 
-            // Mapping Data
             const items = submissions.map((task, index) => {
                 const volAkhirNum = toNumInput(task.volume_akhir);
                 const hargaMaterial = toNumID(task.harga_material);
@@ -1555,10 +1474,8 @@ const Render = {
             `;
             container.innerHTML = html;
 
-            // Back ke pemilihan Lingkup
             container.querySelector('#btn-back-final-view').onclick = () => { AppState.selectedLingkup = null; Render.finalOpnameView(container); };
             
-            // PDF Button Action
             container.querySelector('#btn-download-pdf').onclick = () => {
                 const btn = document.getElementById('btn-download-pdf');
                 btn.innerText = "Memproses PDF...";
@@ -1576,14 +1493,12 @@ const Render = {
     },
     
     approvalDetail: async (container) => {
-        // --- STEP 1: Safety Check ---
         if (!AppState.selectedUlok) {
             AppState.activeView = 'store-selection-kontraktor';
             Render.app();
             return;
         }
 
-        // --- STEP 2: PILIH LINGKUP ---
         if (!AppState.selectedLingkup) {
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
@@ -1603,7 +1518,6 @@ const Render = {
             container.querySelector('#btn-sipil').onclick = () => { AppState.selectedLingkup = 'SIPIL'; Render.approvalDetail(container); };
             container.querySelector('#btn-me').onclick = () => { AppState.selectedLingkup = 'ME'; Render.approvalDetail(container); };
             
-            // --- PERBAIKAN DI SINI ---
             container.querySelector('#btn-cancel-lingkup').onclick = () => { 
                 AppState.selectedStore = null;
                 AppState.selectedUlok = null;
@@ -1613,7 +1527,6 @@ const Render = {
             return;
         }
 
-        // --- STEP 3: TAMPILKAN TABEL APPROVAL ---
         container.innerHTML = '<div class="container text-center" style="padding-top:40px;"><div class="card"><h3>Memuat Data Opname Pending...</h3></div></div>';
         
         try {
@@ -1681,8 +1594,6 @@ const Render = {
                 
                 container.innerHTML = html;
 
-                // Back Button (Step 3)
-                // Kembali ke Step 2 (Pilih Lingkup)
                 container.querySelector('#btn-back-lingkup').onclick = () => { 
                     AppState.selectedLingkup = null; 
                     Render.approvalDetail(container); 
@@ -1698,7 +1609,6 @@ const Render = {
                     setTimeout(() => { el.style.display = 'none'; }, 3000);
                 };
 
-                // Logic Approve
                 container.querySelectorAll('.btn-approve').forEach(btn => {
                     btn.onclick = async () => {
                         const itemId = btn.dataset.id;
@@ -1760,7 +1670,6 @@ const Render = {
                     };
                 });
 
-                // Logic Reject
                 container.querySelectorAll('.btn-reject').forEach(btn => {
                     btn.onclick = async () => {
                         const itemId = btn.dataset.id;
