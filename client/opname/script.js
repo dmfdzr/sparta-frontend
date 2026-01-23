@@ -779,7 +779,7 @@ const Render = {
         
         // Ubah teks tombol logout tergantung konteks
         const isFromMainAuth = sessionStorage.getItem("authenticated") === "true";
-        const logoutText = isFromMainAuth ? "Kembali ke Dashboard" : "Keluar";
+        const logoutText = isFromMainAuth ? "Dashboard" : "Keluar";
 
         header.innerHTML = `
             <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart" class="header-logo" onerror="this.style.display='none'; this.parentElement.insertAdjacentHTML('afterbegin', '<b style=\\'position:absolute;left:20px;color:white\\'>ALFAMART</b>')">
