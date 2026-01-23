@@ -3,10 +3,10 @@
    ========================================= */
 body {
   font-family: "Inter", sans-serif;
-  background-color: #f1f5f9; /* Slate-100: Lebih soft untuk mata */
+  background-color: #f1f5f9;
   margin: 0;
   padding: 0;
-  color: #334155; /* Slate-700 */
+  color: #334155;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -15,7 +15,6 @@ body {
    2. Header Styling
    ========================================= */
 header {
-  /* Gradasi Merah Alfamart */
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: white;
   text-align: center;
@@ -41,43 +40,44 @@ header {
 
 header h1 {
   margin: 0;
-  font-size: 1.5rem; /* Sedikit diperkecil agar proporsional */
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.025em;
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Tombol Logout di Header */
-.btn-logout-form {
-  position: absolute;
-  right: 25px;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: white;
-  color: #dc2626;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 20;
+/* STYLE BARU: Tombol Header (Opname) - Mengikuti Style RAB */
+.btn-back-header {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
 }
 
-.btn-logout-form:hover {
-  background-color: #fef2f2;
-  transform: translateY(-50%) scale(1.05);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+.btn-back-header:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.02);
 }
 
 /* =========================================
    3. Main Container & Layout
    ========================================= */
 .container {
-  max-width: 1280px; /* Lebar ditambah sedikit agar tabel lega */
+  max-width: 1280px;
   margin: 2rem auto;
   padding: 2.5rem;
   background: white;
@@ -97,7 +97,7 @@ header h1 {
   font-weight: 600;
   margin-bottom: 0.5rem;
   margin-top: 1.25rem;
-  color: #1e293b; /* Slate-800 */
+  color: #1e293b;
   font-size: 0.95rem;
 }
 
@@ -106,13 +106,12 @@ header h1 {
   margin-left: 2px;
 }
 
-/* Input Global (Di luar tabel) */
 .form-container > input,
 .form-container > select,
 .form-container > div > input,
 .form-container > div > select {
   padding: 0.75rem 1rem;
-  border: 1px solid #cbd5e1; /* Slate-300 */
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
   transition: all 0.2s ease;
   font-size: 0.95rem;
@@ -181,8 +180,8 @@ header h1 {
 }
 
 .section-title {
-  color: #991b1b; /* Red-800 */
-  border-bottom: 2px solid #fecaca; /* Red-200 */
+  color: #991b1b;
+  border-bottom: 2px solid #fecaca;
   padding-bottom: 8px;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
@@ -191,17 +190,15 @@ header h1 {
 }
 
 /* =========================================
-   6. Modern Table Styles (REFACTORED)
+   6. Modern Table Styles
    ========================================= */
-
-/* Wrapper Kartu Tabel */
 .table-container {
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   margin-top: 1rem;
   margin-bottom: 2rem;
-  overflow: hidden; /* Agar sudut border-radius tidak tembus */
+  overflow: hidden;
   border: 1px solid #e2e8f0;
   animation: fadeIn 0.3s ease-in-out;
 }
@@ -218,10 +215,9 @@ table {
   border-spacing: 0;
 }
 
-/* Header Table Modern */
 table thead th {
-  background-color: #f8fafc; /* Slate-50 */
-  color: #475569; /* Slate-600 */
+  background-color: #f8fafc;
+  color: #475569;
   font-weight: 700;
   text-transform: uppercase;
   font-size: 0.7rem;
@@ -240,33 +236,29 @@ table thead th:last-child {
   border-right: none;
 }
 
-/* Body Cell Styling */
 table td {
-  padding: 8px; /* Padding lebih rapat agar compact */
+  padding: 8px;
   border-bottom: 1px solid #e2e8f0;
   vertical-align: top;
   background-color: #fff;
 }
 
-/* Row Hover Effect */
 table tbody tr:hover td {
-  background-color: #fff1f2; /* Rose-50 (Merah tipis) */
+  background-color: #fff1f2;
 }
 
-/* --- Input & Select Styles inside Table --- */
 .table-container input.form-control,
 .table-container select.form-control {
   width: 100%;
-  padding: 6px 8px; /* Ukuran input lebih kecil dari form utama */
+  padding: 6px 8px;
   font-size: 0.85rem;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   background-color: #fff;
   transition: all 0.2s ease;
-  box-sizing: border-box; /* Mencegah overflow */
+  box-sizing: border-box;
 }
 
-/* Focus State dalam Tabel */
 .table-container input.form-control:focus,
 .table-container select.form-control:focus {
   border-color: #dc2626;
@@ -274,39 +266,31 @@ table tbody tr:hover td {
   outline: none;
 }
 
-/* Readonly / Auto-filled Styling */
 .table-container input.auto-filled,
 .table-container input:read-only {
-  background-color: #f1f5f9; /* Slate-100 */
-  color: #64748b; /* Slate-500 */
+  background-color: #f1f5f9;
+  color: #64748b;
   border-color: #e2e8f0;
-  border-style: dashed; /* Visual cue untuk field otomatis */
+  border-style: dashed;
   cursor: default;
 }
 
-/* Kondisional Input (JS Logic) */
 .table-container input.kondisional-input {
   background-color: #ffffff !important;
-  border: 1px solid #f59e0b !important; /* Amber-500 */
+  border: 1px solid #f59e0b !important;
   color: #000;
   cursor: text !important;
   font-weight: 600;
 }
 
-/* --- Column Widths & Alignments --- */
-
-/* No Urut */
 .col-no { width: 45px; text-align: center; }
 .row-number { font-weight: 600; color: #94a3b8; font-size: 0.8rem; }
-
-/* Jenis Pekerjaan & Select2 Fix */
 .col-jenis-pekerjaan { width: 28%; }
 
-/* Penyesuaian Select2 agar match dengan input modern */
 .select2-container--default .select2-selection--single {
   border: 1px solid #cbd5e1 !important;
   border-radius: 6px !important;
-  height: 34px !important; /* Tinggi disamakan dengan input */
+  height: 34px !important;
   display: flex !important;
   align-items: center !important;
 }
@@ -319,7 +303,6 @@ table tbody tr:hover td {
   padding-left: 8px !important;
 }
 
-/* Satuan & Volume */
 .col-satuan { width: 7%; text-align: center; }
 .col-volume { width: 9%; }
 .col-volume input { 
@@ -328,7 +311,6 @@ table tbody tr:hover td {
     color: #0f172a; 
 }
 
-/* Harga & Total (Rata Kanan & Tabular Nums) */
 .col-harga { width: 12%; }
 .col-total { width: 12%; }
 .col-total-harga { width: 14%; }
@@ -338,18 +320,16 @@ table tbody tr:hover td {
 .col-total-harga input {
   text-align: right;
   font-family: "Inter", sans-serif;
-  font-variant-numeric: tabular-nums; /* Agar angka sejajar vertikal */
+  font-variant-numeric: tabular-nums;
 }
 
-/* Total Harga Akhir (Highlight) */
 .col-total-harga input {
   font-weight: 700;
   color: #0f172a;
-  background-color: #f8fafc !important; /* Sedikit beda background */
+  background-color: #f8fafc !important;
   border: 1px solid #e2e8f0;
 }
 
-/* Tombol Hapus Row */
 .col-aksi { width: 80px; text-align: center; }
 
 .delete-row-btn {
@@ -371,7 +351,6 @@ table tbody tr:hover td {
   box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
 }
 
-/* --- Footer (Subtotal) --- */
 table tfoot tr {
   background-color: #f8fafc;
   border-top: 2px solid #e2e8f0;
@@ -395,9 +374,8 @@ table tfoot td {
   min-width: 120px;
 }
 
-/* Tombol Tambah Item (Dashed Style) */
 .add-row-btn {
-  width: calc(100% - 4px); /* Kompensasi border */
+  width: calc(100% - 4px);
   margin: 10px auto;
   border-radius: 8px;
   background-color: #ffffff;
@@ -486,9 +464,6 @@ button[type="reset"]:hover {
   border-color: #94a3b8;
 }
 
-/* =========================================
-   8. Messages & Helpers
-   ========================================= */
 #message {
   margin: 20px auto;
   max-width: 1200px;

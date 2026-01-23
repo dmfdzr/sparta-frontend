@@ -9,10 +9,8 @@
     const REDIRECT_URL = 'https://sparta-alfamart.vercel.app';
 
     if (!isAuthenticated) {
-        // Simpan referensi halaman (opsional, jika ingin redirect balik nanti)
         sessionStorage.setItem('redirectTo', window.location.pathname);
         window.location.href = REDIRECT_URL;
-        // Hentikan eksekusi script selanjutnya
         throw new Error("Unauthorized access"); 
     } else if (userRole !== 'BRANCH BUILDING SUPPORT') {
         alert('Anda tidak memiliki izin untuk mengakses halaman ini.');
@@ -24,7 +22,7 @@
 // --- 1. Configuration & Constants ---
 const CONFIG = {
     API_BASE_URL: "https://sparta-backend-5hdj.onrender.com",
-    REDIRECT_ON_EXPIRY: "https://sparta-alfamart.vercel.app", // New Config
+    REDIRECT_ON_EXPIRY: "https://sparta-alfamart.vercel.app", 
     SIPIL_CATEGORIES: [
         "PEKERJAAN PERSIAPAN", "PEKERJAAN BOBOKAN / BONGKARAN", "PEKERJAAN TANAH",
         "PEKERJAAN PONDASI & BETON", "PEKERJAAN PASANGAN", "PEKERJAAN BESI",
@@ -732,7 +730,7 @@ function checkSessionTime() {
             if (sessionStorage.getItem("authenticated")) {
                 sessionStorage.clear();
                 alert("Sesi Anda telah berakhir karena di luar jam operasional (06:00 - 18:00 WIB).");
-                window.location.href = CONFIG.REDIRECT_ON_EXPIRY; // Updated Redirect
+                window.location.href = CONFIG.REDIRECT_ON_EXPIRY; 
             }
         }
     } catch (err) {
@@ -762,7 +760,6 @@ async function initializePage() {
         separatorRenov: document.getElementById('separator_renov'),
         suffixRenov: document.getElementById('suffix_renov'),
         resetButton: document.querySelector("button[type='reset']"),
-        opnameButton: document.getElementById('btn-opname') // Updated reference
     };
 
     // Renovasi Toggle Listener
@@ -896,15 +893,6 @@ async function initializePage() {
         e.preventDefault();
         handleFormSubmit();
     });
-
-    // --- Opname Button Logic ---
-    if (DOM.opnameButton) {
-        DOM.opnameButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            // Redirect ke halaman Opname (asumsi struktur folder client/opname/index.html)
-            window.location.href = '../opname/index.html';
-        });
-    }
 
     checkSessionTime();
     setInterval(checkSessionTime, 300000); // 5 minutes
