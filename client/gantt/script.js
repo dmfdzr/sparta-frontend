@@ -1095,26 +1095,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==================== 12. CHART RENDER ====================
+    // ==================== 12. CHART RENDER (UPDATED) ====================
     function renderChart() {
         const chart = document.getElementById('ganttChart');
         const DAY_WIDTH = 40;
         const ROW_HEIGHT = 50;
 
-        let maxTaskEndDay = 0;
+        // --- 1. LOGIKA RIPPLE EFFECT (Kalkulasi Pergeseran) ---
+        // Map untuk menyimpan kapan sebuah Task ID benar-benar selesai (termasuk delay)
+        const effectiveEndDates = {}; 
+
         currentTasks.forEach(task => {
-            if (task.inputData && task.inputData.ranges) {
-                task.inputData.ranges.forEach(range => {
-                    if (range.end > maxTaskEndDay) maxTaskEndDay = range.end;
-                });
+            const ranges = task.inputData?.ranges || [];
+            let shift = 0;
+
+            // Cek Dependency
+            if (task.dependency) {
+                // Ambil tanggal selesai efektif dari parent
+                const parentEffectiveEnd = effectiveEndDates[task.dependency] || 0;
+                
+                if (ranges.length > 0) {
+                    const plannedStart = ranges[0].start;
+                    // Jika jadwal rencana mulai SEBELUM atau SAMA DENGAN parent selesai
+                    // Maka harus digeser maju
+                    if (plannedStart <= parentEffectiveEnd) {
+                        shift = parentEffectiveEnd - plannedStart + 1;
+                    }
+                }
+            }
+
+            // Simpan data kalkulasi ke dalam object task sementara (untuk rendering)
+            task.computed = {
+                shift: shift
+            };
+
+            // Hitung kapan task ini selesai untuk digunakan oleh child-nya nanti
+            if (ranges.length > 0) {
+                const lastRange = ranges[ranges.length - 1];
+                // End Date = (Planned End + Shift) + Own Delay
+                const actualEnd = lastRange.end + shift;
+                const ownDelay = parseInt(lastRange.keterlambatan || 0);
+                effectiveEndDates[task.id] = actualEnd + ownDelay;
+            } else {
+                effectiveEndDates[task.id] = 0;
             }
         });
 
-        const projectDuration = parseInt(currentProject.duration) || (currentProject.work === 'ME' ? 100 : 205);
-        const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay) + 2;
-        const totalChartWidth = totalDaysToRender * DAY_WIDTH;
-        const projectStartDate = new Date(currentProject.startDate);
+        // --- 2. HITUNG DIMENSI CHART ---
+        let maxTaskEndDay = 0;
+        currentTasks.forEach(task => {
+            const ranges = task.inputData?.ranges || [];
+            const shift = task.computed.shift;
+            ranges.forEach(range => {
+                const ownDelay = parseInt(range.keterlambatan || 0);
+                const totalEnd = range.end + shift + ownDelay;
+                if (totalEnd > maxTaskEndDay) maxTaskEndDay = totalEnd;
+            });
+        });
 
-        // Header Title (Tidak ada interaksi klik lagi)
+        const projectDuration = parseInt(currentProject.duration) || (currentProject.work === 'ME' ? 100 : 205);
+        const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay) + 5; // Buffer 5 hari
+        const totalChartWidth = totalDaysToRender * DAY_WIDTH;
+
+        // --- 3. RENDER HEADER ---
         const headerTitle = "Timeline Project";
         const cursorStyle = "cursor: default;";
 
@@ -1124,10 +1167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < totalDaysToRender; i++) {
             const dayNumber = i + 1;
             const isSup = supervisionDays[dayNumber] === true;
-            // Class supervision-active akan memberi warna sesuai CSS
             const clss = isSup ? "day-header supervision-active" : "day-header";
-            
-            // Hapus onclick
             html += `<div class="${clss}" style="width:${DAY_WIDTH}px; box-sizing: border-box; ${cursorStyle}" title="${headerTitle}"><span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span></div>`;
         }
         html += "</div></div>";
@@ -1136,12 +1176,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let taskCoordinates = {};
 
+        // --- 4. RENDER TASKS ---
         currentTasks.forEach((task, index) => {
             const ranges = task.inputData?.ranges || [];
+            const shift = task.computed.shift; // Ambil nilai shift yang sudah dihitung
+            
             let durTxt = ranges.reduce((s, r) => s + r.duration, 0);
 
-            const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end)) : 0;
-            const minStart = ranges.length ? Math.min(...ranges.map(r => r.start)) : 0;
+            // Koordinat untuk garis panah (menggunakan posisi yang sudah digeser/shifted)
+            const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan)||0))) : 0;
+            const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift)) : 0;
 
             taskCoordinates[task.id] = {
                 y: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2),
@@ -1152,36 +1196,50 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<div class="task-row"><div class="task-name"><span>${task.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
             html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
-            ranges.forEach((range, idx) => {
-                const leftPos = (range.start - 1) * DAY_WIDTH;
+            ranges.forEach((range) => {
+                // Posisi visual memperhitungkan shift
+                const actualStart = range.start + shift;
+                const actualEnd = range.end + shift;
+
+                const leftPos = (actualStart - 1) * DAY_WIDTH;
                 const widthPos = (range.duration * DAY_WIDTH) - 1;
                 
                 const hasDelay = range.keterlambatan && range.keterlambatan > 0;
-                const barClass = hasDelay ? "bar on-time has-delay" : "bar on-time";
-                const barStyle = hasDelay
-                    ? `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; border: 2px solid #e53e3e;`
-                    : `left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box;`;
+                const isShifted = shift > 0;
 
-                html += `<div class="${barClass}" style="${barStyle}" title="${task.name}"> ${range.duration}</div>`;
+                // Tentukan Class Warna
+                let barClass = "bar on-time";
+                if (isShifted) {
+                    barClass = "bar shifted"; // KUNING/ORANYE jika tergeser dependency
+                } else if (hasDelay) {
+                    barClass = "bar on-time has-delay"; // HIJAU/MERAH BORDER jika dia sendiri yang telat
+                }
 
+                const borderStyle = (hasDelay && !isShifted) ? "border: 2px solid #e53e3e;" : "";
+                
+                html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; ${borderStyle}" title="${task.name} (Shift: ${shift} hari)"> ${range.duration}</div>`;
+
+                // Render Extension Merah (Keterlambatan sendiri)
                 if (hasDelay) {
-                    const delayLeftPos = range.end * DAY_WIDTH;
+                    const delayLeftPos = actualEnd * DAY_WIDTH; // Mulai dari ujung bar yang sudah di-shift
                     const delayWidthPos = range.keterlambatan * DAY_WIDTH - 1;
                     html += `<div class="bar delayed" style="left:${delayLeftPos}px; width:${delayWidthPos}px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); opacity: 0.85;">+${range.keterlambatan}</div>`;
                 }
             });
 
-            // Supervision Markers (Visual Only)
+            // Supervision Markers (Visual Only - disesuaikan dengan posisi bar yang terlihat)
             for (const [day, isActive] of Object.entries(supervisionDays)) {
                 if (isActive) {
                     const dInt = parseInt(day);
-                    const inRange = ranges.some(r => dInt >= r.start && dInt <= r.end);
+                    // Cek apakah hari pengawasan jatuh pada range yang SUDAH DI-SHIFT
+                    const inRange = ranges.some(r => dInt >= (r.start + shift) && dInt <= (r.end + shift));
                     if (inRange) html += `<div class="supervision-marker" style="left:${(dInt - 1) * DAY_WIDTH}px"></div>`;
                 }
             }
             html += `</div></div>`;
         });
 
+        // --- 5. RENDER DEPENDENCY LINES (SVG) ---
         let svgLines = '';
         currentTasks.forEach(task => {
             if (task.dependency) {
@@ -1194,6 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const endX = me.startX;
                     const endY = me.y;
 
+                    // Kurva Bezier
                     const path = `M ${startX} ${startY} 
                                 C ${startX + 30} ${startY}, 
                                 ${endX - 30} ${endY}, 
@@ -1211,6 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+        
         const svgHeight = currentTasks.length * ROW_HEIGHT;
         html += `
             <svg class="chart-lines-svg" style="width:${totalChartWidth}px; height:${svgHeight}px;">

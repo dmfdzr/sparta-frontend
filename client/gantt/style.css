@@ -604,6 +604,12 @@ button:disabled {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
+.bar.shifted {
+    background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%); /* Oranye */
+    color: #fff;
+    border: 1px solid #c05621;
+}
+
 /* Supervision Markers */
 .supervision-marker {
     position: absolute;
