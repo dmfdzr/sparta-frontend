@@ -57,8 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
         insertData: `${API_BASE_URL}/gantt/insert`,
         dayInsert: `${API_BASE_URL}/gantt/day/insert`,
         dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`,
-        pengawasanInsert: `${API_BASE_URL}/gantt/pengawasan/insert`,
         dependencyInsert: `${API_BASE_URL}/gantt/dependency/insert`
+        // endpoint pengawasanInsert DIHAPUS
     };
 
     // ==================== 3. STATE MANAGEMENT ====================
@@ -69,15 +69,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let ganttApiData = null;
     let rawGanttData = null;
     let dayGanttData = null;
-    let dependencyData = []; // Store dependency relationships from API
-    let filteredCategories = null; // Store filtered categories from RAB
+    let dependencyData = [];
+    let filteredCategories = null;
     let isLoadingGanttData = false;
     let hasUserInput = false;
     let isProjectLocked = false;
     let supervisionDays = {};
-    let isSupervisionLocked = false;
+    // isSupervisionLocked DIHAPUS karena otomatis
 
-    // ==================== 4. TASK TEMPLATES ====================
+    // ==================== 4. RULES & TEMPLATES ====================
+    
+    // MAPPING HARI PENGAWASAN (BARU)
+    const SUPERVISION_RULES = {
+        10: [2, 5, 8, 10],
+        14: [2, 7, 10, 14],
+        20: [2, 12, 16, 20],
+        30: [2, 7, 14, 18, 23, 30],
+        35: [2, 7, 17, 22, 28, 35],
+        40: [2, 7, 17, 25, 33, 40],
+        48: [2, 10, 25, 32, 41, 48]
+    };
+
     const taskTemplateME = [
         { id: 1, name: "Instalasi", start: 0, duration: 0, dependencies: [] },
         { id: 2, name: "Fixture", start: 0, duration: 0, dependencies: [] },
@@ -104,9 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 16, name: "Pekerjaan Tambahan", start: 0, duration: 0, dependencies: [] },
         { id: 17, name: "Pekerjaan SBO", start: 0, duration: 0, dependencies: [] },
     ];
-
-    const totalDaysME = 100;
-    const totalDaysSipil = 205;
 
     // ==================== 5. HELPER FUNCTIONS ====================
     function formatDateID(date) {
@@ -169,7 +178,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const pStart = new Date(currentProject.startDate);
         const targetDate = new Date(pStart);
         targetDate.setDate(pStart.getDate() + (dayInt - 1));
-        return formatDateID(targetDate); // Menggunakan fungsi formatDateID yg sudah ada
+        return formatDateID(targetDate);
+    }
+
+    // FUNGSI BARU: Hitung Pengawasan Otomatis
+    function calculateSupervisionDays() {
+        supervisionDays = {}; // Reset
+        
+        if (!currentProject || !currentProject.duration) return;
+
+        const dur = parseInt(currentProject.duration);
+        if (isNaN(dur)) return;
+
+        const days = SUPERVISION_RULES[dur];
+        if (days && Array.isArray(days)) {
+            days.forEach(dayNum => {
+                supervisionDays[dayNum] = true;
+            });
+            console.log(`🔍 Pengawasan Auto (${dur} Hari):`, days);
+        } else {
+            console.warn(`⚠️ Tidak ada mapping pengawasan untuk durasi ${dur} hari.`);
+        }
     }
 
     // ==================== 6. CORE: INIT & LOAD PROJECTS ====================
@@ -263,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
         filteredCategories = null;
         isProjectLocked = false;
         hasUserInput = false;
-        isSupervisionLocked = false;
 
         if (!selectedUlok) {
             currentProject = null;
@@ -276,9 +304,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         await fetchGanttData(selectedUlok);
 
-        // Setelah fetch, render semua komponen
+        // Setelah fetch, update pengawasan otomatis berdasarkan durasi
+        calculateSupervisionDays();
+
+        // Render semua komponen
         renderProjectInfo();
         renderApiData();
+        
         if (hasUserInput) {
             renderChart();
         } else {
@@ -313,11 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.dependency_data) dependencyData = data.dependency_data;
             if (data.filtered_categories && Array.isArray(data.filtered_categories)) {
                 filteredCategories = data.filtered_categories;
-                console.log('📋 Filtered Categories from API:', filteredCategories);
             }
-
-            // FIX: Parsing Pengawasan
-            if (rawGanttData) parseSupervisionFromGanttData(rawGanttData);
 
             if (rawGanttData) {
                 const status = String(rawGanttData.Status || '').toLowerCase();
@@ -357,13 +385,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
             });
 
-            // Re-index task IDs after filtering
             tasksToUse = tasksToUse.map((task, index) => ({
                 ...task,
                 id: index + 1
             }));
-
-            console.log('📋 Filtered tasks based on RAB categories:', tasksToUse.map(t => t.name));
         }
 
         currentTasks = tasksToUse.map(t => ({
@@ -484,7 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     d.Kategori && d.Kategori.toLowerCase().trim() === normalizedName
                 );
                 if (depEntry && depEntry.Kategori_Terikat) {
-                    // Find the task ID of Kategori_Terikat
                     const terikatName = depEntry.Kategori_Terikat.toLowerCase().trim();
                     const terikatTask = tempTaskList.find(t =>
                         t.name.toLowerCase().trim() === terikatName
@@ -501,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 start: minStart,
                 duration: totalDuration,
                 dependencies: [],
-                dependency: dependencyTaskId, // Set dependency from API
+                dependency: dependencyTaskId,
                 keterlambatan: item.keterlambatan || 0,
                 inputData: { ranges: ranges }
             });
@@ -509,22 +533,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentTasks = dynamicTasks;
         projectTasks[selectedValue] = currentTasks;
-    }
-
-    // FIX: Parsing Supervision Robust
-    // Menggunakan loop properti objek untuk menghindari masalah "gap" pada index
-    function parseSupervisionFromGanttData(ganttData) {
-        supervisionDays = {};
-        for (const key in ganttData) {
-            if (ganttData.hasOwnProperty(key)) {
-                if (key.startsWith("Pengawasan_")) {
-                    const val = ganttData[key];
-                    if (val && !isNaN(parseInt(val)) && parseInt(val) > 0) {
-                        supervisionDays[parseInt(val)] = true;
-                    }
-                }
-            }
-        }
     }
 
     // ==================== 9. UI RENDERING ====================
@@ -559,30 +567,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- FORM PIC (DELAY & SUPERVISION CONTROL) ---
+    // --- FORM PIC (DELAY ONLY - SUPERVISION AUTO) ---
     window.renderPicDelayForm = function (container) {
         let html = '';
-        // TAMPILAN 1: MODE EDIT PENGAWASAN (Belum dikunci)
-        if (!isSupervisionLocked) {
-            html += `
-            <div class="api-card info">
-                <h3 style="color: #2b6cb0; margin:0; display:flex; align-items:center; gap:8px;">
-                    <span>Input Pengawasan Terlebih Dahulu</span>
-                </h3>
-                <p style="margin-top:5px; margin-bottom:15px; font-size:14px; color:#4a5568;">
-                    Klik angka/tanggal pada Header Table Chart di bawah untuk menandai hari pengawasan. 
-                    Jika sudah selesai, kunci hari pengawasan untuk lanjut input keterlambatan.
-                </p>
-                <div style="text-align:right;">
-                    <button class="btn-publish" style="background:#3182ce; width:auto;" onclick="lockSupervision()">
-                        Kunci Hari Pengawasan & Input Keterlambatan
-                    </button>
-                </div>
-            </div>`;
-            container.innerHTML = html;
-            return;
-        }
-        // TAMPILAN 2: MODE INPUT KETERLAMBATAN (Sudah dikunci)
+        
         let optionsHtml = '<option value="">-- Pilih Tahapan --</option>';
         if (dayGanttData) {
             dayGanttData.forEach((d, idx) => {
@@ -591,13 +579,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${delayVal}">${d.Kategori} (${d.h_awal} - ${d.h_akhir})${delayText}</option>`;
             });
         }
+        
+        // Info Pengawasan Auto
+        const dur = currentProject.duration || '-';
+        
         html += `
+            <div class="api-card info" style="margin-bottom: 15px;">
+                <h3 style="color: #2b6cb0; margin:0; font-size: 15px;">ℹ️ Info Pengawasan</h3>
+                <p style="margin-top:5px; font-size:13px; color:#4a5568;">
+                    Hari pengawasan ditentukan otomatis berdasarkan durasi proyek (<strong>${dur} Hari</strong>). 
+                    Silakan input keterlambatan jika ada.
+                </p>
+            </div>
+
             <div class="delay-control-card">
-                <div class="delay-title" style="justify-content:space-between;">
-                    <span>Tahap 2: Input Keterlambatan</span>
-                    <button onclick="unlockSupervision()" style="background:transparent; border:1px solid #ddd; padding:4px 8px; font-size:11px; border-radius:4px; cursor:pointer; color:#555;">
-                        ✏️ Ubah Pengawasan
-                    </button>
+                <div class="delay-title">
+                    <span>Input Keterlambatan</span>
                 </div>
                 <div class="delay-form-row">
                     <div class="form-group" style="flex: 2;">
@@ -630,7 +627,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Generate Options Dependency
             let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
             currentTasks.forEach(prevTask => {
-                // Tampilkan task ID sebelumnya sebagai opsi
                 if (prevTask.id < task.id) {
                     const selected = (task.dependency == prevTask.id) ? 'selected' : '';
                     dependencyOptions += `<option value="${prevTask.id}" ${selected}>${prevTask.id}. ${prevTask.name}</option>`;
@@ -673,7 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         });
 
-        // Logika Tombol
         const btnDisabledAttr = isAllTasksFilled ? '' : 'disabled';
         const btnStyle = isAllTasksFilled ? '' : 'background-color: #cbd5e0; cursor: not-allowed;';
         const lockLabel = isAllTasksFilled ? '🔒 Kunci Jadwal' : '🔒 Lengkapi & Terapkan Dahulu';
@@ -694,8 +689,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.createRangeHTML = function (taskId, idx, start, end, isSaved = false) {
         const btnColor = isSaved ? 'background: #fed7d7; color: #c53030;' : 'background: #e2e8f0; color: #4a5568;';
-        const maxVal = currentProject && currentProject.duration ? parseInt(currentProject.duration) : '';
-        const maxAttr = maxVal ? `max="${maxVal}"` : '';
         return `
         <div class="range-input-group" id="range-group-${taskId}-${idx}" data-range-idx="${idx}">
             <div class="input-group">
@@ -722,13 +715,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const rowId = `range-group-${taskId}-${idx}`;
         const element = document.getElementById(rowId);
 
-        // 1. Jika data BARU (Draft/Belum Save), hapus DOM saja
         if (!isSaved) {
             if (element) element.remove();
             return;
         }
 
-        // 2. Jika data SUDAH TERSIMPAN (DB), Konfirmasi
         if (!confirm("Data ini sudah tersimpan di server. Yakin ingin menghapusnya?")) return;
 
         const startVal = parseInt(document.getElementById(`start-${taskId}-${idx}`).value) || 0;
@@ -751,8 +742,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 3. Susun Payload sesuai format backend untuk remove
-        // Sesuaikan lingkup_pekerjaan: "ME" atau "SIPIL" (uppercase)
         const lingkupValue = currentProject.work.toUpperCase() === "ME" ? "ME" : "SIPIL";
 
         const payload = {
@@ -768,27 +757,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            console.log("=== REMOVE PAYLOAD DEBUG ===");
-            console.log("URL:", ENDPOINTS.dayInsert);
-            console.log("Payload:", JSON.stringify(payload, null, 2));
             document.body.style.cursor = 'wait';
-
             const response = await fetch(ENDPOINTS.dayInsert, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            // Baca response dari server
-            const responseText = await response.text();
-            console.log("Response Status:", response.status);
-            console.log("Response Body:", responseText);
-
             if (!response.ok) {
+                const responseText = await response.text();
                 throw new Error(`Server Error (${response.status}): ${responseText}`);
             }
 
-            // 4. Sukses
             if (element) element.remove();
 
             if (taskObj && taskObj.inputData && taskObj.inputData.ranges) {
@@ -807,7 +787,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ==================== DEPENDENCY FUNCTIONS ====================
     window.handleDependencyChange = async function (taskId, newDependencyTaskId) {
         const task = currentTasks.find(t => t.id === parseInt(taskId));
         if (!task || !currentProject) return;
@@ -819,28 +798,20 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             document.body.style.cursor = 'wait';
 
-            // If there was an old dependency, remove it first
             if (oldDependencyTask) {
                 await removeDependency(task.name, oldDependencyTask.name);
             }
-
-            // If new dependency is selected, add it
             if (newDependencyTask) {
                 await saveDependency(task.name, newDependencyTask.name);
             }
 
-            // Update local state
             task.dependency = newDependencyTaskId ? parseInt(newDependencyTaskId) : null;
-
-            // Update dependencyData array
             updateLocalDependencyData(task.name, newDependencyTask ? newDependencyTask.name : null);
-
             console.log(`Dependency updated: ${task.name} -> ${newDependencyTask ? newDependencyTask.name : 'None'}`);
 
         } catch (err) {
             console.error("Dependency update failed:", err);
             alert("Gagal update keterikatan: " + err.message);
-            // Revert dropdown to old value
             const depSelect = document.querySelector(`.dep-select[data-task-id="${taskId}"]`);
             if (depSelect) depSelect.value = oldDependencyTaskId || '';
         } finally {
@@ -860,8 +831,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ]
         };
 
-        console.log("=== SAVE DEPENDENCY PAYLOAD ===", payload);
-
         const response = await fetch(ENDPOINTS.dependencyInsert, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -872,7 +841,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const errorText = await response.text();
             throw new Error(`Server Error (${response.status}): ${errorText}`);
         }
-
         return await response.json();
     }
 
@@ -888,8 +856,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ]
         };
 
-        console.log("=== REMOVE DEPENDENCY PAYLOAD ===", payload);
-
         const response = await fetch(ENDPOINTS.dependencyInsert, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -900,46 +866,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const errorText = await response.text();
             throw new Error(`Server Error (${response.status}): ${errorText}`);
         }
-
-        return await response.json();
-    }
-
-    // Save multiple dependencies at once (for bulk operations)
-    window.saveBulkDependencies = async function (dependencyList) {
-        if (!currentProject || !dependencyList || dependencyList.length === 0) return;
-
-        const payload = {
-            "nomor_ulok": currentProject.ulokClean,
-            "lingkup_pekerjaan": currentProject.work.toUpperCase(),
-            "dependency_data": dependencyList.map(d => ({
-                "Kategori": d.kategori.toUpperCase(),
-                "Kategori_Terikat": d.kategoriTerikat.toUpperCase()
-            }))
-        };
-
-        console.log("=== BULK SAVE DEPENDENCY PAYLOAD ===", payload);
-
-        const response = await fetch(ENDPOINTS.dependencyInsert, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server Error (${response.status}): ${errorText}`);
-        }
-
         return await response.json();
     }
 
     function updateLocalDependencyData(kategori, kategoriTerikat) {
-        // Remove existing entry for this kategori
         dependencyData = dependencyData.filter(d =>
             d.Kategori.toLowerCase().trim() !== kategori.toLowerCase().trim()
         );
-
-        // Add new entry if kategoriTerikat is provided
         if (kategoriTerikat) {
             dependencyData.push({
                 "Nomor Ulok": currentProject.ulokClean,
@@ -957,20 +890,17 @@ document.addEventListener('DOMContentLoaded', () => {
             t.inputData.ranges = [];
             t.start = 0;
             t.duration = 0;
-            t.dependency = null; // Reset dependency too
+            t.dependency = null;
         });
         hasUserInput = false;
-        dependencyData = []; // Reset dependency data
-
+        dependencyData = [];
         renderApiData();
-
         document.getElementById("ganttChart").innerHTML = `
             <div style="text-align: center; padding: 60px; color: #6c757d;">
                 <div style="font-size: 48px; margin-bottom: 20px;">ℹ️</div>
                 <h2 style="margin-bottom: 15px;">Belum Ada Jadwal</h2>
                 <p>Silakan input jadwal pada form di atas.</p>
             </div>`;
-
         updateStats();
     }
 
@@ -979,7 +909,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let error = false;
         const maxAllowedDay = parseInt(currentProject.duration) || 999;
 
-        // 1. AMBIL DATA DARI INPUT (Range & Dependency)
         currentTasks.forEach(t => {
             const container = document.getElementById(`ranges-${t.id}`);
             const depSelect = document.querySelector(`.dep-select[data-task-id="${t.id}"]`);
@@ -992,7 +921,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const s = parseInt(row.querySelector('[data-type="start"]').value) || 0;
                 const e = parseInt(row.querySelector('[data-type="end"]').value) || 0;
 
-                // Skip baris kosong 0-0, kecuali itu satu-satunya baris
                 if (s === 0 && e === 0 && container.children.length > 1) return;
 
                 if (e < s && e !== 0) {
@@ -1009,68 +937,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tempTasks.push({
                 ...t,
-                dependency: depValue, // Simpan ID dependency
+                dependency: depValue,
                 inputData: { ranges: newRanges }
             });
         });
 
         if (error) return;
 
-        // 2. LOGIKA CASCADING (KETERIKATAN)
-        // Kita loop task berurutan. Karena ID urut (1,2,3...), kita bisa hitung impact dari atas ke bawah.
-        let processedTasksMap = {}; // Simpan max end date setiap task
+        let processedTasksMap = {};
 
         tempTasks.forEach(task => {
             const ranges = task.inputData.ranges;
-
-            // Cek Dependency
             if (task.dependency) {
                 const parentId = parseInt(task.dependency);
                 const parentEndDay = processedTasksMap[parentId] || 0;
-
-                // Syarat: Start hari pertama task ini harus > Parent End Day
                 const requiredStart = parentEndDay + 1;
 
                 if (ranges.length > 0) {
                     const currentStart = ranges[0].start;
-
-                    // Jika jadwal user tabrakan dengan syarat dependency (misal user input start 3, padahal parent selesai 5)
-                    // Maka kita GESER otomatis (Shift)
                     if (currentStart < requiredStart && currentStart !== 0) {
                         const shiftDays = requiredStart - currentStart;
-
-                        // Geser semua split range task ini
                         ranges.forEach(r => {
                             r.start += shiftDays;
                             r.end += shiftDays;
                         });
-
-                        // Opsional: Beritahu user ada pergeseran (matikan jika ingin silent mode)
-                        // console.log(`Auto-shifting task ${task.name} by ${shiftDays} days due to dependency.`);
                     }
                 }
             }
 
-            // Hitung properti summary task
             const totalDur = ranges.reduce((sum, r) => sum + r.duration, 0);
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start)) : 0;
             const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end)) : 0;
 
-            // Simpan max end day untuk referensi task berikutnya
             processedTasksMap[task.id] = maxEnd;
-
-            // Update object task
             task.start = minStart;
             task.duration = totalDur;
         });
 
-        // 3. SIMPAN STATE
         currentTasks = tempTasks;
         hasUserInput = true;
-
         saveProjectSchedule("Active");
-
-        // 4. RENDER ULANG
         renderChart();
         updateStats();
         renderApiData();
@@ -1188,85 +1094,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.lockSupervision = function () {
-        // Validasi opsional: cek apakah ada hari pengawasan yg dipilih
-        if (Object.keys(supervisionDays).length === 0) {
-            if (!confirm("Anda belum memilih hari pengawasan satupun. Lanjut?")) return;
-        }
-
-        isSupervisionLocked = true;
-        renderApiData(); // Render ulang form (ganti ke input delay)
-        renderChart();   // Render ulang chart (header jadi disable)
-    }
-
-    window.unlockSupervision = function () {
-        isSupervisionLocked = false;
-        renderApiData(); // Render ulang form (kembali ke instruksi pengawasan)
-        renderChart();   // Render ulang chart (header jadi clickable)
-    }
-
-    // FIX: LOGIKA CLICK HEADER (ADD/REMOVE)
-    window.handleHeaderClick = async function (dayNum, el) {
-        // 1. Cek Permission
-        if (APP_MODE !== 'pic' || !isProjectLocked) return;
-        if (isSupervisionLocked) {
-            alert("Mode input keterlambatan sedang aktif. Klik 'Ubah Pengawasan' jika ingin mengedit hari pengawasan.");
-            return;
-        }
-        const isRemoving = supervisionDays[dayNum];
-        const confirmMsg = isRemoving ? `Hapus pengawasan hari ${dayNum}?` : `Set pengawasan hari ${dayNum}?`;
-
-        // 2. Konfirmasi User
-        if (!confirm(confirmMsg)) return;
-
-        // 3. Siapkan Base Payload
-        const payload = {
-            "nomor_ulok": currentProject.ulokClean,
-            "lingkup_pekerjaan": currentProject.work.toUpperCase()
-        };
-
-        // 4. Tentukan Mode Payload (Insert vs Remove)
-        if (isRemoving) {
-            // Mode Remove: Hanya kirim remove_day
-            payload.remove_day = dayNum;
-        } else {
-            // Mode Insert: Hanya kirim pengawasan_day
-            payload.pengawasan_day = dayNum;
-        }
-
-        try {
-            // 5. Kirim ke API
-            console.log("Sending Payload:", payload); // Debugging
-            const response = await fetch(ENDPOINTS.pengawasanInsert, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) throw new Error("Gagal update data ke server");
-
-            // 6. Update State Lokal & Render Ulang
-            if (isRemoving) {
-                delete supervisionDays[dayNum];
-            } else {
-                supervisionDays[dayNum] = true;
-            }
-
-            renderChart();
-
-        } catch (err) {
-            console.error(err);
-            alert("Gagal update pengawasan: " + err.message);
-        }
-    }
-
     // ==================== 12. CHART RENDER ====================
     function renderChart() {
         const chart = document.getElementById('ganttChart');
         const DAY_WIDTH = 40;
-        const ROW_HEIGHT = 50; // Tinggi baris sesuai CSS
+        const ROW_HEIGHT = 50;
 
-        // 1. Hitung Lebar Chart
         let maxTaskEndDay = 0;
         currentTasks.forEach(task => {
             if (task.inputData && task.inputData.ranges) {
@@ -1281,58 +1114,48 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
         const projectStartDate = new Date(currentProject.startDate);
 
-        // 2. Setup Header & Interactive Logic
-        const isInteractive = APP_MODE === 'pic' && isProjectLocked && !isSupervisionLocked;
-        let headerTitle = "";
-        if (APP_MODE === 'pic' && isProjectLocked) {
-            headerTitle = isSupervisionLocked
-                ? "Klik 'Ubah Pengawasan' untuk mengedit"
-                : "Klik untuk set Pengawasan";
-        }
-        const cursorStyle = isInteractive ? "cursor: pointer;" : "cursor: default;";
+        // Header Title (Tidak ada interaksi klik lagi)
+        const headerTitle = "Timeline Project";
+        const cursorStyle = "cursor: default;";
 
-        // 3. Render Header HTML
         let html = '<div class="chart-header">';
         html += '<div class="task-column">Tahapan</div>';
         html += `<div class="timeline-column" style="width: ${totalChartWidth}px;">`;
         for (let i = 0; i < totalDaysToRender; i++) {
             const dayNumber = i + 1;
             const isSup = supervisionDays[dayNumber] === true;
+            // Class supervision-active akan memberi warna sesuai CSS
             const clss = isSup ? "day-header supervision-active" : "day-header";
-            const clickEvent = isInteractive ? `onclick="handleHeaderClick(${dayNumber}, this)"` : '';
-            html += `<div class="${clss}" style="width:${DAY_WIDTH}px; box-sizing: border-box; ${cursorStyle}" ${clickEvent} title="${headerTitle}"><span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span></div>`;
+            
+            // Hapus onclick
+            html += `<div class="${clss}" style="width:${DAY_WIDTH}px; box-sizing: border-box; ${cursorStyle}" title="${headerTitle}"><span class="d-date" style="font-weight:bold; font-size:14px;">${dayNumber}</span></div>`;
         }
         html += "</div></div>";
 
-        // 4. Render Body & Siapkan Koordinat Garis
-        html += '<div class="chart-body" style="position:relative;">'; // Tambah relative positioning
+        html += '<div class="chart-body" style="position:relative;">';
 
-        let taskCoordinates = {}; // Simpan koordinat (id -> {x, y})
+        let taskCoordinates = {};
 
         currentTasks.forEach((task, index) => {
             const ranges = task.inputData?.ranges || [];
             let durTxt = ranges.reduce((s, r) => s + r.duration, 0);
 
-            // Simpan Koordinat untuk Dependency (Ambil range paling akhir untuk Start Point, range paling awal untuk End Point)
             const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end)) : 0;
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start)) : 0;
 
             taskCoordinates[task.id] = {
-                y: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2), // Titik tengah vertikal baris
+                y: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2),
                 endX: maxEnd * DAY_WIDTH,
                 startX: (minStart - 1) * DAY_WIDTH
             };
 
-            // HTML Row
             html += `<div class="task-row"><div class="task-name"><span>${task.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
             html += `<div class="timeline" style="width: ${totalChartWidth}px;">`;
 
             ranges.forEach((range, idx) => {
                 const leftPos = (range.start - 1) * DAY_WIDTH;
                 const widthPos = (range.duration * DAY_WIDTH) - 1;
-                const tStart = new Date(projectStartDate); tStart.setDate(projectStartDate.getDate() + (range.start - 1));
-                const tEnd = new Date(tStart); tEnd.setDate(tStart.getDate() + range.duration - 1);
-
+                
                 const hasDelay = range.keterlambatan && range.keterlambatan > 0;
                 const barClass = hasDelay ? "bar on-time has-delay" : "bar on-time";
                 const barStyle = hasDelay
@@ -1348,7 +1171,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Supervision Markers
+            // Supervision Markers (Visual Only)
             for (const [day, isActive] of Object.entries(supervisionDays)) {
                 if (isActive) {
                     const dInt = parseInt(day);
@@ -1356,10 +1179,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (inRange) html += `<div class="supervision-marker" style="left:${(dInt - 1) * DAY_WIDTH}px"></div>`;
                 }
             }
-            html += `</div></div>`; // End Timeline & TaskRow
+            html += `</div></div>`;
         });
 
-        // 5. Generate SVG Lines (Dependency)
         let svgLines = '';
         currentTasks.forEach(task => {
             if (task.dependency) {
@@ -1372,17 +1194,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const endX = me.startX;
                     const endY = me.y;
 
-                    // Calculate control points for smooth curve
-                    const midX = (startX + endX) / 2;
-                    const controlOffset = Math.abs(endY - startY) / 3;
-
-                    // Create path with arrow marker
                     const path = `M ${startX} ${startY} 
                                 C ${startX + 30} ${startY}, 
                                 ${endX - 30} ${endY}, 
                                 ${endX} ${endY}`;
 
-                    // Find parent task name for tooltip
                     const parentTask = currentTasks.find(t => t.id === task.dependency);
                     const tooltipText = parentTask ? `${task.name} bergantung pada ${parentTask.name}` : '';
 
@@ -1390,7 +1206,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <title>${tooltipText}</title>
                     </path>`;
 
-                    // Add arrow head at end point
                     const arrowSize = 6;
                     svgLines += `<polygon points="${endX},${endY} ${endX - arrowSize},${endY - arrowSize / 2} ${endX - arrowSize},${endY + arrowSize / 2}" class="dependency-arrow" fill="#667eea"/>`;
                 }
@@ -1408,7 +1223,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </svg>
         `;
 
-        html += `</div>`; // End Chart Body
+        html += `</div>`;
         chart.innerHTML = html;
     }
 
@@ -1417,7 +1232,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rab.Nama_Toko) currentProject.store = rab.Nama_Toko;
         if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
         if (rab.Kategori_Lokasi) currentProject.kategoriLokasi = rab.Kategori_Lokasi;
-
+        
+        // Re-calculate supervision when RAB updates duration
+        calculateSupervisionDays();
     }
 
     function renderProjectInfo() {
