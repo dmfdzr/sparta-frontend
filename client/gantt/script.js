@@ -1214,11 +1214,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (ranges.length > 0) {
                     const plannedStart = ranges[0].start;
-                    // Jika jadwal rencana mulai SEBELUM parent selesai (strict less than)
-                    // Maka harus digeser maju agar mulai saat parent selesai
-                    // Catatan: Hari yang sama (beririsan) diperbolehkan, tidak perlu shift
-                    if (plannedStart < parentEffectiveEnd) {
-                        shift = parentEffectiveEnd - plannedStart;
+                    // Jika jadwal rencana mulai SEBELUM atau SAMA DENGAN parent selesai
+                    // Maka harus digeser maju
+                    if (plannedStart <= parentEffectiveEnd) {
+                        shift = parentEffectiveEnd - plannedStart + 1;
                     }
                 }
             }
