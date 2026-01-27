@@ -1,6 +1,7 @@
 /* ======================== VARIABLES ======================== */
 :root {
     --primary-color: #005a9e;
+    --primary-dark: #004080;
     --secondary-color: #e53e3e; /* Merah Alfamart */
     --gradient-header: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     --background-color: #f4f7f6;
@@ -9,12 +10,12 @@
     --subtle-text-color: #718096;
     --border-color: #e2e8f0;
     --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
-    --shadow-hover: 0 10px 15px rgba(220, 38, 38, 0.2);
+    --shadow-hover: 0 10px 15px rgba(220, 38, 38, 0.15);
 }
 
 /* ======================== RESET & BASE ======================== */
 * {
-    box-sizing: border-box; /* Penting agar padding tidak merusak layout */
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
@@ -26,76 +27,68 @@ body {
     color: var(--text-color);
     line-height: 1.5;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ======================== ANIMATIONS ======================== */
-@keyframes logoSlideIn {
-    0% { opacity: 0; transform: translateX(-50px) rotate(-10deg); }
-    100% { opacity: 1; transform: translateX(0) rotate(0deg); }
-}
-
-@keyframes logoPopOut {
-    0% { opacity: 0; transform: scale(0); }
-    80% { transform: scale(1.1); }
-    100% { opacity: 1; transform: scale(1); }
-}
-
 @keyframes fadeInSlide {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes logoPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 /* ======================== HEADER ======================== */
 .main-header {
     display: flex;
     align-items: center;
-    justify-content: center; /* Center content default */
+    justify-content: space-between; /* Space between logo group and logout */
     padding: 1rem 2rem;
     background: var(--gradient-header);
     color: white;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    position: relative;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    gap: 1rem;
-    min-height: 80px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
-/* Logo Setup */
+/* Wrapper semu untuk logo dan judul agar rapi (via CSS grid/flex) */
+.main-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+}
+
 .header-logo, .building-logo {
-    height: 60px; /* Sedikit dikecilkan agar proporsional */
+    height: 55px;
     width: auto;
     object-fit: contain;
-}
-
-.header-logo {
-    animation: logoSlideIn 0.8s ease-out forwards;
-}
-
-.building-logo {
-    animation: logoPopOut 0.8s ease-out forwards;
-    animation-delay: 0.2s;
+    animation: logoPop 0.6s ease-out;
+    background: white;
+    padding: 4px;
+    border-radius: 8px;
 }
 
 .main-header h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: white;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    animation: fadeInSlide 0.8s ease-out forwards;
     text-align: center;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     line-height: 1.2;
 }
 
-/* Tombol Logout */
+/* Tombol Logout Desktop */
 .btn-logout-form {
-    position: absolute;
-    right: 30px;
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.4);
     color: white;
     padding: 0.6rem 1.2rem;
     border-radius: 50px;
-    font-family: inherit;
     font-size: 0.9rem;
     font-weight: 600;
     display: flex;
@@ -103,36 +96,38 @@ body {
     gap: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    backdrop-filter: blur(4px);
+    white-space: nowrap;
 }
 
 .btn-logout-form:hover {
-    background: #ffffff;
+    background: white;
     color: #b91c1c;
-    transform: scale(1.05);
-}
-
-.btn-logout-form:active {
-    transform: scale(0.95);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 /* ======================== CONTAINER & WELCOME ======================== */
 .container {
-    max-width: 1200px; /* Lebih lebar untuk desktop */
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 2.5rem 2rem;
+    width: 100%;
+    flex: 1;
 }
 
 .welcome-message {
     text-align: center;
-    margin-bottom: 2.5rem;
+    margin-bottom: 3rem;
     animation: fadeInSlide 0.8s ease-out forwards;
 }
 
 .welcome-message h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-color);
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #1a202c;
+    background: linear-gradient(to right, #b91c1c, #005a9e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
 }
 
@@ -144,57 +139,62 @@ body {
 /* ======================== MENU GRID ======================== */
 .menu-container {
     display: grid;
-    /* Responsive Grid: Otomatis menyesuaikan jumlah kolom */
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
     padding-bottom: 2rem;
 }
 
 .menu-item {
-    display: none; /* Default hidden, JS will toggle this */
+    display: none; /* JS will toggle block */
     background-color: var(--card-background);
-    padding: 2rem 1.5rem;
+    padding: 2rem;
     border-radius: 16px;
     text-decoration: none;
     color: inherit;
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    display: flex; /* Flex agar layout internal rapi */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Flex setup untuk Desktop (Center Align) */
+    display: flex; /* Override JS display block agar layout rapi */
     flex-direction: column;
     align-items: center;
     text-align: center;
-    height: 100%; /* Agar tinggi kartu sama rata */
+    height: 100%;
+    position: relative;
+    overflow: hidden;
 }
 
-/* Override inline style JS untuk display:block agar tetap flex */
+/* Fix conflict dengan JS inline style */
 .menu-item[style*="display: block"] {
     display: flex !important;
 }
 
+/* Hover Effect Desktop */
 .menu-item:hover {
     transform: translateY(-5px);
     box-shadow: var(--shadow-hover);
     border-color: #b91c1c;
 }
 
-.menu-item:active {
-    transform: scale(0.98);
+.menu-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #dc2626, #005a9e);
+    opacity: 0;
+    transition: opacity 0.3s;
 }
 
-.menu-item img {
-    height: 70px; /* Ukuran icon konsisten */
-    width: auto;
-    margin-bottom: 1.25rem;
-    transition: transform 0.3s ease;
-}
-
-.menu-item:hover img {
-    transform: scale(1.1);
+.menu-item:hover::before {
+    opacity: 1;
 }
 
 .menu-item h3 {
-    font-size: 1.15rem;
+    font-size: 1.25rem;
     font-weight: 700;
     margin-bottom: 0.75rem;
     color: #1a202c;
@@ -203,110 +203,113 @@ body {
 .menu-item p {
     font-size: 0.95rem;
     color: var(--subtle-text-color);
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
-.menu-item.disabled {
-    background-color: #f7fafc;
-    cursor: not-allowed;
-    opacity: 0.6;
-    filter: grayscale(100%);
-}
-
-.menu-item.disabled:hover {
-    transform: none;
-    box-shadow: var(--shadow-sm);
-}
-
-/* ======================== RESPONSIVE / MOBILE ======================== */
-@media (max-width: 768px) {
-    /* --- Header Mobile --- */
+/* =================================================================
+   MOBILE RESPONSIVE OVERRIDES
+   ================================================================= */
+@media screen and (max-width: 768px) {
+    /* --- HEADER MOBILE --- */
     .main-header {
-        flex-direction: column; /* Stack vertikal */
-        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem 1rem;
         gap: 1rem;
         height: auto;
     }
 
-    /* Container Logo & Judul */
-    .header-logo-container {
-        display: flex;
-        align-items: center;
+    /* Baris 1: Logo Kiri - Judul - Logo Kanan */
+    .main-header > * {
+        width: auto;
+    }
+    
+    /* Container semu untuk logo dan judul agar sejajar di atas */
+    /* Karena kita tidak mengubah HTML, kita gunakan Flex Order/Wrap trick */
+    .main-header {
+        flex-wrap: wrap;
         justify-content: center;
-        gap: 10px;
-        width: 100%;
+        text-align: center;
     }
 
     .header-logo, .building-logo {
-        height: 45px; /* Logo lebih kecil di HP */
+        height: 45px;
+        order: 1; /* Logo di urutan awal visual */
+        margin: 0 10px;
     }
 
     .main-header h1 {
-        font-size: 1.25rem; /* Judul lebih kecil */
-        margin: 5px 0;
+        order: 2; /* Judul di tengah visual (baris baru jika sempit) */
+        width: 100%;
+        margin: 0.5rem 0;
+        font-size: 1.3rem;
     }
 
     /* Tombol Logout Mobile */
     .btn-logout-form {
-        position: relative; /* Tidak lagi absolute */
-        right: auto;
-        width: 100%; /* Full width button */
+        order: 3;
+        position: static; /* Tidak absolute */
+        margin-top: 0.5rem;
+        width: auto;
+        min-width: 140px;
         justify-content: center;
-        padding: 10px;
-        background: rgba(255, 255, 255, 0.25);
+        background: rgba(255,255,255,0.9);
+        color: #b91c1c; /* Text merah agar kontras */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
-    
-    .btn-logout-form span {
-        display: inline; /* Tampilkan teks logout di mobile agar jelas */
+    .btn-logout-form svg {
+        stroke: #b91c1c; /* Icon merah */
     }
 
-    /* --- Content Mobile --- */
+    /* --- CONTENT MOBILE --- */
     .container {
-        padding: 1rem 1rem; /* Padding lebih tipis */
-        margin-top: 0;
+        padding: 1rem;
+    }
+
+    .welcome-message {
+        margin-bottom: 2rem;
     }
 
     .welcome-message h2 {
         font-size: 1.1rem;
     }
-    
-    .welcome-message p {
-        font-size: 0.9rem;
-    }
 
-    /* --- Grid Mobile --- */
+    /* --- MENU CARDS MOBILE --- */
     .menu-container {
-        grid-template-columns: 1fr; /* Paksa 1 kolom memanjang ke bawah */
+        grid-template-columns: 1fr; /* 1 Kolom ke bawah */
         gap: 1rem;
     }
 
     .menu-item {
-        flex-direction: row; /* Icon di kiri, Teks di kanan */
-        padding: 1rem;
-        align-items: center;
-        text-align: left;
-        min-height: auto;
+        /* Ubah layout kartu menjadi rata kiri */
+        align-items: flex-start !important; /* Paksa rata kiri */
+        text-align: left !important;
+        padding: 1.25rem;
+        flex-direction: column; /* Tetap column tapi rata kiri */
+        
+        /* Ganti border atas (desktop) jadi border samping (mobile) */
+        border-top: none;
+        border-left: 5px solid var(--primary-color); 
     }
 
-    .menu-item img {
-        height: 50px; /* Icon lebih kecil */
-        margin-bottom: 0;
-        margin-right: 1.25rem;
-        flex-shrink: 0; /* Icon jangan mengecil gepeng */
-    }
-    
-    /* Wrapper untuk teks agar rapi di sebelah icon */
-    .menu-item div {
-        flex: 1;
+    .menu-item::before {
+        display: none; /* Hapus garis atas hover effect */
     }
 
     .menu-item h3 {
-        font-size: 1rem;
-        margin-bottom: 4px;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        color: var(--primary-color); /* Beri warna agar menonjol */
     }
 
     .menu-item p {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         margin: 0;
+    }
+    
+    /* Efek tekan di mobile */
+    .menu-item:active {
+        background-color: #f8fafc;
+        transform: scale(0.98);
     }
 }
