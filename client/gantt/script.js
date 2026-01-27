@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasUserInput = false;
     let isProjectLocked = false;
     let supervisionDays = {};
+    let isInitializing = true; // Flag untuk mencegah auto-save saat load/refresh
     // isSupervisionLocked DIHAPUS karena otomatis
 
     // ==================== 4. RULES & TEMPLATES ====================
@@ -272,7 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ulokSelect.appendChild(option);
         });
 
-        ulokSelect.addEventListener('change', changeUlok);
+        ulokSelect.addEventListener('change', () => {
+            // User manual change - pastikan initialization selesai
+            isInitializing = false;
+            changeUlok();
+        });
 
         // ============================================================
         // 2. LOGIKA AUTO-LOAD (ULOK + LINGKUP) DARI RAB
@@ -374,6 +379,13 @@ document.addEventListener('DOMContentLoaded', () => {
             showSelectProjectMessage();
             localStorage.removeItem("lastSelectedUlok");
         }
+
+        // Set flag bahwa inisialisasi selesai setelah delay singkat
+        // untuk memastikan semua proses load sudah complete
+        setTimeout(() => {
+            isInitializing = false;
+            console.log("✅ Inisialisasi selesai, save operations enabled");
+        }, 1000);
     }
 
     // ==================== 7. CORE: SELECT PROJECT & FETCH GANTT ====================
@@ -400,6 +412,9 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem("lastSelectedUlok", selectedUlok);
         currentProject = projects.find(p => p.ulok === selectedUlok);
 
+        // Set loading state untuk mencegah perubahan selama fetch
+        isLoadingGanttData = true;
+        
         await fetchGanttData(selectedUlok);
 
         // Setelah fetch, update pengawasan otomatis berdasarkan durasi
@@ -886,6 +901,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.handleDependencyChange = async function (taskId, newDependencyTaskId) {
+        // Cegah save saat inisialisasi/refresh
+        if (isInitializing) {
+            console.log("⏳ Skip dependency save - masih dalam proses inisialisasi");
+            return;
+        }
+
         const task = currentTasks.find(t => t.id === parseInt(taskId));
         if (!task || !currentProject) return;
 
@@ -1003,6 +1024,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.applyTaskSchedule = function () {
+        // Cegah save saat inisialisasi/refresh
+        if (isInitializing) {
+            console.log("⏳ Skip apply schedule - masih dalam proses inisialisasi");
+            return;
+        }
+
         let tempTasks = [];
         let error = false;
         const maxAllowedDay = parseInt(currentProject.duration) || 999;
@@ -1081,6 +1108,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.confirmAndPublish = function () {
+        // Cegah save saat inisialisasi/refresh
+        if (isInitializing) {
+            console.log("⏳ Skip publish - masih dalam proses inisialisasi");
+            return;
+        }
+
         const isAllTasksFilled = currentTasks.every(t =>
             t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
         );
@@ -1094,6 +1127,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveProjectSchedule(status) {
+        // Double check: Cegah save saat inisialisasi
+        if (isInitializing) {
+            console.warn("⚠️ Blocked auto-save during initialization");
+            return;
+        }
+
         const payload = {
             "Nomor Ulok": currentProject.ulokClean,
             "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
