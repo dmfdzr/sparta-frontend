@@ -259,52 +259,88 @@ document.addEventListener('DOMContentLoaded', () => {
         const ulokSelect = document.getElementById("ulokSelect");
         ulokSelect.innerHTML = '<option value="">-- Pilih Proyek --</option>';
 
-        // 1. Populate Dropdown seperti biasa
+        // 1. Populate Dropdown
         projects.forEach(project => {
-            projectTasks[project.ulok] = [];
+            projectTasks[project.ulok] = []; // Inisialisasi storage task
             const option = document.createElement("option");
-            option.value = project.ulok;
+            
+            // Value di sini adalah format gabungan: "Z001-2512-0001-ME"
+            option.value = project.ulok; 
+            
+            // Label dropdown
             option.textContent = `${project.ulok} | ${project.store} (${project.work})`;
             ulokSelect.appendChild(option);
         });
 
         ulokSelect.addEventListener('change', changeUlok);
+
+        // ============================================================
+        // 2. LOGIKA AUTO-LOAD (ULOK + LINGKUP) DARI RAB
+        // ============================================================
         const urlParams = new URLSearchParams(window.location.search);
-        const autoUlok = urlParams.get('ulok');
-        const isLocked = urlParams.get('locked');
         
+        // Ambil parameter (contoh: ulok="Z001-2512-0001", lingkup="ME")
+        const autoUlok = urlParams.get('ulok');       
+        const autoLingkup = urlParams.get('lingkup'); 
+        const isLocked = urlParams.get('locked');     
+
         let foundMatch = false;
 
         if (autoUlok) {
-            const optionsArr = Array.from(ulokSelect.options);
-            const matchedOption = optionsArr.find(opt => opt.value === autoUlok || opt.value.includes(autoUlok));
+            console.log(`🔗 Mencari proyek: Kode=${autoUlok}, Lingkup=${autoLingkup || 'Semua'}`);
 
-            if (matchedOption) {
-                // A. Set Nilai Dropdown
-                ulokSelect.value = matchedOption.value;
+            // Cari opsi yang COCOK KEDUANYA (Kode & Lingkup)
+            const targetProject = projects.find(p => {
+                // p.ulokClean sudah diparsing di loadDataAndInit (isinya "Z001-2512-0001")
+                // p.work sudah diparsing di loadDataAndInit (isinya "ME" atau "Sipil")
+                
+                // 1. Cek Kode Ulok (Exact Match atau Includes)
+                const isCodeMatch = p.ulokClean === autoUlok || p.ulok.includes(autoUlok);
+                
+                // 2. Cek Lingkup (Case Insensitive)
+                const isScopeMatch = autoLingkup 
+                    ? p.work.toLowerCase() === autoLingkup.toLowerCase() 
+                    : true;
+
+                return isCodeMatch && isScopeMatch;
+            });
+
+            if (targetProject) {
+                // Jika ketemu, pilih value dropdown yang sesuai (misal "Z001-2512-0001-ME")
+                ulokSelect.value = targetProject.ulok;
                 foundMatch = true;
 
-                // B. Panggil fungsi changeUlok() untuk memuat data Gantt Chart
+                console.log("✅ Proyek ditemukan & dipilih:", targetProject.ulok);
+
+                // Load Data Gantt Chart
                 changeUlok(); 
 
-                // C. Kunci Dropdown jika parameter locked=true
+                // Kunci Dropdown jika mode locked
                 if (isLocked === 'true') {
                     ulokSelect.disabled = true;
-                    ulokSelect.style.backgroundColor = "#e9ecef"; // Warna abu-abu (disabled look)
+                    ulokSelect.style.backgroundColor = "#e9ecef"; 
                     ulokSelect.style.cursor = "not-allowed";
-                    ulokSelect.title = "Menu terkunci karena Anda dialihkan dari halaman Input RAB.";
+                    ulokSelect.title = "Terkunci: Mode Review RAB";
                     
-                    // Opsional: Tambahkan pesan visual kecil di atas chart
-                    const headerMsg = document.getElementById("roleBadge"); // Atau elemen lain di header
-                    if(headerMsg) {
-                        headerMsg.innerHTML += ` <span style="font-size:0.8em; background:#feb2b2; color:#9b2c2c; padding:2px 6px; border-radius:4px; margin-left:10px;">🔒 Mode Review RAB</span>`;
+                    // Tambahan Badge Visual (Opsional)
+                    const roleBadge = document.getElementById("roleBadge");
+                    if(roleBadge && !document.getElementById('lock-badge')) {
+                        roleBadge.innerHTML += ` <span id="lock-badge" style="font-size:0.8em; background:#feb2b2; color:#9b2c2c; padding:2px 6px; border-radius:4px; margin-left:10px;">🔒 Mode RAB</span>`;
                     }
+                }
+            } else {
+                console.warn("⚠️ Data URL valid, tapi proyek tidak ditemukan di list akun ini.");
+                // Fallback: Coba cari hanya berdasarkan kode ulok jika lingkup tidak ketemu
+                const partialMatch = projects.find(p => p.ulokClean === autoUlok);
+                if(partialMatch) {
+                     ulokSelect.value = partialMatch.ulok;
+                     changeUlok();
                 }
             }
         }
 
-        // 3. Jika TIDAK ada parameter URL atau Ulok tidak ditemukan (Behavior Lama)
-        if (!foundMatch) {
+        // 3. Fallback jika tidak ada parameter URL
+        if (!foundMatch && !ulokSelect.value) {
             ulokSelect.value = ""; 
             showSelectProjectMessage();
             localStorage.removeItem("lastSelectedUlok"); 

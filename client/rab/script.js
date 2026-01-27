@@ -735,17 +735,33 @@ const API = {
             const result = await res.json();
             
             if (res.ok && result.status === "success") {
-                // B. UPDATE LOADING SCREEN
+                // Update tampilan loading (jika ada)
+                const loadingOverlay = document.getElementById("loading-overlay");
+                const loadingTitle = document.getElementById("loading-title");
+                const loadingDesc = document.getElementById("loading-desc");
+                
                 if (loadingOverlay) {
                     loadingTitle.textContent = "Data Berhasil Disimpan!";
                     loadingDesc.textContent = "Mengarahkan ke Gantt Chart...";
                 }
 
-                // AMBIL ULOK DARI DATA YANG DIKIRIM
-                const targetUlok = data["Nomor Ulok"]; 
+                // 1. AMBIL DATA YANG DIPERLUKAN
+                // Ambil kode ulok murni (misal: Z001-2512-0001)
+                const targetUlok = data["Nomor Ulok"] || document.getElementById("lokasi").value; 
+                
+                // Ambil lingkup pekerjaan (Sipil atau ME)
+                const targetLingkup = document.getElementById("lingkup_pekerjaan").value; 
+
+                // 2. REDIRECT DENGAN PARAMETER LENGKAP
                 setTimeout(() => {
-                    // Kita kirim parameter ?ulok=... dan ?locked=true
-                    window.location.href = `../../gantt/index.html?ulok=${encodeURIComponent(targetUlok)}&locked=true`;
+                    // Kita kirim 3 parameter: ulok, lingkup, dan locked
+                    const params = new URLSearchParams({
+                        ulok: targetUlok,
+                        lingkup: targetLingkup,
+                        locked: 'true'
+                    });
+                    
+                    window.location.href = `../../gantt/index.html?${params.toString()}`;
                 }, 1500);
 
             } else {
