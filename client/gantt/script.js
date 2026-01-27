@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // isSupervisionLocked DIHAPUS karena otomatis
 
     // ==================== 4. RULES & TEMPLATES ====================
-    
+
     // MAPPING HARI PENGAWASAN (BARU)
     const SUPERVISION_RULES = {
         10: [2, 5, 8, 10],
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // FUNGSI BARU: Hitung Pengawasan Otomatis
     function calculateSupervisionDays() {
         supervisionDays = {}; // Reset
-        
+
         if (!currentProject || !currentProject.duration) return;
 
         const dur = parseInt(currentProject.duration);
@@ -263,10 +263,10 @@ document.addEventListener('DOMContentLoaded', () => {
         projects.forEach(project => {
             projectTasks[project.ulok] = []; // Inisialisasi storage task
             const option = document.createElement("option");
-            
+
             // Value di sini adalah format gabungan: "Z001-2512-0001-ME"
-            option.value = project.ulok; 
-            
+            option.value = project.ulok;
+
             // Label dropdown
             option.textContent = `${project.ulok} | ${project.store} (${project.work})`;
             ulokSelect.appendChild(option);
@@ -278,72 +278,101 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. LOGIKA AUTO-LOAD (ULOK + LINGKUP) DARI RAB
         // ============================================================
         const urlParams = new URLSearchParams(window.location.search);
-        
-        // Ambil parameter (contoh: ulok="Z001-2512-0001", lingkup="ME")
-        const autoUlok = urlParams.get('ulok');       
-        const autoLingkup = urlParams.get('lingkup'); 
-        const isLocked = urlParams.get('locked');     
+
+        // Ambil parameter (contoh: ulok="Z00126016565" atau "Z001-2601-6565", lingkup="Sipil")
+        const autoUlok = urlParams.get('ulok');
+        const autoLingkup = urlParams.get('lingkup');
+        const isLocked = urlParams.get('locked');
 
         let foundMatch = false;
 
+        // Helper: Normalize ulok code (hapus semua dash untuk perbandingan)
+        const normalizeUlok = (code) => {
+            if (!code) return '';
+            return String(code).replace(/-/g, '').toUpperCase().trim();
+        };
+
         if (autoUlok) {
-            console.log(`🔗 Mencari proyek: Kode=${autoUlok}, Lingkup=${autoLingkup || 'Semua'}`);
+            const normalizedAutoUlok = normalizeUlok(autoUlok);
+            console.log(`🔗 Mencari proyek: Kode=${autoUlok} (normalized: ${normalizedAutoUlok}), Lingkup=${autoLingkup || 'Semua'}`);
 
             // Cari opsi yang COCOK KEDUANYA (Kode & Lingkup)
             const targetProject = projects.find(p => {
-                // p.ulokClean sudah diparsing di loadDataAndInit (isinya "Z001-2512-0001")
-                // p.work sudah diparsing di loadDataAndInit (isinya "ME" atau "Sipil")
-                
-                // 1. Cek Kode Ulok (Exact Match atau Includes)
-                const isCodeMatch = p.ulokClean === autoUlok || p.ulok.includes(autoUlok);
-                
+                // Normalize kedua sisi untuk perbandingan yang akurat
+                const normalizedUlokClean = normalizeUlok(p.ulokClean);
+                const normalizedUlok = normalizeUlok(p.ulok);
+
+                // 1. Cek Kode Ulok (Normalized Match)
+                const isCodeMatch = normalizedUlokClean === normalizedAutoUlok ||
+                    normalizedUlok.includes(normalizedAutoUlok) ||
+                    normalizedAutoUlok.includes(normalizedUlokClean);
+
                 // 2. Cek Lingkup (Case Insensitive)
-                const isScopeMatch = autoLingkup 
-                    ? p.work.toLowerCase() === autoLingkup.toLowerCase() 
+                const isScopeMatch = autoLingkup
+                    ? p.work.toLowerCase() === autoLingkup.toLowerCase()
                     : true;
+
+                if (isCodeMatch && isScopeMatch) {
+                    console.log(`   ✓ Match found: ${p.ulok} (ulokClean: ${p.ulokClean}, work: ${p.work})`);
+                }
 
                 return isCodeMatch && isScopeMatch;
             });
 
             if (targetProject) {
-                // Jika ketemu, pilih value dropdown yang sesuai (misal "Z001-2512-0001-ME")
+                // Jika ketemu, pilih value dropdown yang sesuai (misal "Z001-2601-6565-Sipil")
                 ulokSelect.value = targetProject.ulok;
                 foundMatch = true;
 
                 console.log("✅ Proyek ditemukan & dipilih:", targetProject.ulok);
 
                 // Load Data Gantt Chart
-                changeUlok(); 
+                changeUlok();
 
                 // Kunci Dropdown jika mode locked
                 if (isLocked === 'true') {
                     ulokSelect.disabled = true;
-                    ulokSelect.style.backgroundColor = "#e9ecef"; 
+                    ulokSelect.style.backgroundColor = "#e9ecef";
                     ulokSelect.style.cursor = "not-allowed";
                     ulokSelect.title = "Terkunci: Mode Review RAB";
-                    
+
                     // Tambahan Badge Visual (Opsional)
                     const roleBadge = document.getElementById("roleBadge");
-                    if(roleBadge && !document.getElementById('lock-badge')) {
+                    if (roleBadge && !document.getElementById('lock-badge')) {
                         roleBadge.innerHTML += ` <span id="lock-badge" style="font-size:0.8em; background:#feb2b2; color:#9b2c2c; padding:2px 6px; border-radius:4px; margin-left:10px;">🔒 Mode RAB</span>`;
                     }
                 }
             } else {
                 console.warn("⚠️ Data URL valid, tapi proyek tidak ditemukan di list akun ini.");
+                console.log("   Available projects:", projects.map(p => `${p.ulok} (${p.work})`));
+
                 // Fallback: Coba cari hanya berdasarkan kode ulok jika lingkup tidak ketemu
-                const partialMatch = projects.find(p => p.ulokClean === autoUlok);
-                if(partialMatch) {
-                     ulokSelect.value = partialMatch.ulok;
-                     changeUlok();
+                const partialMatch = projects.find(p => {
+                    const normalizedUlokClean = normalizeUlok(p.ulokClean);
+                    return normalizedUlokClean === normalizedAutoUlok;
+                });
+
+                if (partialMatch) {
+                    console.log("   Partial match found:", partialMatch.ulok);
+                    ulokSelect.value = partialMatch.ulok;
+                    foundMatch = true;
+                    changeUlok();
+
+                    if (isLocked === 'true') {
+                        ulokSelect.disabled = true;
+                        ulokSelect.style.backgroundColor = "#e9ecef";
+                        ulokSelect.style.cursor = "not-allowed";
+                        ulokSelect.title = "Terkunci: Mode Review RAB";
+                    }
                 }
             }
         }
 
         // 3. Fallback jika tidak ada parameter URL
         if (!foundMatch && !ulokSelect.value) {
-            ulokSelect.value = ""; 
+            ulokSelect.value = "";
             showSelectProjectMessage();
-            localStorage.removeItem("lastSelectedUlok"); 
+            localStorage.removeItem("lastSelectedUlok");
         }
     }
 
@@ -379,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Render semua komponen
         renderProjectInfo();
         renderApiData();
-        
+
         if (hasUserInput) {
             renderChart();
         } else {
@@ -639,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FORM PIC (DELAY ONLY - SUPERVISION AUTO) ---
     window.renderPicDelayForm = function (container) {
         let html = '';
-        
+
         let optionsHtml = '<option value="">-- Pilih Tahapan --</option>';
         if (dayGanttData) {
             dayGanttData.forEach((d, idx) => {
@@ -648,10 +677,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${delayVal}">${d.Kategori} (${d.h_awal} - ${d.h_akhir})${delayText}</option>`;
             });
         }
-        
+
         // Info Pengawasan Auto
         const dur = currentProject.duration || '-';
-        
+
         html += `
             <div class="api-card info" style="margin-bottom: 15px;">
                 <h3 style="color: #2b6cb0; margin:0; font-size: 15px;">ℹ️ Info Pengawasan</h3>
@@ -1172,7 +1201,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- 1. LOGIKA RIPPLE EFFECT (Kalkulasi Pergeseran) ---
         // Map untuk menyimpan kapan sebuah Task ID benar-benar selesai (termasuk delay)
-        const effectiveEndDates = {}; 
+        const effectiveEndDates = {};
 
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
@@ -1182,7 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (task.dependency) {
                 // Ambil tanggal selesai efektif dari parent
                 const parentEffectiveEnd = effectiveEndDates[task.dependency] || 0;
-                
+
                 if (ranges.length > 0) {
                     const plannedStart = ranges[0].start;
                     // Jika jadwal rencana mulai SEBELUM atau SAMA DENGAN parent selesai
@@ -1249,11 +1278,11 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks.forEach((task, index) => {
             const ranges = task.inputData?.ranges || [];
             const shift = task.computed.shift; // Ambil nilai shift yang sudah dihitung
-            
+
             let durTxt = ranges.reduce((s, r) => s + r.duration, 0);
 
             // Koordinat untuk garis panah (menggunakan posisi yang sudah digeser/shifted)
-            const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan)||0))) : 0;
+            const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan) || 0))) : 0;
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift)) : 0;
 
             taskCoordinates[task.id] = {
@@ -1272,7 +1301,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const leftPos = (actualStart - 1) * DAY_WIDTH;
                 const widthPos = (range.duration * DAY_WIDTH) - 1;
-                
+
                 const hasDelay = range.keterlambatan && range.keterlambatan > 0;
                 const isShifted = shift > 0;
 
@@ -1285,7 +1314,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const borderStyle = (hasDelay && !isShifted) ? "border: 2px solid #e53e3e;" : "";
-                
+
                 html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; ${borderStyle}" title="${task.name} (Shift: ${shift} hari)"> ${range.duration}</div>`;
 
                 // Render Extension Merah (Keterlambatan sendiri)
@@ -1339,7 +1368,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-        
+
         const svgHeight = currentTasks.length * ROW_HEIGHT;
         html += `
             <svg class="chart-lines-svg" style="width:${totalChartWidth}px; height:${svgHeight}px;">
@@ -1361,7 +1390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rab.Nama_Toko) currentProject.store = rab.Nama_Toko;
         if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
         if (rab.Kategori_Lokasi) currentProject.kategoriLokasi = rab.Kategori_Lokasi;
-        
+
         // Re-calculate supervision when RAB updates duration
         calculateSupervisionDays();
     }
