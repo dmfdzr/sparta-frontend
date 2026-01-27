@@ -1,4 +1,4 @@
-/* === VARIABLES (Sama seperti sebelumnya) === */
+/* ======================== VARIABLES ======================== */
 :root {
     --primary: #d62828;
     --primary-dark: #b91c1c;
@@ -16,8 +16,8 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-/* === RESET & BASE === */
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* ======================== RESET & BASE ======================== */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -25,251 +25,197 @@ body {
     color: var(--neutral-700);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    font-size: 15px; /* Base font size slightly smaller for mobile density */
 }
 
-/* === HEADER (Revised) === */
+/* ======================== HEADER (RESPONSIVE) ======================== */
 .app-header {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
-    text-align: center;
-    padding: 0 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0 1rem;
+    height: 70px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    position: relative;
+    justify-content: space-between; /* Flex instead of absolute */
+    position: sticky; /* Sticky header */
+    top: 0;
+    z-index: 100;
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
-    height: 80px;
-    z-index: 50;
+}
+
+/* Container untuk Logo (kiri) */
+.app-header .header-left {
+    display: flex;
+    align-items: center;
+    flex: 1;
 }
 
 .header-logo {
-    width: 120px;
-    height: auto;
-    position: absolute;
-    left: 25px;
-    top: 50%;
-    transform: translateY(-50%);
-    /* HAPUS FILTER INI AGAR WARNA LOGO ASLI MUNCUL */
-    /* filter: brightness(0) invert(1); */
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    position: static; /* Reset absolute */
+    transform: none;
+    margin-right: 10px;
 }
 
-.app-header h3, .app-header h1 {
-    margin: 0;
-    font-size: 1.5rem;
+/* Container untuk Judul (tengah) - Sembunyikan di mobile jika perlu */
+.app-header div[style*="text-align:center"] {
+    flex: 2;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-header h1 {
+    font-size: 1.25rem;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    margin: 0;
 }
 
-.header-user-info {
-    font-size: 0.85rem; 
-    opacity: 0.9; 
-    font-weight: 400; 
-    display: block;
-    margin-top: 2px;
-}
-
-/* Updated Logout Button Style to Match svdokumen .btn-back-header */
+/* Tombol Logout (kanan) */
 .header-logout {
-    position: absolute;
-    right: 25px;
-    top: 50%;
-    transform: translateY(-50%);
+    position: static; /* Reset absolute */
+    transform: none;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
     color: white;
     text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(4px);
+    font-size: 0.85rem;
+    white-space: nowrap;
 }
 
-.header-logout:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-50%) scale(1.02);
-}
-
-/* === LAYOUT & CARD === */
+/* ======================== LAYOUT & CARD ======================== */
 .container {
     max-width: 1200px;
-    margin: 2rem auto;
-    padding: 0 20px;
+    margin: 0 auto;
+    padding: 20px 16px; /* Padding kiri-kanan */
     animation: fadeIn 0.4s ease-out;
+    width: 100%;
 }
 
 .card {
     background: white;
     border-radius: var(--radius);
-    padding: 2.5rem;
+    padding: 1.5rem; /* Reduced padding on mobile */
     box-shadow: var(--shadow);
     border: 1px solid var(--neutral-200);
+    width: 100%;
+    overflow: hidden; /* Prevent spill */
 }
-
-.text-center { text-align: center; }
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* === BUTTONS === */
+/* ======================== BUTTONS ======================== */
 .btn {
-    padding: 0.75rem 1.5rem;
+    padding: 0.75rem 1rem;
     border: none;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    gap: 6px;
+    touch-action: manipulation; /* Optimasi touch */
 }
 
-.btn:active { transform: scale(0.98); }
+.btn:active { transform: scale(0.96); }
 
-.btn-primary {
-    background-color: var(--primary);
-    color: white;
-}
-.btn-primary:hover {
-    background-color: var(--primary-dark);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-}
-
-.btn-secondary {
-    background-color: white;
-    color: var(--neutral-700);
-    border: 1px solid var(--neutral-200);
-}
-.btn-secondary:hover {
-    background-color: var(--neutral-100);
-    border-color: #cbd5e1;
-}
-
+/* Warna Button sama seperti sebelumnya */
+.btn-primary { background-color: var(--primary); color: white; }
+.btn-primary:hover { background-color: var(--primary-dark); }
+.btn-secondary { background-color: white; color: var(--neutral-700); border: 1px solid var(--neutral-200); }
 .btn-success { background-color: #10b981; color: white; }
-.btn-success:hover { background-color: #059669; }
-
 .btn-info { background-color: #3b82f6; color: white; }
-.btn-info:hover { background-color: #2563eb; }
+.btn-back { background-color: #f1f5f9; color: var(--neutral-700); border: 1px solid var(--neutral-200); }
+.btn-outline { background: transparent; border: 1px solid var(--neutral-200); }
 
-.btn-back {
-    background-color: transparent;
-    color: var(--text-muted);
-    border: 1px solid var(--neutral-200);
-    padding: 8px 16px;
-    font-size: 0.9rem;
-}
-.btn-back:hover {
-    color: var(--primary);
-    border-color: var(--primary);
-    background-color: #fff1f2;
-}
-
-.btn-outline {
-    background: transparent;
-    border: 1px solid var(--neutral-200);
-    color: var(--neutral-700);
-}
-.btn-outline:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-/* === FORMS & INPUTS === */
+/* ======================== FORMS & INPUTS ======================== */
 .form-input, .input-custom {
     width: 100%;
-    padding: 0.85rem 1rem;
+    padding: 10px 12px;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    font-size: 1rem;
-    transition: all 0.2s;
+    font-size: 16px; /* Mencegah zoom otomatis di iOS */
     background-color: #fff;
 }
 
-.form-input:focus, .input-custom:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-}
+.form-input:focus { border-color: var(--primary); outline: none; }
 
+/* User Info Greeting */
 .user-greeting-wrapper {
+    margin-top: 15px;
+    margin-bottom: -10px;
+    padding: 0 10px;
     text-align: center;
-    margin-top: 30px;
-    margin-bottom: -20px;
-    position: relative;
-    z-index: 10;
 }
-
 .user-info {
-    display: inline-block;
-    padding: 8px 24px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--neutral-700);
-    background: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-radius: 50px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    font-size: 0.85rem;
+    padding: 8px 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
-.user-info:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-/* === TABLE === */
+/* ======================== TABLES (SCROLLABLE) ======================== */
 .table-container {
-    overflow-x: auto;
+    width: 100%;
+    overflow-x: auto; /* Kunci horizontal scroll */
+    -webkit-overflow-scrolling: touch; /* Smooth scroll di iOS */
     border-radius: 8px;
     border: 1px solid #e2e8f0;
     margin-top: 1rem;
+    background: white;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.95rem;
+    white-space: nowrap; /* Mencegah teks turun ke bawah, memaksa scroll */
 }
 
 th {
+    background: #f1f5f9; /* Fallback */
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    color: #e2e8f0;
+    color: white;
     font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 0.05em;
-    padding: 16px;
+    font-size: 0.85rem;
+    padding: 12px 10px;
     border-bottom: 2px solid #e2e8f0;
+    position: sticky; /* Header diam saat scroll bawah */
+    top: 0;
+    z-index: 10;
 }
 
 td {
-    padding: 16px;
+    padding: 12px 10px;
     border-bottom: 1px solid #f1f5f9;
-    color: #334155;
+    font-size: 0.9rem;
 }
 
-tr:last-child td { border-bottom: none; }
-tr:hover td { background-color: #f8fafc; }
+/* Fix untuk input di dalam tabel agar tidak terlalu kecil */
+table .form-input {
+    min-width: 70px; 
+    padding: 8px;
+}
 
-.text-right { text-align: right; }
-.text-center { text-align: center; }
-.font-bold { font-weight: 700; }
-
-/* === LOGIN SPECIFIC === */
+/* ======================== LOGIN PAGE ======================== */
 .login-wrapper {
     min-height: 100vh;
+    padding: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -277,127 +223,142 @@ tr:hover td { background-color: #f8fafc; }
 }
 
 .login-card {
-    background: white;
     width: 100%;
-    max-width: 420px;
-    padding: 3rem 2.5rem;
-    border-radius: 16px;
-    box-shadow: var(--shadow-lg);
-    text-align: center;
-}
-
-.login-header h1 {
-    color: var(--primary);
-    font-size: 1.75rem;
-    margin-bottom: 0.5rem;
-}
-
-.login-header h3 {
-    color: var(--text-muted);
-    font-weight: 500;
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-}
-
-.form-group-custom { margin-bottom: 1.5rem; text-align: left; }
-.form-group-custom label {
-    display: block;
-    font-weight: 500;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-    color: #475569;
-}
-
-.btn-submit-custom {
-    width: 100%;
-    padding: 1rem;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-    margin-top: 1rem;
-}
-.btn-submit-custom:hover {
-    background: var(--primary-dark);
-}
-
-/* === TAMBAHAN UNTUK LOGIN STYLE === */
-
-/* Tombol Kembali (Back Link) */
-.btn-back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    color: #4a5568; /* var(--login-label) */
-    font-weight: 500;
-    font-size: 0.95rem;
-    margin-bottom: 2rem;
-    transition: all 0.2s ease;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-}
-
-.btn-back-link:hover {
-    color: var(--primary-blue); /* Menggunakan biru sesuai repo */
-    transform: translateX(-5px);
-}
-
-/* Penyesuaian Login Button agar Biru (Sesuai Repo) */
-.login-card .btn-submit-custom {
-    background-color: var(--primary-blue); /* #005a9e */
-}
-.login-card .btn-submit-custom:hover {
-    background-color: #004494;
-}
-
-/* Penyesuaian Header Text di Login */
-.login-header h1 {
-    font-size: 1.5rem;
-    font-weight: 500;
-    color: #2d3748;
-    margin: 0;
-}
-.login-header h3 {
-    margin-top: 10px;
-    font-weight: 600;
-    font-size: 1.2rem;
-    color: #2d3748;
-}
-
-/* Pastikan input focus berwarna biru di halaman login */
-.login-card .input-custom:focus {
-    border-color: #4299e1;
-    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+    max-width: 400px;
+    padding: 2rem;
 }
 
 .password-wrapper { position: relative; }
 .toggle-password-btn {
-    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; cursor: pointer; opacity: 0.6;
+    position: absolute; right: 0; top: 0; height: 100%; width: 40px;
+    background: none; border: none; display: flex; align-items: center; justify-content: center;
 }
 
-/* === UTILS & STATES === */
+/* ======================== UTILS ======================== */
 .d-flex { display: flex; }
 .flex-column { flex-direction: column; }
 .justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
 .align-center { align-items: center; }
 .gap-2 { gap: 10px; }
-
-.badge { padding: 4px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.font-bold { font-weight: 700; }
+.badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; display: inline-block; }
 .badge-success { background: #dcfce7; color: #166534; }
+.loading-screen { height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
-.alert-error {
-    background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
-    padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;
-}
+/* =================================================================
+   MOBILE RESPONSIVE OVERRIDES (Media Queries)
+   ================================================================= */
 
-.loading-screen {
-    height: 100vh; display: flex; flex-direction: column; 
-    align-items: center; justify-content: center; background: white;
+@media screen and (max-width: 768px) {
+    /* --- HEADER --- */
+    .app-header {
+        padding: 0 12px;
+        height: 60px;
+    }
+    .header-logo {
+        height: 32px; /* Logo lebih kecil */
+    }
+    .app-header h1 {
+        font-size: 1rem; /* Font judul lebih kecil */
+        margin-left: -20px; /* Sedikit geser agar center optis */
+    }
+    /* Sembunyikan teks "Dashboard/Keluar", sisakan ikon saja jika sempit */
+    .header-logout span {
+        display: none;
+    }
+    .header-logout svg {
+        margin: 0;
+    }
+    .header-logout {
+        padding: 8px; /* Square button */
+    }
+
+    /* --- CONTAINER & CARD --- */
+    .container {
+        padding-top: 10px !important; /* Override inline styles JS */
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    .card {
+        padding: 1.25rem 1rem;
+        border-radius: 10px;
+    }
+
+    /* --- DASHBOARD BUTTONS --- */
+    /* Menargetkan div grid di dashboard yang dihasilkan JS */
+    div[style*="display: grid"] {
+        grid-template-columns: 1fr !important; /* Paksa 1 kolom */
+        gap: 16px !important;
+    }
+    
+    .btn[style*="height:140px"] {
+        height: 100px !important; /* Tombol lebih pendek */
+        flex-direction: row !important; /* Ikon di kiri, teks di kanan */
+        justify-content: flex-start !important;
+        padding: 0 24px !important;
+        text-align: left !important;
+    }
+    .btn[style*="height:140px"] span:first-child {
+        font-size: 28px !important;
+        margin-right: 16px;
+    }
+
+    /* --- STORE SELECTION LIST --- */
+    .job-item {
+        min-height: auto !important;
+    }
+
+    /* --- TABLE ADJUSTMENTS --- */
+    /* Pastikan header tabel tidak membingungkan */
+    th, td {
+        padding: 10px 8px;
+        font-size: 0.85rem;
+    }
+    
+    /* Input di dalam tabel */
+    .vol-input {
+        width: 60px !important; /* Sedikit lebih kecil agar muat */
+        padding: 6px !important;
+    }
+
+    /* --- GENERAL BUTTONS --- */
+    .btn {
+        width: 100%; /* Tombol full width di mobile */
+        justify-content: center;
+        margin-bottom: 8px;
+    }
+    /* Kecuali tombol kecil di dalam tabel */
+    td .btn {
+        width: auto;
+        margin-bottom: 0;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+
+    /* Flex adjustments for header row in Cards (Back button + Title) */
+    .d-flex.align-center.gap-2 {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .d-flex.align-center.gap-2 button {
+        width: auto; /* Tombol back jangan full width */
+        margin-bottom: 10px;
+    }
+    
+    /* Layout tombol approval di tabel */
+    .d-flex.justify-center.gap-2 {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .d-flex.justify-center.gap-2 button {
+        width: 100%;
+    }
+
+    /* Summary Section (Grand Total) */
+    .card > div[style*="background:#f8f9fa"] .d-flex {
+        font-size: 0.9rem;
+    }
 }
