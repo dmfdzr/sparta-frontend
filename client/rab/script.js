@@ -658,39 +658,56 @@ const API = {
 
     submit: async () => {
         const form = document.getElementById("form");
+        
+        // 1. Validasi Input HTML
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
 
+        // 2. Cek Perubahan Data
         const currentData = FormManager.getCurrentData();
         if (State.originalFormData && currentData === State.originalFormData) {
             UI.showMessage("Tidak ada perubahan terdeteksi.", "warning");
             return;
         }
 
+        // 3. Validasi Luas Terbangunan
+        const lt = parseFloat(document.getElementById("luas_terbangunan")?.value);
+        if (!lt || lt <= 0) {
+            UI.showMessage("Error: Luas Terbangunan tidak valid.", "error");
+            return;
+        }
+
+        // --- MULAI PROSES PENGIRIMAN ---
+        
         const btn = document.getElementById("submit-button");
         btn.disabled = true;
-        UI.showMessage("Mengirim data...");
 
+        // A. TAMPILKAN LOADING SCREEN (STATE 1: MENGIRIM)
+        const loadingOverlay = document.getElementById("loading-overlay");
+        const loadingTitle = document.getElementById("loading-title");
+        const loadingDesc = document.getElementById("loading-desc");
+
+        if (loadingOverlay) {
+            // Set teks awal
+            loadingTitle.textContent = "Sedang Mengirim Data...";
+            loadingDesc.textContent = "Mohon tunggu sebentar.";
+            
+            // Munculkan overlay
+            loadingOverlay.classList.remove("hidden-overlay");
+            loadingOverlay.classList.add("active");
+        }
+
+        // Persiapan Data
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
 
-        // Helper: Format data for backend
         data["nama_toko"] = data["Nama_Toko"] || document.getElementById("nama_toko")?.value?.trim() || "";
         data["Cabang"] = document.getElementById("cabang").value;
         data["Email_Pembuat"] = sessionStorage.getItem("loggedInUserEmail");
         data["Grand Total"] = Formatter.parseRupiah(document.getElementById("grand-total-amount").textContent);
 
-        // Validation: Luas Terbangunan
-        const lt = parseFloat(document.getElementById("luas_terbangunan")?.value);
-        if (!lt || lt <= 0) {
-            UI.showMessage("Error: Luas Terbangunan tidak valid.", "error");
-            btn.disabled = false;
-            return;
-        }
-
-        // Collect Rows
         let idx = 1;
         document.querySelectorAll(".boq-table-body:not(.hidden) .boq-item-row").forEach(row => {
             const job = row.querySelector(".jenis-pekerjaan").value;
@@ -716,23 +733,30 @@ const API = {
                 body: JSON.stringify(data),
             });
             const result = await res.json();
+            
             if (res.ok && result.status === "success") {
-                // 1. Tampilkan pesan sukses hijau
-                UI.showMessage("Data berhasil dikirim!", "success");
-                // 2. Munculkan Loading Screen Overlay
-                const loadingOverlay = document.getElementById("loading-overlay");
+                // B. UPDATE LOADING SCREEN (STATE 2: SUKSES & REDIRECT)
                 if (loadingOverlay) {
-                    loadingOverlay.classList.remove("hidden-overlay");
-                    loadingOverlay.classList.add("active");
+                    loadingTitle.textContent = "Data Berhasil Disimpan!";
+                    loadingDesc.textContent = "Mengarahkan ke Gantt Chart...";
                 }
-                // 3. Redirect ke Gantt Chart setelah 1.5 detik
+
+                // Redirect setelah 1.5 detik
                 setTimeout(() => {
                     window.location.href = "../../gantt/index.html";
                 }, 1500);
+
             } else {
                 throw new Error(result.message || "Server error");
             }
+
         } catch (err) {
+            // C. JIKA ERROR: SEMBUNYIKAN OVERLAY
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove("active");
+                loadingOverlay.classList.add("hidden-overlay");
+            }
+            
             UI.showMessage(`Error: ${err.message}`, "error");
             btn.disabled = false;
         }
