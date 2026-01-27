@@ -717,8 +717,18 @@ const API = {
             });
             const result = await res.json();
             if (res.ok && result.status === "success") {
+                // 1. Tampilkan pesan sukses hijau
                 UI.showMessage("Data berhasil dikirim!", "success");
-                setTimeout(() => window.location.reload(), 2000);
+                // 2. Munculkan Loading Screen Overlay
+                const loadingOverlay = document.getElementById("loading-overlay");
+                if (loadingOverlay) {
+                    loadingOverlay.classList.remove("hidden-overlay");
+                    loadingOverlay.classList.add("active");
+                }
+                // 3. Redirect ke Gantt Chart setelah 1.5 detik
+                setTimeout(() => {
+                    window.location.href = "../../gantt/index.html";
+                }, 1500);
             } else {
                 throw new Error(result.message || "Server error");
             }

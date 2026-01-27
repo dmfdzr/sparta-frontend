@@ -387,7 +387,7 @@ table tbody td select:focus {
 }
 
 /* ==========================================================================
-   8. RESPONSIVE
+    8. RESPONSIVE
    ========================================================================== */
 @media (max-width: 768px) {
     .container { margin: 1rem; padding: 1.5rem; max-width: 100%; }
@@ -402,4 +402,66 @@ table tbody td select:focus {
     .grand-total-box { padding: 15px; }
     #nomor-ulok-container { flex-direction: column; gap: 8px !important; align-items: stretch !important; }
     #nomor-ulok-container > * { flex: 1 1 100% !important; text-align: center; }
+}
+
+/* ==========================================================================
+   9. LOADING SCREEN OVERLAY
+   ========================================================================== */
+.hidden-overlay {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: -1;
+}
+
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+#loading-overlay.active {
+    visibility: visible;
+    opacity: 1;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #dc2626; /* Merah Alfamart */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text h3 {
+    color: #dc2626;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.loading-text p {
+    color: #4a5568;
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
