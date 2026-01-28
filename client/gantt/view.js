@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==================== 8. UI RENDER HELPER ====================
     function updateProjectFromRab(rab) {
         if (rab.Alamat) currentProject.alamat = rab.Alamat;
-        if (rab.Nama_Toko) currentProject.store = rab.Nama_Toko; // Update nama toko dari API
+        if (rab.nama_toko) currentProject.store = rab.nama_toko; // Update nama toko dari API
         if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
         if (rab.Kategori_Lokasi) currentProject.kategoriLokasi = rab.Kategori_Lokasi;
         
