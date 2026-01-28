@@ -1482,14 +1482,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // FIX: Ubah > 0 menjadi >= 0 pada parent.endX dan me.startX
                 if (parent && me && parent.endX >= 0 && me.startX >= 0) {
-                    const startX = parent.endX;
+                    const startX = parent.startX;
                     const startY = parent.y;
                     const endX = me.startX;
                     const endY = me.y;
 
                     // Kurva Bezier
                     const path = `M ${startX} ${startY} 
-                                C ${startX + 30} ${startY}, 
+                                C ${startX - 30} ${startY}, 
                                 ${endX - 30} ${endY}, 
                                 ${endX} ${endY}`;
 
