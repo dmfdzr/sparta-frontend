@@ -1480,7 +1480,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parent = taskCoordinates[task.dependency];
                 const me = taskCoordinates[task.id];
 
-                if (parent && me && parent.endX > 0 && me.startX > 0) {
+                // FIX: Ubah > 0 menjadi >= 0 pada parent.endX dan me.startX
+                if (parent && me && parent.endX >= 0 && me.startX >= 0) {
                     const startX = parent.endX;
                     const startY = parent.y;
                     const endX = me.startX;
