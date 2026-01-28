@@ -515,34 +515,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ==================== 8. PARSING LOGIC ====================
     function parseGanttDataToTasks(ganttData, selectedValue, dayGanttDataArray = null) {
-        if (!currentProject || !ganttData) return;
+        if (!currentProject) return;
 
         let dynamicTasks = [];
         let earliestDate = null;
         let tempTaskList = [];
-        let i = 1;
 
-        while (true) {
-            const kategoriKey = `Kategori_${i}`;
-            const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
+        // --- PERBAIKAN: Prioritaskan Daftar Pekerjaan dari RAB (filteredCategories) ---
+        // Jika ada update dari RAB (pekerjaan baru), kita pakai list dari filteredCategories
+        // lalu kita 'cocokkan' dengan data yang sudah tersimpan.
+        
+        if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
+            console.log("🔄 Sinkronisasi dengan data RAB terbaru...");
+            
+            // 1. Ambil Template Standar (ME/Sipil) untuk mendapatkan Nama yang rapi
+            let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
+            const normalizedCategories = filteredCategories.map(c => c.toLowerCase().trim());
 
-            if (!ganttData.hasOwnProperty(kategoriKey)) {
-                break;
+            // 2. Buat List Tugas berdasarkan RAB
+            tempTaskList = normalizedCategories.map((catName, index) => {
+                // Cari nama resmi dari template (agar casing huruf rapi), fallback ke nama dari API
+                const templateItem = template.find(t => t.name.toLowerCase().trim() === catName);
+                const officialName = templateItem ? templateItem.name : filteredCategories[index]; // Pakai nama asli dari filteredCategories jika template ga ketemu
+
+                // 3. Cari Data Keterlambatan yang mungkin tersimpan di ganttData lama
+                // Kita harus scan ganttData karena ID (Kategori_X) mungkin bergeser
+                let savedKeterlambatan = 0;
+                if (ganttData) {
+                    let i = 1;
+                    while (true) {
+                        const keyName = `Kategori_${i}`;
+                        const keyDelay = `Keterlambatan_Kategori_${i}`;
+                        if (!ganttData.hasOwnProperty(keyName)) break;
+                        
+                        if (ganttData[keyName] && ganttData[keyName].toLowerCase().trim() === officialName.toLowerCase().trim()) {
+                            savedKeterlambatan = parseInt(ganttData[keyDelay]) || 0;
+                            break;
+                        }
+                        i++;
+                    }
+                }
+
+                return {
+                    id: index + 1, // ID baru diurutkan ulang sesuai urutan RAB
+                    name: officialName,
+                    keterlambatan: savedKeterlambatan
+                };
+            });
+
+        } else {
+            // FALLBACK: Jika tidak ada data RAB (filteredCategories), gunakan cara lama (baca murni dari save file)
+            console.warn("⚠️ Tidak ada data RAB/filtered_categories, menggunakan data simpanan saja.");
+            let i = 1;
+            while (ganttData) {
+                const kategoriKey = `Kategori_${i}`;
+                const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
+
+                if (!ganttData.hasOwnProperty(kategoriKey)) break;
+
+                const kategoriName = ganttData[kategoriKey];
+                const keterlambatan = parseInt(ganttData[keterlambatanKey]) || 0;
+
+                if (kategoriName && kategoriName.trim() !== '') {
+                    tempTaskList.push({
+                        id: i,
+                        name: kategoriName,
+                        keterlambatan: keterlambatan
+                    });
+                }
+                i++;
             }
-
-            const kategoriName = ganttData[kategoriKey];
-            const keterlambatan = parseInt(ganttData[keterlambatanKey]) || 0;
-
-            if (kategoriName && kategoriName.trim() !== '') {
-                tempTaskList.push({
-                    id: i,
-                    name: kategoriName,
-                    keterlambatan: keterlambatan
-                });
-            }
-            i++;
         }
 
+        // --- LOGIKA RANGE & TANGGAL (TIDAK BERUBAH) ---
         const categoryRangesMap = {};
 
         if (dayGanttDataArray && Array.isArray(dayGanttDataArray) && dayGanttDataArray.length > 0) {
@@ -596,10 +641,12 @@ document.addEventListener('DOMContentLoaded', () => {
             currentProject.startDate = earliestDate.toISOString().split('T')[0];
         }
 
+        // --- MAPPING FINAL KE DYNAMICTASKS ---
         tempTaskList.forEach(item => {
             const normalizedName = item.name.toLowerCase().trim();
             let ranges = [];
 
+            // Cari ranges berdasarkan Nama (bukan ID)
             for (const [kategoriKey, rangeArray] of Object.entries(categoryRangesMap)) {
                 if (normalizedName === kategoriKey || normalizedName.includes(kategoriKey) || kategoriKey.includes(normalizedName)) {
                     ranges = rangeArray;
@@ -615,7 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 minStart = Math.min(...ranges.map(r => r.start));
             }
 
-            // Find dependency from API data
+            // Find dependency from API data (Based on Name Match)
             let dependencyTaskId = null;
             if (dependencyData && dependencyData.length > 0) {
                 const depEntry = dependencyData.find(d =>
@@ -640,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dependencies: [],
                 dependency: dependencyTaskId,
                 keterlambatan: item.keterlambatan || 0,
-                inputData: { ranges: ranges }
+                inputData: { ranges: ranges } 
             });
         });
 
