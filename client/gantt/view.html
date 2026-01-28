@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gantt Chart</title>
+    <title>Gantt Chart (View Only)</title>
     <link rel="stylesheet" href="style.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
@@ -16,28 +16,22 @@
             <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
         </a>
         <h1>Gantt Chart</h1>
-        <a href="../../dashboard/index.html" class="btn-back-header">
+        <a href="/" class="btn-back-header">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
-            <span>Dashboard</span>
+            <span>Home</span>
         </a>
     </header>
-
-    <div class="user-greeting-wrapper">
-        <div class="user-info">
-            Semangat Pagi, <span id="userNameDisplay">User</span> | <span id="roleBadge">Role</span>
-        </div>
-    </div>
 
     <div class="container">
         <div class="controls">
             <div class="control-group">
                 <label>No. Ulok:</label>
-                <select id="ulokSelect">
-                    <option value="">--/--</option>
+                <select id="ulokSelect" disabled style="background-color: #e9ecef; cursor: not-allowed;">
+                    <option value="">Memuat dari URL...</option>
                 </select>
             </div>
         </div>
@@ -62,7 +56,7 @@
                 <span>Terlambat</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background: #fbbf24;"></div>
+                <div class="legend-color" style="background: #bae6fd;"></div>
                 <span>Pengawasan</span>
             </div>
         </div>
