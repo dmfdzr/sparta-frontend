@@ -1,23 +1,27 @@
 /* global XLSX */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ==================== 1. CONFIGURATION (NO AUTH) ====================
-    // Mode diset ke viewer agar form input tidak muncul
+    // ==================== 1. CONFIGURATION (VIEWER MODE) ====================
+    // Bypass Auth: Set mode langsung ke viewer
     const APP_MODE = 'viewer';
     console.log(`⚙️ Mode Aplikasi: ${APP_MODE.toUpperCase()}`);
 
+    // Update UI Header (Info User Tamu)
+    const roleBadge = document.getElementById('roleBadge');
+    if (roleBadge) roleBadge.textContent = "GUEST / VIEWER";
+
+    const nameDisplay = document.getElementById('userNameDisplay');
+    if (nameDisplay) nameDisplay.textContent = "Mode Tampilan";
+
+    // ==================== 2. CONFIGURATION & ENDPOINTS ====================
     const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com/api";
 
     const ENDPOINTS = {
-        // ulokList DIHAPUS karena kita load berdasarkan URL parameter saja
         ganttData: `${API_BASE_URL}/get_gantt_data`,
-        insertData: `${API_BASE_URL}/gantt/insert`,
-        dayInsert: `${API_BASE_URL}/gantt/day/insert`,
-        dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`,
-        dependencyInsert: `${API_BASE_URL}/gantt/dependency/insert`
+        // Endpoint write/edit tidak diperlukan di view.js
     };
 
-    // ==================== 2. STATE MANAGEMENT ====================
+    // ==================== 3. STATE MANAGEMENT ====================
     let projects = [];
     let currentProject = null;
     let projectTasks = {};
@@ -29,12 +33,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let filteredCategories = null;
     let isLoadingGanttData = false;
     let hasUserInput = false;
-    let isProjectLocked = true; // Default locked untuk view only
+    let isProjectLocked = true; // Selalu anggap terkunci (Read Only)
     let supervisionDays = {};
     let isInitializing = true;
 
-    // ==================== 3. RULES & TEMPLATES ====================
+    // ==================== 4. RULES & TEMPLATES ====================
 
+    // MAPPING HARI PENGAWASAN
     const SUPERVISION_RULES = {
         10: [2, 5, 8, 10],
         14: [2, 7, 10, 14],
@@ -72,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 17, name: "Pekerjaan SBO", start: 0, duration: 0, dependencies: [] },
     ];
 
-    // ==================== 4. HELPER FUNCTIONS ====================
+    // ==================== 5. HELPER FUNCTIONS ====================
     function formatDateID(date) {
         const d = String(date.getDate()).padStart(2, '0');
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -116,15 +121,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateSupervisionDays() {
         supervisionDays = {};
         if (!currentProject || !currentProject.duration) return;
+
         const dur = parseInt(currentProject.duration);
         if (isNaN(dur)) return;
+
         const days = SUPERVISION_RULES[dur];
         if (days && Array.isArray(days)) {
-            days.forEach(dayNum => { supervisionDays[dayNum] = true; });
+            days.forEach(dayNum => {
+                supervisionDays[dayNum] = true;
+            });
         }
     }
 
-    // ==================== 5. CORE: INIT VIA URL PARAMETERS ====================
+    // ==================== 6. CORE: INIT VIA URL (PENGGANTI AUTH) ====================
     async function loadDataAndInit() {
         try {
             showLoadingMessage();
@@ -132,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. Ambil Parameter URL
             const urlParams = new URLSearchParams(window.location.search);
             const autoUlok = urlParams.get('ulok');
-            const autoLingkup = urlParams.get('lingkup') || 'Sipil';
+            const autoLingkup = urlParams.get('lingkup') || 'Sipil'; // Default Sipil jika kosong
 
             if (!autoUlok) {
                 document.getElementById("ganttChart").innerHTML = `
@@ -145,13 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log(`🔗 Init View: Ulok=${autoUlok}, Lingkup=${autoLingkup}`);
 
-            // 2. Buat Dummy Project Object (Karena tidak fetch list project lagi)
-            // Kita butuh ini agar struktur data konsisten dengan logic yang sudah ada
-            const dummyValue = `${autoUlok}-${autoLingkup}`; // Format gabungan untuk value
+            // 2. Buat Project Object
+            const dummyValue = `${autoUlok}-${autoLingkup}`;
             const tempProject = {
-                ulok: dummyValue,         // Value dropdown (misal: XZ01-Sipil)
-                ulokClean: autoUlok,      // Kode murni (misal: XZ01)
-                store: "Memuat...",       // Akan diupdate dari API Gantt/RAB nanti
+                ulok: dummyValue,         
+                ulokClean: autoUlok,      
+                store: "Memuat...",       // Akan diupdate via API nanti
                 work: autoLingkup,
                 projectType: "Reguler",
                 startDate: new Date().toISOString().split("T")[0],
@@ -160,11 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 kategoriLokasi: ""
             };
 
-            // Masukkan ke array global projects
             projects = [tempProject];
             currentProject = tempProject;
 
-            // 3. Init UI & Langsung Load Data
+            // 3. Init UI
             initUI();
 
         } catch (error) {
@@ -175,36 +182,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initUI() {
         const ulokSelect = document.getElementById("ulokSelect");
-        ulokSelect.innerHTML = ''; // Clear loading msg
-
-        // Populate Dropdown (Hanya 1 item dari URL)
-        projects.forEach(project => {
-            projectTasks[project.ulok] = [];
-            const option = document.createElement("option");
-            option.value = project.ulok;
-            option.textContent = `${project.ulokClean} (${project.work})`;
-            ulokSelect.appendChild(option);
-        });
-
-        // Select otomatis
-        if (projects.length > 0) {
+        if (ulokSelect) {
+            ulokSelect.innerHTML = '';
+            projects.forEach(project => {
+                projectTasks[project.ulok] = [];
+                const option = document.createElement("option");
+                option.value = project.ulok;
+                option.textContent = `${project.ulokClean} (${project.work})`;
+                ulokSelect.appendChild(option);
+            });
             ulokSelect.value = projects[0].ulok;
-            // Disable dropdown agar tidak bisa diganti (sesuai request view only)
-            ulokSelect.disabled = true;
-
-            // Langsung fetch data
-            changeUlok();
+            ulokSelect.disabled = true; // Dropdown dikunci karena view only
         }
+
+        // Langsung load data
+        changeUlok();
 
         setTimeout(() => {
             isInitializing = false;
         }, 1000);
     }
 
-    // ==================== 6. CORE: FETCH GANTT DATA ====================
+    // ==================== 7. CORE: FETCH GANTT DATA ====================
     async function changeUlok() {
         const ulokSelect = document.getElementById("ulokSelect");
-        const selectedUlok = ulokSelect.value;
+        const selectedUlok = ulokSelect ? ulokSelect.value : projects[0].ulok;
 
         // Reset States
         supervisionDays = {};
@@ -213,10 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ganttApiData = null;
         dependencyData = [];
         filteredCategories = null;
-        isProjectLocked = true; // Selalu anggap locked di view mode
+        isProjectLocked = true;
         hasUserInput = false;
-
-        if (!selectedUlok) return;
 
         currentProject = projects.find(p => p.ulok === selectedUlok);
         isLoadingGanttData = true;
@@ -225,8 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         calculateSupervisionDays();
         renderProjectInfo();
+        
+        // Hide API/Form Container for Viewer
+        const apiContainer = document.getElementById("apiData");
+        if (apiContainer) apiContainer.style.display = 'none';
 
-        // Render Chart jika ada data
         if (hasUserInput) {
             renderChart();
         } else {
@@ -237,10 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p>Belum ada jadwal yang dibuat untuk proyek ini.</p>
                 </div>`;
         }
-
-        // API Data (Form Input) disembunyikan/kosongkan untuk View Mode
-        document.getElementById("apiData").innerHTML = "";
-        document.getElementById("apiData").style.display = "none";
 
         updateStats();
     }
@@ -284,7 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadDefaultTasks(selectedValue) {
-        // Logic default task tetap sama, tapi hanya untuk visualisasi kosong
         let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
         let tasksToUse = JSON.parse(JSON.stringify(template));
 
@@ -296,7 +294,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     normalizedTaskName.includes(fc) || fc.includes(normalizedTaskName)
                 );
             });
-            tasksToUse = tasksToUse.map((task, index) => ({ ...task, id: index + 1 }));
+            tasksToUse = tasksToUse.map((task, index) => ({
+                ...task,
+                id: index + 1
+            }));
         }
 
         currentTasks = tasksToUse.map(t => ({
@@ -307,42 +308,85 @@ document.addEventListener('DOMContentLoaded', () => {
         hasUserInput = false;
     }
 
-    // ==================== 7. PARSING LOGIC (TETAP SAMA) ====================
+    // ==================== 8. PARSING LOGIC (SAMA PERSIS DENGAN SCRIPT.JS) ====================
     function parseGanttDataToTasks(ganttData, selectedValue, dayGanttDataArray = null) {
-        if (!currentProject || !ganttData) return;
+        if (!currentProject) return;
 
         let dynamicTasks = [];
         let earliestDate = null;
         let tempTaskList = [];
-        let i = 1;
 
-        while (true) {
-            const kategoriKey = `Kategori_${i}`;
-            const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
-            if (!ganttData.hasOwnProperty(kategoriKey)) break;
+        // --- Logika Sinkronisasi Data RAB (Sama dengan script.js) ---
+        if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
+            let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
+            const normalizedCategories = filteredCategories.map(c => c.toLowerCase().trim());
 
-            const kategoriName = ganttData[kategoriKey];
-            const keterlambatan = parseInt(ganttData[keterlambatanKey]) || 0;
+            tempTaskList = normalizedCategories.map((catName, index) => {
+                const templateItem = template.find(t => t.name.toLowerCase().trim() === catName);
+                const officialName = templateItem ? templateItem.name : filteredCategories[index];
 
-            if (kategoriName && kategoriName.trim() !== '') {
-                tempTaskList.push({ id: i, name: kategoriName, keterlambatan: keterlambatan });
+                let savedKeterlambatan = 0;
+                if (ganttData) {
+                    let i = 1;
+                    while (true) {
+                        const keyName = `Kategori_${i}`;
+                        const keyDelay = `Keterlambatan_Kategori_${i}`;
+                        if (!ganttData.hasOwnProperty(keyName)) break;
+
+                        if (ganttData[keyName] && ganttData[keyName].toLowerCase().trim() === officialName.toLowerCase().trim()) {
+                            savedKeterlambatan = parseInt(ganttData[keyDelay]) || 0;
+                            break;
+                        }
+                        i++;
+                    }
+                }
+
+                return {
+                    id: index + 1,
+                    name: officialName,
+                    keterlambatan: savedKeterlambatan
+                };
+            });
+
+        } else {
+            let i = 1;
+            while (ganttData) {
+                const kategoriKey = `Kategori_${i}`;
+                const keterlambatanKey = `Keterlambatan_Kategori_${i}`;
+                if (!ganttData.hasOwnProperty(kategoriKey)) break;
+
+                const kategoriName = ganttData[kategoriKey];
+                const keterlambatan = parseInt(ganttData[keterlambatanKey]) || 0;
+
+                if (kategoriName && kategoriName.trim() !== '') {
+                    tempTaskList.push({
+                        id: i,
+                        name: kategoriName,
+                        keterlambatan: keterlambatan
+                    });
+                }
+                i++;
             }
-            i++;
         }
 
+        // --- LOGIKA RANGE & TANGGAL ---
         const categoryRangesMap = {};
+
         if (dayGanttDataArray && Array.isArray(dayGanttDataArray) && dayGanttDataArray.length > 0) {
             dayGanttDataArray.forEach(entry => {
                 const hAwalStr = entry.h_awal;
                 if (hAwalStr) {
                     const parsedDate = parseDateDDMMYYYY(hAwalStr);
                     if (parsedDate && !isNaN(parsedDate.getTime())) {
-                        if (!earliestDate || parsedDate < earliestDate) earliestDate = parsedDate;
+                        if (!earliestDate || parsedDate < earliestDate) {
+                            earliestDate = parsedDate;
+                        }
                     }
                 }
             });
 
             if (!earliestDate) earliestDate = new Date();
+
             const projectStartDate = earliestDate;
             currentProject.startDate = projectStartDate.toISOString().split('T')[0];
             const msPerDay = 1000 * 60 * 60 * 24;
@@ -350,19 +394,23 @@ document.addEventListener('DOMContentLoaded', () => {
             dayGanttDataArray.forEach(entry => {
                 const kategori = entry.Kategori;
                 if (!kategori) return;
+
                 const hAwalStr = entry.h_awal;
                 const hAkhirStr = entry.h_akhir;
                 if (!hAwalStr || !hAkhirStr) return;
+
                 const startDate = parseDateDDMMYYYY(hAwalStr);
                 const endDate = parseDateDDMMYYYY(hAkhirStr);
-                if (!startDate || !endDate) return;
+
+                if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return;
 
                 const startDay = Math.round((startDate - projectStartDate) / msPerDay) + 1;
                 const endDay = Math.round((endDate - projectStartDate) / msPerDay) + 1;
                 const duration = endDay - startDay + 1;
-                const key = kategori.toLowerCase().trim();
 
+                const key = kategori.toLowerCase().trim();
                 if (!categoryRangesMap[key]) categoryRangesMap[key] = [];
+
                 categoryRangesMap[key].push({
                     start: startDay > 0 ? startDay : 1,
                     end: endDay > 0 ? endDay : 1,
@@ -375,9 +423,11 @@ document.addEventListener('DOMContentLoaded', () => {
             currentProject.startDate = earliestDate.toISOString().split('T')[0];
         }
 
+        // --- MAPPING FINAL ---
         tempTaskList.forEach(item => {
             const normalizedName = item.name.toLowerCase().trim();
             let ranges = [];
+
             for (const [kategoriKey, rangeArray] of Object.entries(categoryRangesMap)) {
                 if (normalizedName === kategoriKey || normalizedName.includes(kategoriKey) || kategoriKey.includes(normalizedName)) {
                     ranges = rangeArray;
@@ -387,6 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let totalDuration = 0;
             let minStart = 0;
+
             if (ranges.length > 0) {
                 totalDuration = ranges.reduce((sum, r) => sum + r.duration, 0);
                 minStart = Math.min(...ranges.map(r => r.start));
@@ -394,11 +445,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let dependencyTaskId = null;
             if (dependencyData && dependencyData.length > 0) {
-                const depEntry = dependencyData.find(d => d.Kategori && d.Kategori.toLowerCase().trim() === normalizedName);
-                if (depEntry && depEntry.Kategori_Terikat) {
-                    const terikatName = depEntry.Kategori_Terikat.toLowerCase().trim();
-                    const terikatTask = tempTaskList.find(t => t.name.toLowerCase().trim() === terikatName);
-                    if (terikatTask) dependencyTaskId = terikatTask.id;
+                const depAsChild = dependencyData.find(d =>
+                    d.Kategori_Terikat && String(d.Kategori_Terikat).toLowerCase().trim() === normalizedName
+                );
+                if (depAsChild && depAsChild.Kategori) {
+                    const parentNameNorm = String(depAsChild.Kategori).toLowerCase().trim();
+                    const parentTask = tempTaskList.find(t => t.name.toLowerCase().trim() === parentNameNorm);
+                    if (parentTask) dependencyTaskId = parentTask.id;
                 }
             }
 
@@ -418,61 +471,19 @@ document.addEventListener('DOMContentLoaded', () => {
         projectTasks[selectedValue] = currentTasks;
     }
 
-    // ==================== 8. UI RENDER HELPER ====================
-    function updateProjectFromRab(rab) {
-        if (rab.Alamat) currentProject.alamat = rab.Alamat;
-        if (rab.nama_toko) currentProject.store = rab.nama_toko; // Update nama toko dari API
-        if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
-        if (rab.Kategori_Lokasi) currentProject.kategoriLokasi = rab.Kategori_Lokasi;
-
-        // Update di dropdown juga agar terlihat nama tokonya
-        const ulokSelect = document.getElementById("ulokSelect");
-        if (ulokSelect.options.length > 0) {
-            ulokSelect.options[0].textContent = `${currentProject.ulokClean} | ${currentProject.store} (${currentProject.work})`;
-        }
-
-        calculateSupervisionDays();
-    }
-
-    function renderProjectInfo() {
-        const durationDisplay = currentProject.duration ? `${currentProject.duration} Hari` : '-';
-        const kategoriLokasiDisplay = currentProject.kategoriLokasi || '-';
-        document.getElementById("projectInfo").innerHTML = `
-            <div class="project-detail"><div class="project-label">No. Ulok</div><div class="project-value">${currentProject.ulokClean}</div></div>
-            <div class="project-detail"><div class="project-label">Nama Toko</div><div class="project-value">${currentProject.store}</div></div>
-            <div class="project-detail"><div class="project-label">Lingkup Pekerjaan</div><div class="project-value">${currentProject.work}</div></div>
-            <div class="project-detail"><div class="project-label">Durasi Pekerjaan</div><div class="project-value">${durationDisplay}</div></div>
-            <div class="project-detail"><div class="project-label">Kategori Lokasi</div><div class="project-value">${kategoriLokasiDisplay}</div></div>
-        `;
-    }
-
-    function updateStats() {
-        document.getElementById("stats").innerHTML = `
-            <div class="stat-card"><div class="stat-value">${currentTasks.length}</div><div class="stat-label">Total Tahapan</div></div>
-        `;
-    }
-
-    // ==================== 9. CHART RENDER (TETAP SAMA) ====================
-    // ==================== 9. CHART RENDER (UPDATED STYLE) ====================
+    // ==================== 9. CHART RENDER (SAMA PERSIS DENGAN SCRIPT.JS) ====================
     function renderChart() {
         const chart = document.getElementById('ganttChart');
         if (!chart) return;
 
         const DAY_WIDTH = 40;
         const ROW_HEIGHT = 50;
-        // Offset vertikal agar garis mulai dari tengah baris
-        const VERTICAL_OFFSET = 13; 
+        const VERTICAL_OFFSET = 13;
 
-        // --- 1. LOGIKA RIPPLE EFFECT & CALCULATE SHIFT ---
+        // --- 1. LOGIKA RIPPLE EFFECT ---
         const effectiveEndDates = {};
+        currentTasks.forEach(t => t.computed = { shift: 0 });
 
-        // Reset computed shift
-        currentTasks.forEach(t => {
-            // Pastikan objek computed ada
-            t.computed = { shift: 0 };
-        });
-
-        // Calculate visual shifts based on dependency
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
             let shift = 0;
@@ -512,13 +523,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const projectDuration = parseInt(currentProject?.duration || 30);
-        // Tambahkan buffer +5 hari agar tampilan tidak mepet kanan (sesuai script.js)
         const totalDaysToRender = Math.max(projectDuration, maxTaskEndDay) + 5;
         const totalChartWidth = totalDaysToRender * DAY_WIDTH;
 
         // --- 3. RENDER HEADER ---
         const headerTitle = "Timeline Project";
-        // Cursor default karena view only
         const cursorStyle = "cursor: default;";
 
         let html = '<div class="chart-header">';
@@ -548,11 +557,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan) || 0))) : 0;
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift)) : 0;
 
-            // Simpan koordinat titik tengah Y dan ujung X untuk garis SVG
             taskCoordinates[task.id] = {
-                centerY: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2), 
-                endX: maxEnd * DAY_WIDTH,       
-                startX: (minStart - 1) * DAY_WIDTH 
+                centerY: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2),
+                endX: maxEnd * DAY_WIDTH,
+                startX: (minStart - 1) * DAY_WIDTH
             };
 
             html += `<div class="task-row"><div class="task-name"><span>${task.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
@@ -569,17 +577,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isShifted = shift > 0;
 
                 let barClass = "bar on-time";
-                if (isShifted) {
-                    barClass = "bar shifted";
-                } else if (hasDelay) {
-                    barClass = "bar on-time has-delay";
-                }
+                if (isShifted) barClass = "bar shifted";
+                else if (hasDelay) barClass = "bar on-time has-delay";
 
                 const borderStyle = (hasDelay && !isShifted) ? "border: 2px solid #e53e3e;" : "";
 
-                html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; box-sizing: border-box; ${borderStyle}" title="${task.name} (Shift: ${shift} hari)"> ${range.duration} Hari</div>`;
+                html += `<div class="${barClass}" style="left: ${leftPos}px; width: ${widthPos}px; ${borderStyle}" title="${task.name}"> ${range.duration} Hari</div>`;
 
-                // Render Bar Merah (Keterlambatan) dengan Style Gradient sesuai script.js
                 if (hasDelay) {
                     const delayLeftPos = actualEnd * DAY_WIDTH;
                     const delayWidthPos = range.keterlambatan * DAY_WIDTH - 1;
@@ -587,7 +591,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Supervision Markers
             for (const [day, isActive] of Object.entries(supervisionDays)) {
                 if (isActive) {
                     const dInt = parseInt(day);
@@ -598,8 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `</div></div>`;
         });
 
-        // --- 5. RENDER DEPENDENCY LINES (SVG OVERLAY) ---
-        // Menggunakan definisi marker panah dan logic kurva yang sama dengan script.js
+        // --- 5. RENDER DEPENDENCY LINES (SVG) ---
         const svgDefs = `
             <defs>
                 <marker id="depArrow" viewBox="0 0 10 6" refX="7" refY="3" markerWidth="8" markerHeight="6" orient="auto">
@@ -614,16 +616,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const me = taskCoordinates[task.id];
 
                 if (parent && me && parent.endX !== undefined && me.startX !== undefined) {
-                    const startX = parent.endX;                        
-                    const startY = parent.centerY;                     
-                    const endX = me.startX;                            
-                    const endY = me.centerY;                           
+                    const startX = parent.endX;
+                    const startY = parent.centerY;
+                    const endX = me.startX;
+                    const endY = me.centerY;
 
-                    // Logic Bezier Curve dengan tension dinamis agar lebih mulus
                     const deltaX = endX - startX;
-                    let tension = 40;                                   
-                    if (deltaX < 40) tension = 60;                      
-                    if (deltaX < 0) tension = 100;                      
+                    let tension = 40;
+                    if (deltaX < 40) tension = 60;
+                    if (deltaX < 0) tension = 100;
 
                     const cp1x = startX + tension;
                     const cp1y = startY;
@@ -631,26 +632,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     const cp2y = endY;
 
                     const path = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
-
                     const parentTask = currentTasks.find(t => t.id === task.dependency);
-                    const tooltipText = parentTask ? `${task.name} bergantung pada ${parentTask.name}` : '';
+                    const tooltipText = parentTask ? `${task.name} menunggu ${parentTask.name}` : '';
 
-                    // Garis penghubung
-                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95">
-                        <title>${tooltipText}</title>
-                    </path>`;
-
-                    // Titik konektor (Dots) pada pangkal dan ujung
-                    svgLines += `<circle class="dependency-node" cx="${startX}" cy="${startY}" r="4" fill="#4299e1" />`;
-                    svgLines += `<circle class="dependency-node" cx="${endX}" cy="${endY}" r="4" fill="#4299e1" />`;
+                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95"><title>${tooltipText}</title></path>`;
+                    svgLines += `<circle class="dependency-node" cx="${startX}" cy="${startY}" r="4" />`;
+                    svgLines += `<circle class="dependency-node" cx="${endX}" cy="${endY}" r="4" />`;
                 }
             }
         });
 
         const svgHeight = currentTasks.length * ROW_HEIGHT;
-        
-        // Render SVG Container sebagai Overlay Absolut
-        // Offset left: 250px disesuaikan dengan lebar kolom Task Name
+
         html += `
             <svg class="chart-lines-svg" style="position:absolute; top:0; left:250px; width:${totalChartWidth}px; height:${svgHeight}px; pointer-events:none; z-index:10;">
                 ${svgDefs}
@@ -660,6 +653,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
         html += `</div>`;
         chart.innerHTML = html;
+    }
+
+    function updateProjectFromRab(rab) {
+        if (rab.Alamat) currentProject.alamat = rab.Alamat;
+        if (rab.Nama_Toko) currentProject.store = rab.Nama_Toko;
+        if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
+        if (rab.Kategori_Lokasi) currentProject.kategoriLokasi = rab.Kategori_Lokasi;
+
+        const ulokSelect = document.getElementById("ulokSelect");
+        if (ulokSelect && ulokSelect.options.length > 0) {
+            ulokSelect.options[0].textContent = `${currentProject.ulokClean} | ${currentProject.store} (${currentProject.work})`;
+        }
+
+        calculateSupervisionDays();
+    }
+
+    function renderProjectInfo() {
+        const durationDisplay = currentProject.duration ? `${currentProject.duration} Hari` : '-';
+        const kategoriLokasiDisplay = currentProject.kategoriLokasi || '-';
+        document.getElementById("projectInfo").innerHTML = `
+            <div class="project-detail"><div class="project-label">No. Ulok</div><div class="project-value">${currentProject.ulokClean}</div></div>
+            <div class="project-detail"><div class="project-label">Nama Toko</div><div class="project-value">${currentProject.store}</div></div>
+            <div class="project-detail"><div class="project-label">Lingkup Pekerjaan</div><div class="project-value">${currentProject.work}</div></div>
+            <div class="project-detail"><div class="project-label">Durasi Pekerjaan</div><div class="project-value">${durationDisplay}</div></div>
+            <div class="project-detail"><div class="project-label">Kategori Lokasi</div><div class="project-value">${kategoriLokasiDisplay}</div></div>
+        `;
+    }
+
+    function updateStats() {
+        document.getElementById("stats").innerHTML = `
+            <div class="stat-card"><div class="stat-value">${currentTasks.length}</div><div class="stat-label">Total Tahapan</div></div>
+        `;
     }
 
     // Start
