@@ -783,16 +783,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentTasks.forEach((task, index) => {
             const ranges = task.inputData.ranges || [];
-
-            // Generate Options Dependency
+            const childTask = currentTasks.find(t => t.dependency === task.id);
+            const selectedChildId = childTask ? childTask.id : "";
             let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
-            currentTasks.forEach(prevTask => {
-                if (prevTask.id > task.id) { 
-                    const selected = (task.dependency == prevTask.id) ? 'selected' : '';
-                    dependencyOptions += `<option value="${prevTask.id}" ${selected}>${prevTask.id}. ${prevTask.name}</option>`;
+            
+            currentTasks.forEach(candidate => {
+                // Syarat: Hanya tampilkan task yang posisinya di bawah (ID lebih besar)
+                if (candidate.id > task.id) { 
+                    const selected = (candidate.id == selectedChildId) ? 'selected' : '';
+                    dependencyOptions += `<option value="${candidate.id}" ${selected}>${candidate.id}. ${candidate.name}</option>`;
                 }
             });
 
+            const labelKeterikatan = "Tahapan Selanjutnya";
             html += `
             <div class="task-input-row-multi" id="task-row-${task.id}">
                 <div style="font-weight:700; font-size:14px; color:#2d3748; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
@@ -802,12 +805,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="display:flex; align-items:flex-start; gap:25px;"> 
                     
                     <div style="width:30%; min-width: 150px;"> 
-                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">Keterikatan</label>
+                        <label style="font-size:11px; color:#718096; font-weight:600; display:block; margin-bottom:4px;">${labelKeterikatan}</label>
+                        
                         <select class="form-control dep-select" data-task-id="${task.id}" style="font-size:12px; padding:6px; width:100%;" onchange="handleDependencyChange(${task.id}, this.value)">
                             ${dependencyOptions}
                         </select>
+                        
                         <div style="font-size:10px; color:#a0aec0; margin-top:4px; line-height:1.2;">
-                            *Mulai setelah tahapan ini
+                            *Pilih tahapan yang akan dimulai setelah ini selesai.
                         </div>
                     </div>
 
@@ -947,39 +952,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.handleDependencyChange = async function (taskId, newDependencyTaskId) {
-        // Cegah save saat inisialisasi/refresh
-        if (isInitializing) {
-            console.log("⏳ Skip dependency save - masih dalam proses inisialisasi");
-            return;
-        }
+    window.handleDependencyChange = async function (parentId, childId) {
+        // parentId = ID dari Task baris ini (Induk/Parent)
+        // childId  = ID dari Task yang dipilih di dropdown (Anak/Child)
 
-        const task = currentTasks.find(t => t.id === parseInt(taskId));
-        if (!task || !currentProject) return;
+        if (isInitializing) return;
 
-        const oldDependencyTaskId = task.dependency;
-        const oldDependencyTask = oldDependencyTaskId ? currentTasks.find(t => t.id === parseInt(oldDependencyTaskId)) : null;
-        const newDependencyTask = newDependencyTaskId ? currentTasks.find(t => t.id === parseInt(newDependencyTaskId)) : null;
+        // Cari Object Data untuk Parent (Induk)
+        const parentTask = currentTasks.find(t => t.id === parseInt(parentId));
+        
+        // 1. CARI ANAK LAMA (PENTING!)
+        // Sebelum menyimpan yang baru, kita harus cek apakah Parent ini 
+        // sebelumnya sudah punya hubungan dengan anak lain?
+        // Kita cari: Task mana yang kolom dependency-nya == parentId
+        const oldChildTask = currentTasks.find(t => t.dependency === parseInt(parentId));
+        
+        // 2. CARI ANAK BARU (Yang baru dipilih di dropdown)
+        const newChildTask = childId ? currentTasks.find(t => t.id === parseInt(childId)) : null;
 
         try {
             document.body.style.cursor = 'wait';
 
-            if (oldDependencyTask) {
-                await removeDependency(task.name, oldDependencyTask.name);
-            }
-            if (newDependencyTask) {
-                await saveDependency(task.name, newDependencyTask.name);
+            // A. BERSIHKAN HUBUNGAN LAMA
+            // Jika dulunya Task 1 terhubung ke Task 5, sekarang diganti ke Task 6,
+            // Maka hubungan Task 5 -> Task 1 harus dihapus dulu.
+            if (oldChildTask) {
+                // Hapus data di server
+                await removeDependency(oldChildTask.name, parentTask.name);
+                // Hapus data di local memory
+                oldChildTask.dependency = null; 
             }
 
-            task.dependency = newDependencyTaskId ? parseInt(newDependencyTaskId) : null;
-            updateLocalDependencyData(task.name, newDependencyTask ? newDependencyTask.name : null);
-            console.log(`Dependency updated: ${task.name} -> ${newDependencyTask ? newDependencyTask.name : 'None'}`);
+            // B. SIMPAN HUBUNGAN BARU
+            // Jika user memilih Task baru (bukan memilih "Tidak Ada")
+            if (newChildTask) {
+                // Cek Validasi Logika (Mencegah loop aneh, opsional tapi bagus)
+                if (newChildTask.id <= parentTask.id) {
+                    alert("Hanya bisa memilih tahapan selanjutnya (ID lebih besar).");
+                    renderApiData(); // Reset dropdown
+                    return;
+                }
+
+                // Simpan data di server: "Anak bergantung pada Induk"
+                // saveDependency(Yang_Tergantung, Yang_Ditunggu)
+                await saveDependency(newChildTask.name, parentTask.name);
+                
+                // Simpan data di local memory
+                newChildTask.dependency = parseInt(parentId);
+                
+                // Update array dependency global untuk keperluan chart
+                updateLocalDependencyData(newChildTask.name, parentTask.name);
+            } 
+            else if (oldChildTask) {
+                // Jika user memilih "- Tidak Ada -", maka update dependencyData lokal agar kosong
+                updateLocalDependencyData(oldChildTask.name, null);
+            }
+
+            console.log(`Update Sukses: ${parentTask.name} dilanjutkan oleh ${newChildTask ? newChildTask.name : 'Tidak Ada'}`);
 
         } catch (err) {
             console.error("Dependency update failed:", err);
-            alert("Gagal update keterikatan: " + err.message);
-            const depSelect = document.querySelector(`.dep-select[data-task-id="${taskId}"]`);
-            if (depSelect) depSelect.value = oldDependencyTaskId || '';
+            alert("Gagal menyimpan keterikatan: " + err.message);
+            // Jika gagal, refresh tampilan agar dropdown kembali ke posisi benar
+            renderApiData(); 
         } finally {
             document.body.style.cursor = 'default';
         }
@@ -1071,75 +1106,73 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.applyTaskSchedule = function () {
-        // Cegah save saat inisialisasi/refresh
-        if (isInitializing) {
-            console.log("⏳ Skip apply schedule - masih dalam proses inisialisasi");
-            return;
-        }
+        if (isInitializing) return;
 
-        let tempTasks = [];
+        let tempTasks = JSON.parse(JSON.stringify(currentTasks)); // Deep copy untuk aman
         let error = false;
         const maxAllowedDay = parseInt(currentProject.duration) || 999;
 
-        // 1. BACA SEMUA INPUT DARI FORM TERLEBIH DAHULU (Tanpa geser tanggal dulu)
-        currentTasks.forEach(t => {
-            const container = document.getElementById(`ranges-${t.id}`);
-            const depSelect = document.querySelector(`.dep-select[data-task-id="${t.id}"]`);
-            const depValue = depSelect ? depSelect.value : "";
+        // 1. Reset Semua Dependency di tempTasks dulu (karena kita akan bangun ulang dari UI)
+        tempTasks.forEach(t => t.dependency = null);
 
-            if (!container) { tempTasks.push(t); return; }
-
-            let newRanges = [];
-            Array.from(container.children).forEach(row => {
-                const s = parseInt(row.querySelector('[data-type="start"]').value) || 0;
-                const e = parseInt(row.querySelector('[data-type="end"]').value) || 0;
-
-                if (s === 0 || e === 0) return; 
-
-                if (e < s) {
-                    error = true;
-                    alert(`Error Tahapan ${t.name}: Hari Selesai lebih kecil dari Mulai`);
+        // 2. BACA INPUT DARI UI
+        // Kita loop elemen DOM asli untuk mendapatkan value dropdown & range terbaru
+        currentTasks.forEach(realTask => {
+            const container = document.getElementById(`ranges-${realTask.id}`);
+            const depSelect = document.querySelector(`.dep-select[data-task-id="${realTask.id}"]`);
+            
+            // [LOGIKA BARU] Baca Dropdown: Value yang dipilih adalah CHILD ID
+            const selectedChildId = depSelect ? parseInt(depSelect.value) : null;
+            
+            // Jika baris ini (realTask) memilih Anak (selectedChildId),
+            // Maka set dependency milik si ANAK agar menunjuk ke baris INI.
+            if (selectedChildId) {
+                const childTaskInTemp = tempTasks.find(t => t.id === selectedChildId);
+                if (childTaskInTemp) {
+                    childTaskInTemp.dependency = realTask.id; // Anak bergantung pada Parent
                 }
+            }
 
-                if (e > maxAllowedDay) {
-                    error = true;
-                    alert(`Error Tahapan ${t.name}: Hari Selesai (${e}) tidak boleh melebihi Durasi Pekerjaan (${maxAllowedDay} Hari).`);
-                }
-                newRanges.push({ start: s, end: e, duration: (e > 0 ? e - s + 1 : 0) });
-            });
-
-            tempTasks.push({
-                ...t,
-                dependency: depValue, // Simpan dependency ID
-                inputData: { ranges: newRanges }
-            });
+            // Baca Ranges (Logic Lama)
+            if (container) {
+                let newRanges = [];
+                Array.from(container.children).forEach(row => {
+                    const s = parseInt(row.querySelector('[data-type="start"]').value) || 0;
+                    const e = parseInt(row.querySelector('[data-type="end"]').value) || 0;
+                    if (s !== 0 && e !== 0) {
+                        if (e < s) error = true;
+                        if (e > maxAllowedDay) error = true;
+                        newRanges.push({ start: s, end: e, duration: e - s + 1 });
+                    }
+                });
+                // Update ranges di tempTasks
+                const myTaskInTemp = tempTasks.find(t => t.id === realTask.id);
+                if (myTaskInTemp) myTaskInTemp.inputData = { ranges: newRanges };
+            }
         });
 
-        if (error) return;
+        if (error) {
+            alert("Terdapat kesalahan pada input tanggal (Cek durasi max / start > end).");
+            return;
+        }
 
-        // 2. LOGIKA BARU: MULTI-PASS CALCULATION
-        // Kita lakukan loop sebanyak jumlah task untuk memastikan ketergantungan
-        // "Atas menunggu Bawah" atau "Bawah menunggu Atas" terhitung sempurna.
-        
-        const totalPasses = tempTasks.length; 
-        
+        // 3. CALCULATION LOOP (Tetap Sama - Multi Pass)
+        // Karena kita sudah set `childTask.dependency = parentID` di langkah 2,
+        // logika hitung standar ini akan otomatis menggeser Anak ke kanan (setelah Parent).
+        const totalPasses = tempTasks.length;
         for (let pass = 0; pass < totalPasses; pass++) {
             tempTasks.forEach(task => {
                 if (task.dependency) {
-                    // Cari Task Induk (Parent) di dalam tempTasks yang sedang diproses
                     const parentId = parseInt(task.dependency);
                     const parentTask = tempTasks.find(pt => pt.id === parentId);
 
                     if (parentTask && parentTask.inputData.ranges.length > 0) {
-                        // Cari kapan Parent selesai (Gunakan nilai 'end' terbaru dari Parent)
                         const parentMaxEnd = Math.max(...parentTask.inputData.ranges.map(r => r.end));
                         const requiredStart = parentMaxEnd + 1;
-
                         const ranges = task.inputData.ranges;
+                        
                         if (ranges.length > 0) {
                             const currentStart = ranges[0].start;
-                            
-                            // Jika Anak mulai SEBELUM Parent selesai, GESER Anak ke Kanan.
                             if (currentStart < requiredStart && currentStart !== 0) {
                                 const shiftDays = requiredStart - currentStart;
                                 ranges.forEach(r => {
@@ -1153,12 +1186,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // 3. Update Final Data untuk Chart
+        // 4. Update Final Data
         tempTasks.forEach(task => {
             const ranges = task.inputData.ranges;
             const totalDur = ranges.reduce((sum, r) => sum + r.duration, 0);
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start)) : 0;
-            
             task.start = minStart;
             task.duration = totalDur;
         });
@@ -1166,7 +1198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTasks = tempTasks;
         hasUserInput = true;
         saveProjectSchedule("Active");
-        renderChart();
+        renderChart(); // Chart akan menggambar garis dari dependency (Parent) ke Task (Anak) = ATAS ke BAWAH.
         updateStats();
         renderApiData();
     }
