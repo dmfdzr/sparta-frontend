@@ -1108,24 +1108,22 @@ document.addEventListener('DOMContentLoaded', () => {
     window.applyTaskSchedule = function () {
         if (isInitializing) return;
 
-        let tempTasks = JSON.parse(JSON.stringify(currentTasks)); // Deep copy untuk aman
+        let tempTasks = JSON.parse(JSON.stringify(currentTasks)); // Deep copy data
         let error = false;
         const maxAllowedDay = parseInt(currentProject.duration) || 999;
 
-        // 1. Reset Semua Dependency di tempTasks dulu (karena kita akan bangun ulang dari UI)
+        // 1. Reset Dependency di tempTasks dulu
         tempTasks.forEach(t => t.dependency = null);
 
-        // 2. BACA INPUT DARI UI
-        // Kita loop elemen DOM asli untuk mendapatkan value dropdown & range terbaru
+        // 2. BACA INPUT DARI UI (Dropdown & Tanggal)
         currentTasks.forEach(realTask => {
             const container = document.getElementById(`ranges-${realTask.id}`);
             const depSelect = document.querySelector(`.dep-select[data-task-id="${realTask.id}"]`);
             
-            // [LOGIKA BARU] Baca Dropdown: Value yang dipilih adalah CHILD ID
+            // Baca Dropdown: Value yang dipilih adalah CHILD ID
             const selectedChildId = depSelect ? parseInt(depSelect.value) : null;
             
-            // Jika baris ini (realTask) memilih Anak (selectedChildId),
-            // Maka set dependency milik si ANAK agar menunjuk ke baris INI.
+            // Mapping Dependency: Jika Baris A memilih B, maka B bergantung pada A.
             if (selectedChildId) {
                 const childTaskInTemp = tempTasks.find(t => t.id === selectedChildId);
                 if (childTaskInTemp) {
@@ -1133,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Baca Ranges (Logic Lama)
+            // Baca Range Tanggal
             if (container) {
                 let newRanges = [];
                 Array.from(container.children).forEach(row => {
@@ -1145,7 +1143,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         newRanges.push({ start: s, end: e, duration: e - s + 1 });
                     }
                 });
-                // Update ranges di tempTasks
                 const myTaskInTemp = tempTasks.find(t => t.id === realTask.id);
                 if (myTaskInTemp) myTaskInTemp.inputData = { ranges: newRanges };
             }
@@ -1156,49 +1153,59 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 3. CALCULATION LOOP (Tetap Sama - Multi Pass)
-        // Karena kita sudah set `childTask.dependency = parentID` di langkah 2,
-        // logika hitung standar ini akan otomatis menggeser Anak ke kanan (setelah Parent).
-        const totalPasses = tempTasks.length;
-        for (let pass = 0; pass < totalPasses; pass++) {
-            tempTasks.forEach(task => {
-                if (task.dependency) {
-                    const parentId = parseInt(task.dependency);
-                    const parentTask = tempTasks.find(pt => pt.id === parentId);
+        // ============================================================
+        // 3. VALIDASI KETERIKATAN (STRICT MODE) - [LOGIKA BARU]
+        // ============================================================
+        // Aturan: Start Child HARUS > End Parent.
+        // Jika (Start Child <= End Parent) -> Munculkan Alert & Stop.
+        
+        for (const task of tempTasks) {
+            // Cek jika task ini punya "Induk" (Dependency)
+            if (task.dependency) {
+                const parentId = parseInt(task.dependency);
+                const parentTask = tempTasks.find(pt => pt.id === parentId);
 
-                    if (parentTask && parentTask.inputData.ranges.length > 0) {
-                        const parentMaxEnd = Math.max(...parentTask.inputData.ranges.map(r => r.end));
-                        const requiredStart = parentMaxEnd + 1;
-                        const ranges = task.inputData.ranges;
-                        
-                        if (ranges.length > 0) {
-                            const currentStart = ranges[0].start;
-                            if (currentStart < requiredStart && currentStart !== 0) {
-                                const shiftDays = requiredStart - currentStart;
-                                ranges.forEach(r => {
-                                    r.start += shiftDays;
-                                    r.end += shiftDays;
-                                });
-                            }
-                        }
+                // Pastikan Induk dan Anak punya input tanggal
+                if (parentTask && parentTask.inputData.ranges.length > 0 && task.inputData.ranges.length > 0) {
+                    
+                    // Ambil Hari Selesai Paling Akhir dari Induk
+                    const parentMaxEnd = Math.max(...parentTask.inputData.ranges.map(r => r.end));
+                    
+                    // Ambil Hari Mulai Paling Awal dari Anak
+                    const childMinStart = Math.min(...task.inputData.ranges.map(r => r.start));
+
+                    // LOGIKA VALIDASI:
+                    // Anak tidak boleh mulai SEBELUM atau SAMA DENGAN Induk selesai.
+                    // Contoh: Induk selesai hari 5. Anak mulai hari 5 (Gagal). Anak mulai hari 6 (Sukses).
+                    if (childMinStart <= parentMaxEnd) {
+                        alert(
+                            `❌ VALIDASI JADWAL GAGAL\n\n` +
+                            `Tahapan "${task.name}" (Mulai Hari ke-${childMinStart}) tidak boleh mendahului atau bersamaan dengan selesainya ` +
+                            `Tahapan "${parentTask.name}" (Selesai Hari ke-${parentMaxEnd}).\n\n` +
+                            `Harap ubah jadwal "${task.name}" agar dimulai minimal Hari ke-${parentMaxEnd + 1}.`
+                        );
+                        return; // HENTIKAN PROSES. Tidak disimpan.
                     }
                 }
-            });
+            }
         }
 
-        // 4. Update Final Data
+        // 4. Update Final Data (Jika Lolos Validasi)
         tempTasks.forEach(task => {
             const ranges = task.inputData.ranges;
             const totalDur = ranges.reduce((sum, r) => sum + r.duration, 0);
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start)) : 0;
             task.start = minStart;
             task.duration = totalDur;
+            
+            // Hapus data shift (karena sekarang manual user yang atur)
+            if(task.computed) task.computed.shift = 0; 
         });
 
         currentTasks = tempTasks;
         hasUserInput = true;
         saveProjectSchedule("Active");
-        renderChart(); // Chart akan menggambar garis dari dependency (Parent) ke Task (Anak) = ATAS ke BAWAH.
+        renderChart(); 
         updateStats();
         renderApiData();
     }
