@@ -787,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Generate Options Dependency
             let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
             currentTasks.forEach(prevTask => {
-                if (prevTask.id > task.id) {
+                if (prevTask.id > task.id) { 
                     const selected = (task.dependency == prevTask.id) ? 'selected' : '';
                     dependencyOptions += `<option value="${prevTask.id}" ${selected}>${prevTask.id}. ${prevTask.name}</option>`;
                 }
@@ -1081,6 +1081,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let error = false;
         const maxAllowedDay = parseInt(currentProject.duration) || 999;
 
+        // 1. BACA SEMUA INPUT DARI FORM TERLEBIH DAHULU (Tanpa geser tanggal dulu)
         currentTasks.forEach(t => {
             const container = document.getElementById(`ranges-${t.id}`);
             const depSelect = document.querySelector(`.dep-select[data-task-id="${t.id}"]`);
@@ -1109,39 +1110,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tempTasks.push({
                 ...t,
-                dependency: depValue,
+                dependency: depValue, // Simpan dependency ID
                 inputData: { ranges: newRanges }
             });
         });
 
         if (error) return;
 
-        let processedTasksMap = {};
+        // 2. LOGIKA BARU: MULTI-PASS CALCULATION
+        // Kita lakukan loop sebanyak jumlah task untuk memastikan ketergantungan
+        // "Atas menunggu Bawah" atau "Bawah menunggu Atas" terhitung sempurna.
+        
+        const totalPasses = tempTasks.length; 
+        
+        for (let pass = 0; pass < totalPasses; pass++) {
+            tempTasks.forEach(task => {
+                if (task.dependency) {
+                    // Cari Task Induk (Parent) di dalam tempTasks yang sedang diproses
+                    const parentId = parseInt(task.dependency);
+                    const parentTask = tempTasks.find(pt => pt.id === parentId);
 
-        tempTasks.forEach(task => {
-            const ranges = task.inputData.ranges;
-            if (task.dependency) {
-                const parentId = parseInt(task.dependency);
-                const parentEndDay = processedTasksMap[parentId] || 0;
-                const requiredStart = parentEndDay + 1;
+                    if (parentTask && parentTask.inputData.ranges.length > 0) {
+                        // Cari kapan Parent selesai (Gunakan nilai 'end' terbaru dari Parent)
+                        const parentMaxEnd = Math.max(...parentTask.inputData.ranges.map(r => r.end));
+                        const requiredStart = parentMaxEnd + 1;
 
-                if (ranges.length > 0) {
-                    const currentStart = ranges[0].start;
-                    if (currentStart < requiredStart && currentStart !== 0) {
-                        const shiftDays = requiredStart - currentStart;
-                        ranges.forEach(r => {
-                            r.start += shiftDays;
-                            r.end += shiftDays;
-                        });
+                        const ranges = task.inputData.ranges;
+                        if (ranges.length > 0) {
+                            const currentStart = ranges[0].start;
+                            
+                            // Jika Anak mulai SEBELUM Parent selesai, GESER Anak ke Kanan.
+                            if (currentStart < requiredStart && currentStart !== 0) {
+                                const shiftDays = requiredStart - currentStart;
+                                ranges.forEach(r => {
+                                    r.start += shiftDays;
+                                    r.end += shiftDays;
+                                });
+                            }
+                        }
                     }
                 }
-            }
+            });
+        }
 
+        // 3. Update Final Data untuk Chart
+        tempTasks.forEach(task => {
+            const ranges = task.inputData.ranges;
             const totalDur = ranges.reduce((sum, r) => sum + r.duration, 0);
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start)) : 0;
-            const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end)) : 0;
-
-            processedTasksMap[task.id] = maxEnd;
+            
             task.start = minStart;
             task.duration = totalDur;
         });
