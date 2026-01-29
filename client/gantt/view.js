@@ -657,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateProjectFromRab(rab) {
         if (rab.Alamat) currentProject.alamat = rab.Alamat;
-        if (rab.Nama_Toko) currentProject.store = rab.Nama_Toko;
+        if (rab.nama_toko) currentProject.store = rab.nama_toko;
         if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
         if (rab.Kategori_Lokasi) currentProject.kategoriLokasi = rab.Kategori_Lokasi;
 
