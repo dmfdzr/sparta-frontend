@@ -880,33 +880,68 @@ document.addEventListener('DOMContentLoaded', () => {
         const rowId = `range-group-${taskId}-${idx}`;
         const element = document.getElementById(rowId);
 
+        // Jika belum disimpan (masih inputan lokal), langsung hapus elemen HTML
         if (!isSaved) {
             if (element) element.remove();
+            // Update data lokal tasks agar sinkron
+            const taskObj = currentTasks.find(t => t.id === taskId);
+            if (taskObj && taskObj.inputData && taskObj.inputData.ranges) {
+                 taskObj.inputData.ranges.splice(idx, 1);
+            }
             return;
         }
 
         if (!confirm("Data ini sudah tersimpan di server. Yakin ingin menghapusnya?")) return;
 
-        const startVal = parseInt(document.getElementById(`start-${taskId}-${idx}`).value) || 0;
-        const endVal = parseInt(document.getElementById(`end-${taskId}-${idx}`).value) || 0;
-
         const taskObj = currentTasks.find(t => t.id === taskId);
         const taskName = taskObj ? taskObj.name : "";
 
-        if (startVal === 0 || endVal === 0 || !taskName) {
-            alert("Data tidak valid/kosong, dihapus dari tampilan saja.");
-            if (element) element.remove();
+        if (!taskName) {
+            alert("Nama tahapan tidak valid.");
             return;
         }
 
-        const dateStartStr = getTaskDateString(startVal);
-        const dateEndStr = getTaskDateString(endVal);
+        // --- PERBAIKAN UTAMA DI SINI ---
+        // Alih-alih menghitung ulang tanggal dari input (yang berisiko salah jika StartDate geser),
+        // Kita cari data ASLI di variable 'dayGanttData' yang didapat dari server.
+        
+        let dateStartStr = "";
+        let dateEndStr = "";
+        let foundMatch = false;
+
+        // 1. Cari data mentah yang sesuai Nama Kategori
+        if (dayGanttData && Array.isArray(dayGanttData)) {
+            // Filter semua data milik kategori ini
+            const rawDataList = dayGanttData.filter(d => 
+                d.Kategori.toLowerCase().trim() === taskName.toLowerCase().trim()
+            );
+
+            // 2. Ambil data sesuai index (idx)
+            // Asumsi: Urutan render di UI sama dengan urutan di array filtered
+            if (rawDataList[idx]) {
+                dateStartStr = rawDataList[idx].h_awal;
+                dateEndStr = rawDataList[idx].h_akhir;
+                foundMatch = true;
+                console.log(`🗑️ Menghapus data asli [Index ${idx}]:`, dateStartStr, "-", dateEndStr);
+            }
+        }
+
+        // FALLBACK: Jika tidak ketemu di raw data (kasus jarang), baru hitung manual
+        if (!foundMatch) {
+            console.warn("⚠️ Data asli tidak ditemukan di cache, mencoba hitung manual...");
+            const startVal = parseInt(document.getElementById(`start-${taskId}-${idx}`).value) || 0;
+            const endVal = parseInt(document.getElementById(`end-${taskId}-${idx}`).value) || 0;
+            dateStartStr = getTaskDateString(startVal);
+            dateEndStr = getTaskDateString(endVal);
+        }
 
         if (!dateStartStr || !dateEndStr) {
-            alert("Gagal mengonversi tanggal. Cek Start Date Project.");
+            alert("Gagal mendapatkan format tanggal yang valid untuk dihapus.");
             return;
         }
+        // --------------------------------
 
+        // Pastikan Lingkup Pekerjaan sesuai format database (Upper Case)
         const lingkupValue = currentProject.work.toUpperCase() === "ME" ? "ME" : "SIPIL";
 
         const payload = {
@@ -921,9 +956,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ]
         };
 
+        console.log("📤 Sending Delete Payload:", payload); // Debugging
+
         try {
             document.body.style.cursor = 'wait';
-            const response = await fetch(ENDPOINTS.dayInsert, {
+            const response = await fetch(ENDPOINTS.dayInsert, { // Endpoint ini handle remove juga
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -931,18 +968,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const responseText = await response.text();
-                throw new Error(`Server Error (${response.status}): ${responseText}`);
+                // Parsing error message agar lebih enak dibaca user
+                let errorMsg = responseText;
+                try {
+                    const errObj = JSON.parse(responseText);
+                    if(errObj.message) errorMsg = errObj.message;
+                } catch(e) {}
+                
+                throw new Error(errorMsg);
             }
 
+            // Jika sukses, hapus dari UI
             if (element) element.remove();
 
+            // Hapus dari memory lokal currentTasks
             if (taskObj && taskObj.inputData && taskObj.inputData.ranges) {
-                taskObj.inputData.ranges = taskObj.inputData.ranges.filter(r => r.start !== startVal || r.end !== endVal);
+                // Kita gunakan filter berdasarkan value di input saat ini untuk update tampilan
+                const currentStartVal = parseInt(document.getElementById(`start-${taskId}-${idx}`)?.value || 0);
+                taskObj.inputData.ranges = taskObj.inputData.ranges.filter((r, i) => i !== idx);
             }
 
             alert("Data berhasil dihapus.");
-            renderChart();
-            updateStats();
+            
+            // Refresh data agar sinkron total
+            changeUlok(); 
 
         } catch (err) {
             console.error("Remove Failed:", err);
