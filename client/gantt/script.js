@@ -1217,14 +1217,56 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const isAllTasksFilled = currentTasks.every(t =>
+        // 1. VALIDASI TANGGAL (Range)
+        // Pastikan semua task sudah memiliki input tanggal/durasi
+        const isAllDatesFilled = currentTasks.every(t =>
             t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
         );
 
-        if (!isAllTasksFilled) {
-            alert("Harap lengkapi semua tahapan pekerjaan terlebih dahulu sebelum mengunci jadwal.");
+        if (!isAllDatesFilled) {
+            alert("Gagal Kunci Jadwal:\nHarap lengkapi durasi/tanggal pada SEMUA tahapan pekerjaan terlebih dahulu.");
             return;
         }
+
+        // ============================================================
+        // 2. VALIDASI KETERIKATAN (FORWARD CHECK) - [LOGIKA BARU]
+        // ============================================================
+        // Aturan: Setiap task HARUS memilih "Tahapan Selanjutnya" (memiliki Anak),
+        // KECUALI Tahapan Paling Akhir (ID Terbesar).
+        
+        // Urutkan task berdasarkan ID untuk menemukan mana yang paling akhir
+        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
+        const lastTaskId = sortedTasks[sortedTasks.length - 1].id;
+
+        // Cari task yang putus (Belum memilih tahapan selanjutnya)
+        const brokenChains = sortedTasks.filter(task => {
+            
+            // PENGECUALIAN: Tahapan Paling Akhir BOLEH KOSONG (Skip validasi)
+            if (task.id === lastTaskId) return false;
+
+            // Untuk task lain (misal ID 1, 2, ... N-1), kita cek:
+            // Apakah ada task lain yang kolom 'dependency'-nya berisi ID task ini?
+            // (Artinya: Apakah Task ini sudah dipilih sebagai Parent oleh task lain?)
+            const hasNextStep = currentTasks.some(child => child.dependency === task.id);
+
+            // Jika tidak ada task yang menunjuk ke sini, berarti user belum pilih dropdown "Tahapan Selanjutnya"
+            return !hasNextStep; 
+        });
+
+        if (brokenChains.length > 0) {
+            const listNames = brokenChains.map(t => `- ${t.name}`).join("\n");
+            alert(
+                `❌ GAGAL KUNCI JADWAL\n\n` +
+                `Agar alur pekerjaan tersambung, Anda wajib memilih "Tahapan Selanjutnya" pada setiap baris.\n` +
+                `(Kecuali tahapan paling akhir).\n\n` +
+                `Tahapan berikut belum memiliki kelanjutan:\n` +
+                `${listNames}\n\n` +
+                `Solusi: Pilih tahapan selanjutnya pada dropdown baris tersebut.`
+            );
+            return; // STOP PROSES
+        }
+
+        // 3. Konfirmasi Final
         if (!confirm("Yakin kunci jadwal? Data tidak bisa diubah lagi.")) return;
         saveProjectSchedule("Terkunci");
     }
