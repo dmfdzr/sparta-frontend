@@ -217,12 +217,96 @@ body {
     transform: translateY(-50%) scale(0.95);
 }
 
+/* =========================================
+   MOBILE RESPONSIVE OVERRIDES (DASHBOARD)
+   ========================================= */
+
 @media (max-width: 768px) {
-    .btn-logout-form {
-        padding: 0.5rem;
-        right: 15px;
+    
+    /* === 1. HEADER ADJUSTMENTS === */
+    .main-header {
+        flex-direction: column; /* Ubah orientasi jadi atas-bawah */
+        height: auto;
+        padding: 1.5rem 1rem;
+        gap: 1rem;
+        text-align: center;
     }
-    .btn-logout-form span { 
-        display: none;
+
+    /* Grouping Logos & Title */
+    .header-logo, 
+    .building-logo {
+        height: 50px; /* Kecilkan logo agar muat */
+        margin: 0; /* Reset margin desktop */
+        transform: none !important; /* Reset animasi posisi jika mengganggu layout */
+        opacity: 1 !important; /* Pastikan logo muncul */
+    }
+
+    /* Judul SPARTA */
+    .main-header h1 {
+        font-size: 1.5rem; /* Kecilkan font */
+        margin: 0.5rem 0;
+        opacity: 1 !important;
+    }
+
+    /* === 2. LOGOUT BUTTON (FULL WIDTH) === */
+    /* Kita override style tombol logout yg sebelumnya absolute */
+    .btn-logout-form {
+        position: static; /* Matikan posisi absolute */
+        transform: none;
+        margin-top: 1rem;
+        width: 100%; /* Full width agar mudah ditap */
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Munculkan kembali teks 'Logout' jika sebelumnya di-hidden */
+    .btn-logout-form span {
+        display: inline-block;
+    }
+
+    /* === 3. CONTAINER & WELCOME MSG === */
+    .container {
+        padding: 1rem; /* Kurangi padding container utama */
+        margin: 0 auto;
+    }
+
+    .welcome-message {
+        margin-bottom: 2rem;
+    }
+
+    .welcome-message h2 {
+        font-size: 1.2rem; /* Judul welcome lebih kecil */
+    }
+
+    .welcome-message p {
+        font-size: 0.95rem;
+    }
+
+    /* === 4. MENU GRID (CARD) === */
+    .menu-container {
+        /* Paksa jadi 1 kolom ke bawah */
+        grid-template-columns: 1fr; 
+        gap: 1rem;
+    }
+
+    .menu-item {
+        padding: 1.25rem;
+        display: flex; /* Opsional: ubah jadi flex row biar icon di kiri teks di kanan */
+        flex-direction: column; /* Atau tetap column tapi center */
+        align-items: center;
+    }
+
+    .menu-item img {
+        height: 60px; /* Kecilkan icon menu */
+        margin-bottom: 0.75rem;
+    }
+
+    .menu-item h3 {
+        font-size: 1.1rem;
+    }
+
+    .menu-item p {
+        font-size: 0.9rem;
+        text-align: center;
     }
 }
