@@ -10,14 +10,9 @@ function getQueryParams() {
 
 // Ambil data dokumen dari localStorage (atau bisa fetch dari API jika ingin real-time)
 function getFilteredDocuments(cabang, status) {
-    // Asumsi data sudah disimpan di localStorage oleh halaman utama
-    const allDocs = JSON.parse(localStorage.getItem('svdokumen_filtered')) || [];
-    return allDocs.filter(doc => {
-        let match = true;
-        if (cabang) match = match && (doc.cabang === cabang);
-        if (status) match = match && (doc.status === status);
-        return match;
-    });
+    // Ambil data dari sessionStorage yang dikirim dari halaman utama
+    const allDocs = JSON.parse(sessionStorage.getItem('svdokumen_export')) || [];
+    return allDocs;
 }
 
 function renderExportInfo(params) {

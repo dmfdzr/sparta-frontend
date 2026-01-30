@@ -109,6 +109,16 @@ function initApp() {
             const exportBtn = document.getElementById('exportBtn');
             if (exportBtn) {
                 exportBtn.addEventListener('click', function () {
+                    // Simpan data tabel yang sedang tampil ke sessionStorage
+                    try {
+                        const exportData = filteredDocuments.map((doc) => ({
+                            kodeToko: doc.kode_toko || "",
+                            namaToko: doc.nama_toko || "",
+                            cabang: doc.cabang || "",
+                            status: doc._exportStatus || "",
+                        }));
+                        sessionStorage.setItem('svdokumen_export', JSON.stringify(exportData));
+                    } catch (e) { }
                     const cabang = document.getElementById('filter-cabang').value;
                     const status = document.getElementById('filter-status').value;
                     // Kirim ke halaman export dengan query string
