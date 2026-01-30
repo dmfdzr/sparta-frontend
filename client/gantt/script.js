@@ -487,28 +487,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadDefaultTasks(selectedValue) {
         let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
+        
+        // Clone template agar tidak merubah referensi asli
         let tasksToUse = JSON.parse(JSON.stringify(template));
 
-        // Filter tasks based on filtered_categories from API if available
-        if (filteredCategories && filteredCategories.length > 0) {
+        // Filter tasks based on filtered_categories from API if available (DARI RAB)
+        if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
+            console.log("📋 Menggunakan Filter Kategori dari RAB:", filteredCategories);
+            
             const normalizedFilteredCategories = filteredCategories.map(c => c.toLowerCase().trim());
+            
+            // 1. Filter Template: Hanya ambil item yang COCOK dengan RAB
             tasksToUse = tasksToUse.filter(task => {
-                const normalizedTaskName = task.name.toLowerCase().trim();
-                return normalizedFilteredCategories.some(fc =>
+                const normalizedTaskName = task.name.toLowerCase().trim();X
+                return normalizedFilteredCategories.some(fc => 
                     normalizedTaskName.includes(fc) || fc.includes(normalizedTaskName)
                 );
             });
 
+            // 2. Re-Map ID agar urut kembali (1, 2, 3...)
             tasksToUse = tasksToUse.map((task, index) => ({
                 ...task,
                 id: index + 1
-            }));
+            }));X
         }
 
         currentTasks = tasksToUse.map(t => ({
             ...t,
             inputData: { ranges: [] }
         }));
+        
         projectTasks[selectedValue] = currentTasks;
         hasUserInput = false;
         isProjectLocked = false;
@@ -521,26 +529,26 @@ document.addEventListener('DOMContentLoaded', () => {
         let dynamicTasks = [];
         let earliestDate = null;
         let tempTaskList = [];
-
-        // --- PERBAIKAN: Prioritaskan Daftar Pekerjaan dari RAB (filteredCategories) ---
-        // Jika ada update dari RAB (pekerjaan baru), kita pakai list dari filteredCategories
-        // lalu kita 'cocokkan' dengan data yang sudah tersimpan.
-
         if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
-            console.log("🔄 Sinkronisasi dengan data RAB terbaru...");
+            console.log("🔄 Sinkronisasi dengan data RAB terbaru (Loose Match)...");
 
-            // 1. Ambil Template Standar (ME/Sipil) untuk mendapatkan Nama yang rapi
             let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
-            const normalizedCategories = filteredCategories.map(c => c.toLowerCase().trim());
+            
+            // Mapping dari Nama RAB ke Nama Template (Standardisasi)
+            tempTaskList = filteredCategories.map((catNameFromRab, index) => {
+                const rabNameClean = catNameFromRab.toLowerCase().trim();
 
-            // 2. Buat List Tugas berdasarkan RAB
-            tempTaskList = normalizedCategories.map((catName, index) => {
-                // Cari nama resmi dari template (agar casing huruf rapi), fallback ke nama dari API
-                const templateItem = template.find(t => t.name.toLowerCase().trim() === catName);
-                const officialName = templateItem ? templateItem.name : filteredCategories[index]; // Pakai nama asli dari filteredCategories jika template ga ketemu
+                // CARI MATCHING DI TEMPLATE (LEBIH FLEKSIBEL)
+                // Kita cari item di template yang namanya mengandung kata dari RAB, atau sebaliknya.
+                const templateItem = template.find(t => {
+                    const tName = t.name.toLowerCase().trim();
+                    return tName === rabNameClean || tName.includes(rabNameClean) || rabNameClean.includes(tName);
+                });
 
-                // 3. Cari Data Keterlambatan yang mungkin tersimpan di ganttData lama
-                // Kita harus scan ganttData karena ID (Kategori_X) mungkin bergeser
+                // Jika ketemu di template, pakai nama Template (biar rapi). Jika tidak, pakai nama dari RAB.
+                const officialName = templateItem ? templateItem.name : catNameFromRab; 
+
+                // Cari Data Keterlambatan yang mungkin tersimpan di ganttData lama
                 let savedKeterlambatan = 0;
                 if (ganttData) {
                     let i = 1;
@@ -549,7 +557,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         const keyDelay = `Keterlambatan_Kategori_${i}`;
                         if (!ganttData.hasOwnProperty(keyName)) break;
 
-                        if (ganttData[keyName] && ganttData[keyName].toLowerCase().trim() === officialName.toLowerCase().trim()) {
+                        // Cek apakah data lama cocok dengan nama baru
+                        const oldName = (ganttData[keyName] || "").toLowerCase().trim();
+                        if (oldName && (oldName === officialName.toLowerCase().trim() || oldName.includes(rabNameClean))) {
                             savedKeterlambatan = parseInt(ganttData[keyDelay]) || 0;
                             break;
                         }
@@ -558,14 +568,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 return {
-                    id: index + 1, // ID baru diurutkan ulang sesuai urutan RAB
+                    id: index + 1,
                     name: officialName,
                     keterlambatan: savedKeterlambatan
                 };
             });
 
         } else {
-            // FALLBACK: Jika tidak ada data RAB (filteredCategories), gunakan cara lama (baca murni dari save file)
+            // FALLBACK: Jika tidak ada data RAB, baca murni dari save file lama
             console.warn("⚠️ Tidak ada data RAB/filtered_categories, menggunakan data simpanan saja.");
             let i = 1;
             while (ganttData) {
@@ -592,6 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const categoryRangesMap = {};
 
         if (dayGanttDataArray && Array.isArray(dayGanttDataArray) && dayGanttDataArray.length > 0) {
+            // 1. Tentukan Earliest Date
             dayGanttDataArray.forEach(entry => {
                 const hAwalStr = entry.h_awal;
                 if (hAwalStr) {
@@ -610,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentProject.startDate = projectStartDate.toISOString().split('T')[0];
             const msPerDay = 1000 * 60 * 60 * 24;
 
+            // 2. Mapping Ranges
             dayGanttDataArray.forEach(entry => {
                 const kategori = entry.Kategori;
                 if (!kategori) return;
@@ -647,8 +659,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const normalizedName = item.name.toLowerCase().trim();
             let ranges = [];
 
-            // Cari ranges berdasarkan Nama (bukan ID)
+            // Cari ranges dengan logic Fuzzy Match juga
             for (const [kategoriKey, rangeArray] of Object.entries(categoryRangesMap)) {
+                // Logic: Nama Task mengandung Key Data, atau Key Data mengandung Nama Task
                 if (normalizedName === kategoriKey || normalizedName.includes(kategoriKey) || kategoriKey.includes(normalizedName)) {
                     ranges = rangeArray;
                     break;
@@ -663,22 +676,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 minStart = Math.min(...ranges.map(r => r.start));
             }
 
-            // Find dependency from API data
-            // Correct semantics: for CURRENT (child) task, find its PARENT task id.
-            // Server stores records as { Kategori: parentName, Kategori_Terikat: childName }.
+            // Dependency Logic
             let dependencyTaskId = null;
             if (dependencyData && dependencyData.length > 0) {
-                // Primary: current item appears as CHILD in dependencyData (Kategori_Terikat)
                 const depAsChild = dependencyData.find(d =>
-                    d.Kategori_Terikat && String(d.Kategori_Terikat).toLowerCase().trim() === normalizedName
+                    d.Kategori_Terikat && 
+                    (String(d.Kategori_Terikat).toLowerCase().trim() === normalizedName || normalizedName.includes(String(d.Kategori_Terikat).toLowerCase().trim()))
                 );
                 if (depAsChild && depAsChild.Kategori) {
                     const parentNameNorm = String(depAsChild.Kategori).toLowerCase().trim();
-                    const parentTask = tempTaskList.find(t => t.name.toLowerCase().trim() === parentNameNorm);
+                    const parentTask = tempTaskList.find(t => {
+                        const tName = t.name.toLowerCase().trim();
+                        return tName === parentNameNorm || tName.includes(parentNameNorm) || parentNameNorm.includes(tName);
+                    });
                     if (parentTask) dependencyTaskId = parentTask.id;
-                } else {
-                    // Backward-compat: if older data had current as PARENT, skip assigning here
-                    // to avoid inverted linkage. We only bind child -> parent direction.
                 }
             }
 
