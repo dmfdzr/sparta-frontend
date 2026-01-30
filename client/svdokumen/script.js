@@ -108,6 +108,16 @@ function initApp() {
         });
     });
 
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', handleExportData);
+    }
+
+    const exportPdfBtn = document.getElementById('btn-export-pdf');
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', handleExportToPDF);
+    }
+
     setupAutoCalculation();
 
     // Search & Filter
@@ -162,7 +172,7 @@ function setupAutoCalculation() {
                 total += parseLocalFloat(el.value);
             }
         });
-        
+
         if (totalInput) {
             totalInput.value = formatLocalString(total);
         }
@@ -542,7 +552,7 @@ function handleSearch(keyword) {
     if (typeof keyword !== 'string') keyword = "";
 
     const term = keyword.toLowerCase();
-    
+
     // Ambil value dari filter cabang
     const filterSelect = document.getElementById("filter-cabang");
     const filterCabang = filterSelect ? filterSelect.value : "";
@@ -558,38 +568,54 @@ function handleSearch(keyword) {
 
         // 1. Cek Text Search
         const matchText = kode.includes(term) || nama.includes(term);
-        
+
         // 2. Cek Filter Cabang
         const matchCabang = filterCabang === "" || cabang === filterCabang;
 
         // 3. Cek Filter Status Kelengkapan (LOGIKA BARU)
         let matchStatus = true;
+        let statusValue = "";
+        const statusCheck = checkDocumentCompleteness(doc.file_links);
+        if (statusCheck.complete) {
+            statusValue = "complete";
+        } else {
+            statusValue = "incomplete";
+        }
         if (filterStatus !== "") {
-            const statusCheck = checkDocumentCompleteness(doc.file_links);
-            
             if (filterStatus === "incomplete") {
                 matchStatus = !statusCheck.complete;
             } else if (filterStatus === "complete") {
                 matchStatus = statusCheck.complete;
             }
         }
-
+        // Simpan status kelengkapan di dokumen
+        doc._exportStatus = statusValue;
         return matchText && matchCabang && matchStatus;
     });
     filteredDocuments.reverse();
     currentPage = 1;
     renderTable();
+    // Simpan data ke localStorage dengan field yang sesuai
+    try {
+        const exportData = filteredDocuments.map((doc) => ({
+            kodeToko: doc.kode_toko || "",
+            namaToko: doc.nama_toko || "",
+            cabang: doc.cabang || "",
+            status: doc._exportStatus || "",
+        }));
+        localStorage.setItem('svdokumen_filtered', JSON.stringify(exportData));
+    } catch (e) { }
 }
 
 // Fungsi Helper: Cek Kelengkapan Dokumen
 function checkDocumentCompleteness(fileLinksString) {
     const mandatoryKeys = [
-        "fotoExisting", 
-        "fotoRenovasi", 
-        "me", 
-        "sipil", 
-        "sketsaAwal", 
-        "spk", 
+        "fotoExisting",
+        "fotoRenovasi",
+        "me",
+        "sipil",
+        "sketsaAwal",
+        "spk",
         "rab",
         "pendukung",
         "instruksiLapangan",
@@ -987,4 +1013,205 @@ function setupAutoLogout() {
         if (idleTime >= 30) handleLogout();
     }, 60000);
     ['mousemove', 'keypress', 'click', 'scroll'].forEach(evt => document.addEventListener(evt, () => idleTime = 0));
+}
+
+// ==========================================
+// Fitur Export to CSV (Dari Table/Filtered Data)
+// ==========================================
+function handleExportData() {
+    // 1. Cek apakah ada data
+    if (!filteredDocuments || filteredDocuments.length === 0) {
+        alert('Tidak ada data untuk diexport (Tabel kosong)!');
+        return;
+    }
+
+    // 2. Tentukan Header CSV
+    const headers = [
+        'No',
+        'Kode Toko',
+        'Nama Toko',
+        'Cabang',
+        'Status Kelengkapan', // Kolom status hasil kalkulasi
+        'Jumlah Kekurangan',
+        'Waktu Update',
+        'Terakhir Diedit',
+        'Link Folder'
+    ];
+
+    // 3. Map data dari filteredDocuments (sesuai filter user)
+    const rows = filteredDocuments.map((doc, index) => {
+        // Hitung ulang status agar akurat (sama seperti di renderTable)
+        const statusCheck = checkDocumentCompleteness(doc.file_links);
+        const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
+        const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "-";
+
+        // Ambil timestamp dan editor sesuai logic renderTable
+        const timestamp = doc.timestamp || "-";
+        const editor = doc.last_edit || doc.pic_name || "-";
+
+        // Bungkus data dengan kutip (") untuk menangani koma dalam teks
+        return [
+            index + 1,
+            `"${(doc.kode_toko || "").replace(/"/g, '""')}"`,
+            `"${(doc.nama_toko || "").replace(/"/g, '""')}"`,
+            `"${(doc.cabang || "").replace(/"/g, '""')}"`,
+            `"${statusText}"`,
+            `"${statusCheck.missingCount} Item"`,
+            `"${timestamp}"`,
+            `"${editor}"`,
+            `"${folderUrl}"`
+        ];
+    });
+
+    // 4. Gabungkan Header dan Rows menjadi String CSV
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // 5. Buat Blob dan Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    // Format nama file dengan tanggal hari ini
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `Data_Dokumen_Toko_${date}.csv`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+
+// ==========================================
+// Fitur Export to PDF (With Totals & Details)
+// ==========================================
+function handleExportToPDF() {
+    // 1. Cek Ketersediaan Library
+    if (!window.jspdf) {
+        alert("Library PDF belum dimuat. Pastikan Anda terhubung ke internet.");
+        return;
+    }
+
+    // 2. Cek Data
+    if (!filteredDocuments || filteredDocuments.length === 0) {
+        alert('Tidak ada data untuk diexport (Tabel kosong)!');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    // Gunakan orientasi 'l' (landscape) agar tabel muat banyak kolom
+    const doc = new jsPDF('l', 'mm', 'a4');
+
+    // --- HITUNG TOTAL ---
+    const totalData = filteredDocuments.length;
+    let completeCount = 0;
+    let incompleteCount = 0;
+
+    const tableRows = filteredDocuments.map((docItem, index) => {
+        const statusCheck = checkDocumentCompleteness(docItem.file_links);
+
+        if (statusCheck.complete) {
+            completeCount++;
+        } else {
+            incompleteCount++;
+        }
+
+        const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
+
+        // PERUBAHAN 1: Tampilkan list item kekurangan dipisah koma/baris baru
+        // Jika lengkap, strip (-). Jika kurang, gabungkan listnya.
+        const missingText = statusCheck.complete ? "-" : statusCheck.missingList.join(', ');
+
+        // PERUBAHAN 2: Perbaiki pengambilan field Waktu Update (biasanya 'timestamp')
+        const waktuUpdate = docItem.timestamp || docItem.updated_at || "-";
+        const editor = docItem.last_edit || docItem.pic_name || "-";
+
+        // Format data untuk baris tabel
+        return [
+            index + 1,
+            docItem.kode_toko || "-",
+            docItem.nama_toko || "-",
+            docItem.cabang || "-",
+            statusText,
+            missingText,   // Kolom 5: Sekarang berisi teks detail
+            waktuUpdate,   // Kolom 6: Sudah diperbaiki
+            editor
+        ];
+    });
+
+    // --- HEADER PDF ---
+    const today = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    doc.setFontSize(16);
+    doc.text("Laporan Status Dokumen Toko", 14, 15);
+
+    doc.setFontSize(10);
+    doc.text(`Tanggal Cetak: ${today}`, 14, 22);
+
+    // Tampilkan Filter Info
+    const activeCabang = document.getElementById("filter-cabang")?.value || "Semua Cabang";
+    doc.text(`Filter Cabang: ${activeCabang}`, 14, 27);
+
+    // --- BAGIAN TOTAL (SUMMARY) ---
+    doc.setDrawColor(0);
+    doc.setFillColor(240, 240, 240);
+    doc.rect(14, 32, 100, 20, 'F');
+
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total Toko: ${totalData}`, 18, 38);
+
+    doc.setTextColor(0, 100, 0); // Hijau
+    doc.text(`Sudah Lengkap: ${completeCount}`, 18, 43);
+
+    doc.setTextColor(200, 0, 0); // Merah
+    doc.text(`Belum Lengkap: ${incompleteCount}`, 18, 48);
+
+    doc.setTextColor(0, 0, 0); // Reset Hitam
+
+    // --- GENERATE TABEL ---
+    doc.autoTable({
+        startY: 55,
+        // Update header kolom ke-6 jadi 'Detail Kekurangan'
+        head: [['No', 'Kode', 'Nama Toko', 'Cabang', 'Status', 'Detail Kekurangan', 'Update Terakhir', 'Editor']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185], valign: 'middle', halign: 'center' },
+        styles: { fontSize: 8, valign: 'top' }, // Font dikecilkan sedikit agar muat
+        columnStyles: {
+            0: { cellWidth: 10, halign: 'center' }, // No
+            1: { cellWidth: 15 }, // Kode
+            2: { cellWidth: 40 }, // Nama Toko
+            3: { cellWidth: 20 }, // Cabang
+            4: { cellWidth: 25 }, // Status
+            5: { cellWidth: 80 }, // Detail Kekurangan (Dibuat LEBAR agar muat list item)
+            6: { cellWidth: 35 }, // Update Terakhir
+            7: { cellWidth: 'auto' } // Editor (Sisa ruang)
+        },
+        didParseCell: function (data) {
+            // Warnai teks status
+            if (data.section === 'body' && data.column.index === 4) {
+                if (data.cell.raw === 'Belum Lengkap') {
+                    data.cell.styles.textColor = [200, 0, 0];
+                    data.cell.styles.fontStyle = 'bold';
+                } else {
+                    data.cell.styles.textColor = [0, 100, 0];
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            }
+            // Khusus kolom 'Detail Kekurangan', jika teks panjang otomatis akan wrap (turun baris)
+            // karena sifat default autoTable.
+        }
+    });
+
+    // --- SAVE FILE ---
+    const dateStr = new Date().toISOString().slice(0, 10);
+    doc.save(`Laporan_Dokumen_${dateStr}.pdf`);
 }
