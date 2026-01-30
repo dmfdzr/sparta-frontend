@@ -1179,8 +1179,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 3. VALIDASI KETERIKATAN (STRICT MODE)
-        for (const task of tempTasks) {
+        // 3. VALIDASI KETERIKATAN (DILONGGARKAN / DISABLED)
+        // MODIFIKASI: Kita izinkan child mulai sebelum parent selesai (Overlap diperbolehkan)
+        /* for (const task of tempTasks) {
             if (task.dependency) {
                 const parentId = parseInt(task.dependency);
                 const parentTask = tempTasks.find(pt => pt.id === parentId);
@@ -1202,6 +1203,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+        */
+        console.log("⚠️ Validasi strict mode dinonaktifkan: Overlap jadwal diperbolehkan.");
+
 
         // 4. Update Final Data Lokal
         tempTasks.forEach(task => {
@@ -1498,11 +1502,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset computed shift
         currentTasks.forEach(t => t.computed = { shift: 0 });
 
-        // Calculate visual shifts
+        // Calculate visual shifts (MODIFIED: NO AUTO SHIFT)
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
-            let shift = 0;
-
+            
+            // MODIFIKASI: Kita paksa shift selalu 0 agar Bar tetap di posisi sesuai input user
+            // meskipun dependency-nya belum selesai.
+            let shift = 0; 
+            
+            /* LOGIKA LAMA (AUTO SHIFT) DI-NONAKTIFKAN:
             if (task.dependency) {
                 const parentEffectiveEnd = effectiveEndDates[task.dependency] || 0;
                 if (ranges.length > 0) {
@@ -1512,9 +1520,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
+            */
 
             task.computed.shift = shift;
 
+            // Kita tetap perlu menghitung effectiveEndDates agar garis panah dependency 
+            // tahu titik koordinat akhirnya.
             if (ranges.length > 0) {
                 const lastRange = ranges[ranges.length - 1];
                 const actualEnd = lastRange.end + shift;
