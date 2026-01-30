@@ -57,13 +57,16 @@ function checkAuth() {
 
     const btnAddNew = document.getElementById("btn-add-new");
     const filterCabang = document.getElementById("filter-cabang");
+    const filterStatus = document.getElementById("filter-status");
 
     // Logic Role Head Office
     if (currentUser.cabang.toLowerCase() === "head office") {
         if (filterCabang) filterCabang.style.display = "inline-block";
+        if (filterStatus) filterStatus.style.display = "inline-block";
         if (btnAddNew) btnAddNew.style.display = "none";
     } else {
         if (filterCabang) filterCabang.style.display = "none";
+        if (filterStatus) filterStatus.style.display = "none";
         if (btnAddNew) btnAddNew.style.display = "inline-block";
     }
 }
@@ -116,6 +119,14 @@ function initApp() {
     const filterSelect = document.getElementById("filter-cabang");
     if (filterSelect) {
         filterSelect.addEventListener("change", () => {
+            const keyword = document.getElementById("search-input") ? document.getElementById("search-input").value : "";
+            handleSearch(keyword);
+        });
+    }
+
+    const filterStatus = document.getElementById("filter-status");
+    if (filterStatus) {
+        filterStatus.addEventListener("change", () => {
             const keyword = document.getElementById("search-input") ? document.getElementById("search-input").value : "";
             handleSearch(keyword);
         });
@@ -531,19 +542,40 @@ function handleSearch(keyword) {
     if (typeof keyword !== 'string') keyword = "";
 
     const term = keyword.toLowerCase();
+    
+    // Ambil value dari filter cabang
     const filterSelect = document.getElementById("filter-cabang");
     const filterCabang = filterSelect ? filterSelect.value : "";
+
+    // Ambil value dari filter status (TAMBAHAN BARU)
+    const filterStatusSelect = document.getElementById("filter-status");
+    const filterStatus = filterStatusSelect ? filterStatusSelect.value : "";
 
     filteredDocuments = allDocuments.filter(doc => {
         const kode = (doc.kode_toko || "").toString().toLowerCase();
         const nama = (doc.nama_toko || "").toString().toLowerCase();
         const cabang = (doc.cabang || "").toString();
 
+        // 1. Cek Text Search
         const matchText = kode.includes(term) || nama.includes(term);
+        
+        // 2. Cek Filter Cabang
         const matchCabang = filterCabang === "" || cabang === filterCabang;
-        return matchText && matchCabang;
-    });
 
+        // 3. Cek Filter Status Kelengkapan (LOGIKA BARU)
+        let matchStatus = true;
+        if (filterStatus !== "") {
+            const statusCheck = checkDocumentCompleteness(doc.file_links);
+            
+            if (filterStatus === "incomplete") {
+                matchStatus = !statusCheck.complete;
+            } else if (filterStatus === "complete") {
+                matchStatus = statusCheck.complete;
+            }
+        }
+
+        return matchText && matchCabang && matchStatus;
+    });
     filteredDocuments.reverse();
     currentPage = 1;
     renderTable();
