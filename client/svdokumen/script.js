@@ -105,6 +105,17 @@ function initApp() {
     document.querySelectorAll(".input-decimal").forEach(input => {
         input.addEventListener("input", (e) => {
             e.target.value = formatDecimalInput(e.target.value);
+            // Export Button
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function () {
+                    const cabang = document.getElementById('filter-cabang').value;
+                    const status = document.getElementById('filter-status').value;
+                    // Kirim ke halaman export dengan query string
+                    const params = new URLSearchParams({ cabang, status });
+                    window.location.href = `export.html?${params.toString()}`;
+                });
+            }
         });
     });
 
@@ -162,7 +173,7 @@ function setupAutoCalculation() {
                 total += parseLocalFloat(el.value);
             }
         });
-        
+
         if (totalInput) {
             totalInput.value = formatLocalString(total);
         }
@@ -542,7 +553,7 @@ function handleSearch(keyword) {
     if (typeof keyword !== 'string') keyword = "";
 
     const term = keyword.toLowerCase();
-    
+
     // Ambil value dari filter cabang
     const filterSelect = document.getElementById("filter-cabang");
     const filterCabang = filterSelect ? filterSelect.value : "";
@@ -558,7 +569,7 @@ function handleSearch(keyword) {
 
         // 1. Cek Text Search
         const matchText = kode.includes(term) || nama.includes(term);
-        
+
         // 2. Cek Filter Cabang
         const matchCabang = filterCabang === "" || cabang === filterCabang;
 
@@ -566,7 +577,7 @@ function handleSearch(keyword) {
         let matchStatus = true;
         if (filterStatus !== "") {
             const statusCheck = checkDocumentCompleteness(doc.file_links);
-            
+
             if (filterStatus === "incomplete") {
                 matchStatus = !statusCheck.complete;
             } else if (filterStatus === "complete") {
@@ -579,17 +590,21 @@ function handleSearch(keyword) {
     filteredDocuments.reverse();
     currentPage = 1;
     renderTable();
+    // Setelah filteredDocuments diupdate, simpan ke localStorage untuk kebutuhan export
+    try {
+        localStorage.setItem('svdokumen_filtered', JSON.stringify(filteredDocuments));
+    } catch (e) { }
 }
 
 // Fungsi Helper: Cek Kelengkapan Dokumen
 function checkDocumentCompleteness(fileLinksString) {
     const mandatoryKeys = [
-        "fotoExisting", 
-        "fotoRenovasi", 
-        "me", 
-        "sipil", 
-        "sketsaAwal", 
-        "spk", 
+        "fotoExisting",
+        "fotoRenovasi",
+        "me",
+        "sipil",
+        "sketsaAwal",
+        "spk",
         "rab",
         "pendukung",
         "instruksiLapangan",
