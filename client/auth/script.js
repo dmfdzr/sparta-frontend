@@ -88,9 +88,9 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 // Handle Login Gagal
                 if (result.message === "Invalid credentials") {
-                    loginMessage.textContent = "Email benar, tetapi password salah.";
+                    loginMessage.textContent = "Login gagal!";
                 } else {
-                    loginMessage.textContent = result.message || "Username atau password salah.";
+                    loginMessage.textContent = result.message || "Login gagal!";
                 }
                 loginMessage.className = "login-message error";
                 logLoginAttempt(username, password, "Failed");
