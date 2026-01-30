@@ -387,24 +387,6 @@ table tbody td select:focus {
 }
 
 /* ==========================================================================
-    8. RESPONSIVE
-   ========================================================================== */
-@media (max-width: 768px) {
-    .container { margin: 1rem; padding: 1.5rem; max-width: 100%; }
-    header { flex-direction: column; padding: 1.5rem; height: auto; }
-    header h1 { font-size: 1.5rem; margin-top: 1rem; text-align: center; }
-    .header-logo { position: static; transform: none; margin: 0 auto; width: 120px; left: auto; }
-    .table-container { -webkit-overflow-scrolling: touch; }
-    table { min-width: 880px; }
-    .button-group { flex-direction: column; gap: 10px; }
-    .form-container button { padding: 10px 15px; font-size: 1rem; }
-    .section-title { font-size: 1.1rem; }
-    .grand-total-box { padding: 15px; }
-    #nomor-ulok-container { flex-direction: column; gap: 8px !important; align-items: stretch !important; }
-    #nomor-ulok-container > * { flex: 1 1 100% !important; text-align: center; }
-}
-
-/* ==========================================================================
    9. LOADING SCREEN OVERLAY
    ========================================================================== */
 .hidden-overlay {
@@ -464,4 +446,151 @@ table tbody td select:focus {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* =========================================
+   MOBILE RESPONSIVE OVERRIDES (RAB PAGE)
+   ========================================= */
+
+@media (max-width: 768px) {
+    
+    /* === 1. GLOBAL LAYOUT FIXES === */
+    /* Mencegah scroll horizontal pada body akibat elemen yang melebar */
+    html, body {
+        overflow-x: hidden; 
+    }
+
+    .container {
+        padding: 1.25rem; /* Mengurangi padding container agar area isi lebih luas */
+        width: 95%; /* Memaksimalkan lebar di layar HP */
+        margin: 1rem auto;
+    }
+
+    /* === 2. HEADER ADJUSTMENTS === */
+    header {
+        gap: 0.5rem;
+    }
+
+    header h1 {
+        font-size: 1.2rem; /* Judul lebih kecil agar tidak makan tempat */
+        line-height: 1.4;
+    }
+
+    .header-logo {
+        width: 100px; /* Logo diperkecil proporsional */
+        margin-bottom: 5px;
+    }
+
+    .btn-back-header {
+        position: relative; /* Ubah dari absolute ke relative agar tidak menumpuk */
+        top: auto;
+        right: auto;
+        transform: none;
+        margin-top: 10px;
+        width: 100%;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* === 3. COMPLEX FORM INPUTS (NOMOR ULOK) === */
+    /* Mengatur container nomor ulok yang terdiri dari banyak input berjejer */
+    #nomor-ulok-container {
+        gap: 10px !important;
+    }
+    
+    /* Memaksa input dalam group Ulok menjadi full width saat di HP */
+    #nomor-ulok-container select,
+    #nomor-ulok-container input {
+        width: 100% !important;
+        flex: none !important; /* Matikan flex basis dari inline style HTML */
+        margin: 0 !important;
+    }
+
+    /* Menyembunyikan separator (-) karena input sudah menumpuk ke bawah */
+    #nomor-ulok-container span {
+        display: none; 
+    }
+
+    /* === 4. TABLE OPTIMIZATION === */
+    .table-container {
+        /* Melebarkan container tabel sampai mentok pinggir layar HP */
+        margin-left: -1rem;
+        margin-right: -1rem;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        
+        /* Scroll hint (bayangan halus di kanan untuk memberi tahu user bisa di-scroll) */
+        background: 
+            linear-gradient(to right, white 30%, rgba(255,255,255,0)),
+            linear-gradient(to right, rgba(255,255,255,0), white 70%) 0 100%,
+            radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.2), transparent),
+            radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.2), transparent) 0 100%;
+        background-repeat: no-repeat;
+        background-attachment: local, local, scroll, scroll;
+        background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+        background-position: 0 0, 100% 0, 0 0, 100% 0;
+    }
+
+    /* Tombol Tambah Item menjadi Full Width */
+    .add-row-btn {
+        width: 100%;
+        text-align: center;
+        margin-top: 15px !important;
+        padding: 12px !important;
+    }
+
+    /* Tombol Hapus di dalam tabel diperbesar sedikit area sentuhnya */
+    .delete-row-btn {
+        padding: 8px 12px !important;
+    }
+
+    /* === 5. GRAND TOTAL BOX === */
+    .grand-total-box {
+        padding: 1rem;
+        margin-top: 2rem;
+        border-width: 2px; /* Border lebih tebal biar jelas */
+    }
+
+    .total-row span:first-child, 
+    .total-row-sub span:first-child {
+        font-size: 0.9rem; /* Label sedikit lebih kecil */
+    }
+
+    .total-row span:last-child, 
+    .total-row-sub span:last-child {
+        font-size: 1rem; /* Angka tetap terbaca jelas */
+    }
+
+    .total-row-final {
+        flex-direction: column; /* Grand Total Tumpuk Atas Bawah */
+        align-items: flex-end; /* Rata kanan */
+        gap: 5px;
+    }
+
+    .total-row-final span:first-child {
+        font-size: 1rem;
+        color: #64748b;
+    }
+    
+    .total-row-final span:last-child {
+        font-size: 1.8rem; /* Nominal Grand Total Sangat Besar */
+    }
+
+    /* === 6. ACTION BUTTONS === */
+    .button-group {
+        position: sticky; /* Tombol melayang di bawah layar? Opsional, di sini kita buat statis tapi full width */
+        bottom: 0;
+        background: white;
+        padding: 10px 0;
+        z-index: 50;
+        border-top: 1px solid #eee;
+        margin-bottom: 0;
+    }
+    
+    .form-container button {
+        width: 100%;
+        padding: 14px; /* Area tap lebih besar */
+        font-size: 1.1rem;
+    }
 }
