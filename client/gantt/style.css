@@ -926,3 +926,166 @@ button:disabled {
     width: 20px;
     height: 20px;
 }
+
+/* =========================================
+   MOBILE RESPONSIVE OVERRIDES (GANTT CHART)
+   ========================================= */
+
+@media (max-width: 768px) {
+
+    /* === 1. HEADER FIX (Sama seperti halaman lain) === */
+    header.app-header {
+        flex-direction: column;
+        height: auto;
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .header-logo {
+        position: static;
+        transform: none;
+        width: 100px;
+        margin-bottom: 5px;
+    }
+
+    header.app-header h1 {
+        font-size: 1.5rem;
+        width: 100%;
+    }
+
+    .btn-back-header {
+        position: static;
+        transform: none;
+        width: 100%;
+        justify-content: center;
+        margin-top: 5px;
+    }
+
+    /* === 2. CONTROLS & INFO === */
+    .controls {
+        flex-direction: column;
+        align-items: stretch; /* Full width */
+        padding: 15px;
+    }
+
+    .controls select {
+        width: 100%; /* Dropdown Ulok full width */
+    }
+
+    .project-info {
+        grid-template-columns: 1fr; /* Info proyek 1 kolom ke bawah */
+        gap: 10px;
+    }
+
+    /* === 3. CONTRACTOR INPUT FORM (Complex Part) === */
+    /* Ubah Grid utama menjadi 1 kolom */
+    .task-input-container {
+        grid-template-columns: 1fr; 
+        padding: 0;
+        max-height: none; /* Biarkan scroll page, bukan scroll div */
+    }
+
+    /* Target div flexbox di dalam row (yg membungkus dropdown & ranges) */
+    .task-input-row-multi > div {
+        flex-direction: column; /* Ubah orientasi jadi atas-bawah */
+        gap: 15px !important;
+    }
+
+    /* Bagian Kiri (Dropdown Dependency) */
+    .task-input-row-multi > div > div:first-child {
+        width: 100% !important; /* Paksa lebar 100% */
+    }
+
+    /* Bagian Kanan (Input Tanggal) */
+    .task-input-row-multi > div > div:last-child {
+        width: 100% !important;
+    }
+
+    /* Input Tanggal & Tombol Hapus */
+    .range-input-group {
+        display: flex;
+        justify-content: space-between; /* Input di kiri kanan, tombol di ujung */
+    }
+    
+    .task-day-input {
+        width: 100%; /* Input angka sedikit lebih lebar */
+        min-width: 60px;
+        padding: 8px; /* Area tap lebih besar */
+        font-size: 16px; /* Cegah zoom iOS */
+    }
+
+    .btn-remove-range {
+        width: 35px; /* Tombol X lebih besar */
+        height: 35px;
+    }
+
+    .btn-add-range {
+        padding: 10px; /* Tombol Tambah Periode lebih mudah ditekan */
+    }
+
+    /* === 4. PIC DELAY FORM === */
+    .delay-form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .delay-form-row .form-group {
+        width: 100%;
+    }
+    
+    .btn-terapkan-delay {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    /* === 5. GANTT CHART VISUALS (CRITICAL) === */
+    /* Perkecil kolom 'Nama Tahapan' (Sticky) agar grafik tidak tertutup */
+    .task-column, 
+    .task-name {
+        width: 140px !important; /* Desktop: 250px -> Mobile: 140px */
+        font-size: 11px; /* Font lebih kecil */
+        padding: 0 5px;
+        white-space: normal; /* Biarkan teks membungkus (wrap) jika panjang */
+        line-height: 1.2;
+    }
+
+    /* Geser posisi SVG Garis Panah agar pas dengan kolom baru */
+    .chart-lines-svg {
+        left: 140px !important; /* Sesuaikan dengan width .task-name di atas */
+    }
+
+    .bar {
+        font-size: 10px; /* Teks di dalam bar (Durasi) diperkecil */
+    }
+
+    /* === 6. BOTTOM ACTION BAR === */
+    #bottom-action-container {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .btn-publish-bottom {
+        width: 100%; /* Tombol Kunci Jadwal Full Width */
+        justify-content: center;
+        padding: 15px;
+    }
+
+    .task-input-actions {
+        flex-direction: column; /* Tombol Reset & Terapkan jadi tumpuk */
+    }
+    
+    .task-input-actions button {
+        width: 100%;
+    }
+
+    /* === 7. LEGEND === */
+    .legend {
+        flex-wrap: wrap; /* Legend turun ke bawah jika layar sempit */
+        gap: 10px;
+    }
+    
+    .legend-item {
+        font-size: 11px;
+    }
+}
