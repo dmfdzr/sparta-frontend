@@ -105,54 +105,13 @@ function initApp() {
     document.querySelectorAll(".input-decimal").forEach(input => {
         input.addEventListener("input", (e) => {
             e.target.value = formatDecimalInput(e.target.value);
-            // Export Button - hanya field yang diminta dan tampilkan tabel preview + total
-            const exportBtn = document.getElementById('exportBtn');
-            if (exportBtn) {
-                exportBtn.addEventListener('click', function () {
-                    if (!filteredDocuments.length) {
-                        alert('Tidak ada data untuk diexport!');
-                        return;
-                    }
-                    // Siapkan data untuk export
-                    const header = ['No', 'Kode Toko', 'Nama Toko', 'Cabang', 'Waktu Update', 'Terakhir Diedit'];
-                    const rows = filteredDocuments.map((doc, i) => [
-                        i + 1,
-                        doc.kode_toko || '',
-                        doc.nama_toko || '',
-                        doc.cabang || '',
-                        doc.updated_at || '',
-                        doc.last_edited || ''
-                    ]);
-                    let csvContent = header.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
-                    const blob = new Blob([csvContent], { type: 'text/csv' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'export_dokumen.csv';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-
-                    // Tampilkan tabel preview dan total data di bawah tombol Export
-                    let previewHtml = `<div style="margin-top:2rem"><b>Total Toko: ${filteredDocuments.length}</b></div>`;
-                    previewHtml += '<table class="table" style="margin-top:1rem"><thead><tr>' +
-                        header.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
-                    rows.forEach(row => {
-                        previewHtml += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
-                    });
-                    previewHtml += '</tbody></table>';
-                    let previewDiv = document.getElementById('export-preview');
-                    if (!previewDiv) {
-                        previewDiv = document.createElement('div');
-                        previewDiv.id = 'export-preview';
-                        exportBtn.parentNode.appendChild(previewDiv);
-                    }
-                    previewDiv.innerHTML = previewHtml;
-                });
-            }
         });
     });
+
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', handleExportData);
+    }
 
     setupAutoCalculation();
 
@@ -1049,4 +1008,75 @@ function setupAutoLogout() {
         if (idleTime >= 30) handleLogout();
     }, 60000);
     ['mousemove', 'keypress', 'click', 'scroll'].forEach(evt => document.addEventListener(evt, () => idleTime = 0));
+}
+
+// ==========================================
+// Fitur Export to CSV (Dari Table/Filtered Data)
+// ==========================================
+function handleExportData() {
+    // 1. Cek apakah ada data
+    if (!filteredDocuments || filteredDocuments.length === 0) {
+        alert('Tidak ada data untuk diexport (Tabel kosong)!');
+        return;
+    }
+
+    // 2. Tentukan Header CSV
+    const headers = [
+        'No',
+        'Kode Toko',
+        'Nama Toko',
+        'Cabang',
+        'Status Kelengkapan', // Kolom status hasil kalkulasi
+        'Jumlah Kekurangan',
+        'Waktu Update',
+        'Terakhir Diedit',
+        'Link Folder'
+    ];
+
+    // 3. Map data dari filteredDocuments (sesuai filter user)
+    const rows = filteredDocuments.map((doc, index) => {
+        // Hitung ulang status agar akurat (sama seperti di renderTable)
+        const statusCheck = checkDocumentCompleteness(doc.file_links);
+        const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
+        const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "-";
+
+        // Ambil timestamp dan editor sesuai logic renderTable
+        const timestamp = doc.timestamp || "-";
+        const editor = doc.last_edit || doc.pic_name || "-";
+
+        // Bungkus data dengan kutip (") untuk menangani koma dalam teks
+        return [
+            index + 1,
+            `"${(doc.kode_toko || "").replace(/"/g, '""')}"`,
+            `"${(doc.nama_toko || "").replace(/"/g, '""')}"`,
+            `"${(doc.cabang || "").replace(/"/g, '""')}"`,
+            `"${statusText}"`,
+            `"${statusCheck.missingCount} Item"`,
+            `"${timestamp}"`,
+            `"${editor}"`,
+            `"${folderUrl}"`
+        ];
+    });
+
+    // 4. Gabungkan Header dan Rows menjadi String CSV
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // 5. Buat Blob dan Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    // Format nama file dengan tanggal hari ini
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `Data_Dokumen_Toko_${date}.csv`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
