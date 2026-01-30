@@ -575,24 +575,36 @@ function handleSearch(keyword) {
 
         // 3. Cek Filter Status Kelengkapan (LOGIKA BARU)
         let matchStatus = true;
+        let statusValue = "";
+        const statusCheck = checkDocumentCompleteness(doc.file_links);
+        if (statusCheck.complete) {
+            statusValue = "complete";
+        } else {
+            statusValue = "incomplete";
+        }
         if (filterStatus !== "") {
-            const statusCheck = checkDocumentCompleteness(doc.file_links);
-
             if (filterStatus === "incomplete") {
                 matchStatus = !statusCheck.complete;
             } else if (filterStatus === "complete") {
                 matchStatus = statusCheck.complete;
             }
         }
-
+        // Simpan status kelengkapan di dokumen
+        doc._exportStatus = statusValue;
         return matchText && matchCabang && matchStatus;
     });
     filteredDocuments.reverse();
     currentPage = 1;
     renderTable();
-    // Setelah filteredDocuments diupdate, simpan ke localStorage untuk kebutuhan export
+    // Simpan data ke localStorage dengan field yang sesuai
     try {
-        localStorage.setItem('svdokumen_filtered', JSON.stringify(filteredDocuments));
+        const exportData = filteredDocuments.map((doc) => ({
+            kodeToko: doc.kode_toko || "",
+            namaToko: doc.nama_toko || "",
+            cabang: doc.cabang || "",
+            status: doc._exportStatus || "",
+        }));
+        localStorage.setItem('svdokumen_filtered', JSON.stringify(exportData));
     } catch (e) { }
 }
 

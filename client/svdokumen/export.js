@@ -14,8 +14,8 @@ function getFilteredDocuments(cabang, status) {
     const allDocs = JSON.parse(localStorage.getItem('svdokumen_filtered')) || [];
     return allDocs.filter(doc => {
         let match = true;
-        if (cabang) match = match && doc.cabang === cabang;
-        if (status) match = match && doc.status === status;
+        if (cabang) match = match && (doc.cabang === cabang);
+        if (status) match = match && (doc.status === status);
         return match;
     });
 }
@@ -34,7 +34,7 @@ function renderTable(docs) {
     let html = '<table class="table"><thead><tr>' +
         '<th>No</th><th>Kode Toko</th><th>Nama Toko</th><th>Cabang</th><th>Status</th></tr></thead><tbody>';
     docs.forEach((doc, i) => {
-        html += `<tr><td>${i + 1}</td><td>${doc.kodeToko}</td><td>${doc.namaToko}</td><td>${doc.cabang}</td><td>${doc.status}</td></tr>`;
+        html += `<tr><td>${i + 1}</td><td>${doc.kodeToko}</td><td>${doc.namaToko}</td><td>${doc.cabang}</td><td>${doc.status === 'complete' ? 'Sudah Lengkap' : 'Belum Lengkap'}</td></tr>`;
     });
     html += '</tbody></table>';
     container.innerHTML = html;
@@ -43,7 +43,7 @@ function renderTable(docs) {
 function downloadCSV(docs) {
     if (!docs.length) return;
     const header = ['No', 'Kode Toko', 'Nama Toko', 'Cabang', 'Status'];
-    const rows = docs.map((doc, i) => [i + 1, doc.kodeToko, doc.namaToko, doc.cabang, doc.status]);
+    const rows = docs.map((doc, i) => [i + 1, doc.kodeToko, doc.namaToko, doc.cabang, doc.status === 'complete' ? 'Sudah Lengkap' : 'Belum Lengkap']);
     let csvContent = header.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
