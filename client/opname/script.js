@@ -1075,6 +1075,8 @@ const Render = {
 
             const renderTable = () => {
                 const items = AppState.opnameItems;
+                
+                // Hitung total awal untuk render pertama
                 const totalVal = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
                 const ppn = totalVal * 0.11;
                 const grandTotal = totalVal * 1.11;
@@ -1083,14 +1085,10 @@ const Render = {
                 if (isFinalized) btnColor = '#28a745'; 
                 else if (canFinalize) btnColor = '#007bff';
 
-                // --- INTEGRASI LINK IL DENGAN TOKEN ---
-                // Kita akan membuat link ke IL yang menyertakan data login
-                // Pastikan email & cabang tersedia
                 const email = sessionStorage.getItem("loggedInUserEmail") || "";
                 const cabang = sessionStorage.getItem("loggedInUserCabang") || "";
                 
                 let ilLink = "../il/index.html";
-                // Jika data ada, kita encode dan tambahkan ke URL
                 if(email && cabang) {
                    try {
                      const token = btoa(JSON.stringify({ email, cabang }));
@@ -1124,15 +1122,15 @@ const Render = {
                                 </thead>
                                 <tbody>
                                     ${items.map(item => {
-                                        // --- LOGIKA BARU: Warna Kuning untuk IL ---
                                         let rowBg = '';
-                                        if (item.is_il) rowBg = '#fff9c4'; // Kuning
-                                        else if (item.isSubmitted) rowBg = '#f0fff0'; // Hijau Muda
-                                        // Logika warna teks selisih (Minus=Merah, Plus=Hijau)
+                                        if (item.is_il) rowBg = '#fff9c4'; 
+                                        else if (item.isSubmitted) rowBg = '#f0fff0';
+                                        
                                         const selisihVal = parseFloat(item.selisih);
                                         let selisihColor = 'black';
                                         if (selisihVal < 0) selisihColor = 'red';
                                         else if (selisihVal > 0) selisihColor = 'green';
+
                                         return `
                                         <tr style="border-bottom:1px solid #ddd; background:${rowBg}">
                                             <td style="padding:10px;">
@@ -1148,7 +1146,7 @@ const Render = {
                                                 style="width:80px; text-align:center;" ${item.isSubmitted?'disabled':''}>
                                             </td>
                                             
-                                            <td class="text-center font-bold" style="color:${selisihColor}">
+                                            <td class="text-center font-bold" id="selisih-${item.id}" style="color:${selisihColor}">
                                                 ${(item.volume_akhir!=='') ? item.selisih : '-'}
                                             </td>
                                             
@@ -1182,9 +1180,9 @@ const Render = {
                         ` : ''}
 
                         <div style="margin-top:20px; padding:15px; background:#f8f9fa;">
-                            <div class="d-flex justify-between"><span>Total :</span> <b style="color:${totalVal<0?'red':'black'}">${formatRupiah(totalVal)}</b></div>
-                            <div class="d-flex justify-between"><span>PPN 11%:</span> <b style="color:${ppn<0?'red':'black'}">${formatRupiah(ppn)}</b></div>
-                            <div class="d-flex justify-between" style="font-size:1.2rem; margin-top:10px;"><span>Grand Total:</span> <b style="color:${grandTotal<0?'red':'black'}">${formatRupiah(grandTotal)}</b></div>
+                            <div class="d-flex justify-between"><span>Total :</span> <b id="summary-total" style="color:${totalVal<0?'red':'black'}">${formatRupiah(totalVal)}</b></div>
+                            <div class="d-flex justify-between"><span>PPN 11%:</span> <b id="summary-ppn" style="color:${ppn<0?'red':'black'}">${formatRupiah(ppn)}</b></div>
+                            <div class="d-flex justify-between" style="font-size:1.2rem; margin-top:10px;"><span>Grand Total:</span> <b id="summary-grand" style="color:${grandTotal<0?'red':'black'}">${formatRupiah(grandTotal)}</b></div>
                         </div>
 
                         <div style="margin-top: 20px;">
@@ -1200,14 +1198,17 @@ const Render = {
                 
                 container.innerHTML = html;
                 
+                // --- EVENT LISTENERS ---
                 container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
 
+                // LOGIKA BARU: Update DOM secara langsung tanpa render ulang tabel
                 container.querySelectorAll('.vol-input').forEach(input => {
                     input.oninput = (e) => {
                         const id = parseInt(e.target.dataset.id);
                         const item = AppState.opnameItems.find(i => i.id === id);
-                        item.volume_akhir = e.target.value;
                         
+                        // 1. Update data di memory
+                        item.volume_akhir = e.target.value;
                         const vAkhir = toNumInput(item.volume_akhir);
                         const vRab = toNumInput(item.vol_rab);
                         
@@ -1215,13 +1216,44 @@ const Render = {
                         item.selisih = selisihNum.toFixed(2);
                         item.total_harga = selisihNum * (item.harga_material + item.harga_upah);
 
-                        const row = input.closest('tr');
-                        row.cells[7].innerHTML = `<b style="color:${selisihNum<0?'red':'green'}">${item.selisih}</b>`;
-                        const totEl = document.getElementById(`total-${id}`);
-                        totEl.innerText = formatRupiah(item.total_harga);
-                        totEl.style.color = item.total_harga < 0 ? 'red' : 'black';
+                        // 2. Update Cell Selisih (Tanpa Render Ulang)
+                        const selisihEl = document.getElementById(`selisih-${id}`);
+                        if (selisihEl) {
+                            selisihEl.innerText = item.selisih;
+                            selisihEl.style.color = selisihNum < 0 ? 'red' : (selisihNum > 0 ? 'green' : 'black');
+                        }
 
-                        renderTable(); 
+                        // 3. Update Cell Total Baris (Tanpa Render Ulang)
+                        const totalEl = document.getElementById(`total-${id}`);
+                        if (totalEl) {
+                            totalEl.innerText = formatRupiah(item.total_harga);
+                            totalEl.style.color = item.total_harga < 0 ? 'red' : 'black';
+                        }
+
+                        // 4. Hitung Ulang Summary Bawah
+                        const newTotalVal = AppState.opnameItems.reduce((sum, i) => sum + (i.total_harga || 0), 0);
+                        const newPpn = newTotalVal * 0.11;
+                        const newGrandTotal = newTotalVal * 1.11;
+
+                        // 5. Update DOM Summary Bawah (Tanpa Render Ulang)
+                        const elSumTotal = document.getElementById('summary-total');
+                        const elSumPpn = document.getElementById('summary-ppn');
+                        const elSumGrand = document.getElementById('summary-grand');
+
+                        if (elSumTotal) {
+                            elSumTotal.innerText = formatRupiah(newTotalVal);
+                            elSumTotal.style.color = newTotalVal < 0 ? 'red' : 'black';
+                        }
+                        if (elSumPpn) {
+                            elSumPpn.innerText = formatRupiah(newPpn);
+                            elSumPpn.style.color = newPpn < 0 ? 'red' : 'black';
+                        }
+                        if (elSumGrand) {
+                            elSumGrand.innerText = formatRupiah(newGrandTotal);
+                            elSumGrand.style.color = newGrandTotal < 0 ? 'red' : 'black';
+                        }
+
+                        // HAPUS: renderTable(); -> Ini yang bikin glitch
                     }
                 });
 
@@ -1235,11 +1267,13 @@ const Render = {
                             const r = await fetch(`${API_BASE_URL}/api/upload`, { method:"POST", body:fd });
                             const d = await r.json();
                             AppState.opnameItems.find(i=>i.id===id).foto_url = d.link;
-                            renderTable();
+                            renderTable(); // Untuk upload foto, render ulang tidak masalah karena jarang dilakukan
                         } catch(err) { alert("Upload gagal"); }
                     }
                 });
 
+                // ... (Sisa kode event listener tombol Simpan, Perbaiki, dan Final sama seperti sebelumnya) ...
+                
                 container.querySelectorAll('.save-btn').forEach(btn => {
                     btn.onclick = async () => {
                         const id = parseInt(btn.dataset.id);
