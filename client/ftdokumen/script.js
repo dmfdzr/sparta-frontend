@@ -1,10 +1,11 @@
 // ==========================================
 // 1. GLOBAL STATE & CONFIG
 // ==========================================
-// Base URL Backend
-const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com";
-// URL untuk Logging ke Apps Script
-const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/AKfycbzPubDTa7E2gT5HeVLv9edAcn1xaTiT3J4BtAVYqaqiFAvFtp1qovTXpqpm-VuNOxQJ/exec";
+// Base URL Backend (Sesuai Repo React)
+const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"; //
+
+// URL untuk Logging ke Apps Script (Tetap dipertahankan jika memang dipakai internal)
+const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/AKfycbzPubDTa7E2gT5HeVLv9edAcn1xaTiT3J4BtAVYqaqiFAvFtp1qovTXpqpm-VuNOxQJ/exec"; //
 
 // State global
 const STATE = {
@@ -20,11 +21,42 @@ const STATE = {
     stream: null
 };
 
-// Data titik koordinat (TIDAK BERUBAH - DISINGKAT UNTUK KETERBACAAN)
+// Data titik koordinat (DATA INI TETAP SAMA)
 const PHOTO_POINTS = {
     1: [
         { id: 1, x: 67.8, y: 92.8, label: "KANAN 50 M" },
-        // ... (sisanya tetap sama seperti file asli Anda) ...
+        { id: 2, x: 63.7, y: 97.5, label: "DEPAN KANAN" },
+        { id: 3, x: 50.5, y: 97.5, label: "DEPAN" },
+        { id: 4, x: 36.7, y: 97.5, label: "DEPAN KIRI" },
+        { id: 5, x: 32.9, y: 93.3, label: "KIRI 50 M" },
+        { id: 6, x: 32.8, y: 85.8, label: "KIRI BAHU JALAN" },
+        { id: 7, x: 67.8, y: 85.8, label: "KANAN BAHU JALAN" },
+        { id: 8, x: 66, y: 82.5, label: "TAMPAK KANAN DEPAN KEBELAKANG" },
+        { id: 9, x: 33.5, y: 81.8, label: "TAMPAK KIRI DEPAN KEBELAKANG" },
+        { id: 10, x: 65.1, y: 11.3, label: "KANAN BELAKANG BANGUNAN MENGHADAP DEPAN" },
+        { id: 11, x: 63.7, y: 7.8, label: "KANAN BELAKANG BANGUNAN MENGHADAP SAMPING" },
+        { id: 12, x: 37.5, y: 7.5, label: "KIRI BELAKANG BANGUNAN MENGHADAP SAMPING" },
+        { id: 13, x: 35, y: 11, label: "KIRI BELAKANG BANGUNAN MENGHADAP DEPAN" },
+        { id: 14, x: 58.2, y: 81.7, label: "INSTALASI LISTRIK POLE SIGN" },
+        { id: 15, x: 56.8, y: 73.3, label: "GUTTER" },
+        { id: 16, x: 57.6, y: 63.8, label: "KOLOM IWF DUDUKAN LISTPLANK" },
+        { id: 17, x: 59, y: 60, label: "KANAN TERAS LUAR" },
+        { id: 18, x: 41.4, y: 60.2, label: "KIRI TERAS LUAR" },
+        { id: 19, x: 61.5, y: 56.5, label: "KANAN TERAS DALAM" },
+        { id: 20, x: 39, y: 56.5, label: "KIRI TERAS DALAM" },
+        { id: 21, x: 48.7, y: 49.4, label: "PINTU KACA ALLUMUNIUM" },
+        { id: 22, x: 38.8, y: 52.5, label: "SUDUT KIRI DEPAN AREA SALES" },
+        { id: 23, x: 42.4, y: 45.5, label: "INSTALASI LISTRIK FREEZER" },
+        { id: 24, x: 58.8, y: 37.5, label: "SUDUT KANAN DEPAN AREA SALES" },
+        { id: 25, x: 61.1, y: 51, label: "INSTALASI LISTRIK MEJA KASIR" },
+        { id: 26, x: 61.5, y: 27.5, label: "SUDUT KANAN BELAKANG AREA SALES" },
+        { id: 27, x: 39, y: 28.2, label: "SUDUT KIRI BELAKANG AREA SALES" },
+        { id: 28, x: 61.7, y: 22.2, label: "SELASAR + JANITOR" },
+        { id: 29, x: 59.5, y: 12.5, label: "KAMAR MANDI" },
+        { id: 30, x: 53.1, y: 16.2, label: "GUDANG SEBELAH KANAN" },
+        { id: 31, x: 38.6, y: 13, label: "GUDANG SEBELAH KIRI" },
+        { id: 32, x: 48.5, y: 23.5, label: "INSTALASI LISTRIK & DRAINASE CHILLER" },
+        { id: 37, x: 59.7, y: 68.8, label: "SEPTICTANK EXISTING" },
         { id: 38, x: 41, y: 68.8, label: "SUMUR EXISTING" },
     ],
     2: [
@@ -37,9 +69,10 @@ const PHOTO_POINTS = {
     ]
 };
 
+// Helper array semua titik
 const ALL_POINTS = [
     ...PHOTO_POINTS[1], ...PHOTO_POINTS[2], ...PHOTO_POINTS[3]
-].sort((a, b) => a.id - b.id);
+].sort((a, b) => a.id - b.id); //
 
 
 // ==========================================
@@ -54,8 +87,8 @@ const showToast = (text, type = "success") => {
     if(toast){
         toast.textContent = text;
         toast.style.background = type === "success" ? "#333" : "#dc2626";
-        show(toast);
-        setTimeout(() => hide(toast), 3000);
+        toast.classList.add("show"); // Tambah class show untuk animasi
+        setTimeout(() => toast.classList.remove("show"), 3000);
     }
 };
 
@@ -94,7 +127,8 @@ async function logLoginAttempt(username, cabang, status) {
     };
     try {
         await fetch(APPS_SCRIPT_POST_URL, {
-            method: "POST", redirect: "follow",
+            method: "POST", 
+            redirect: "follow",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(logData),
         });
@@ -102,7 +136,6 @@ async function logLoginAttempt(username, cabang, status) {
 }
 
 function checkSession() {
-    // Mengambil data session yang diset oleh login logic
     const ssoAuth = sessionStorage.getItem("authenticated");
     const ssoEmail = sessionStorage.getItem("loggedInUserEmail");
     const ssoCabang = sessionStorage.getItem("loggedInUserCabang");
@@ -123,9 +156,9 @@ function checkSession() {
     } else if (localUser) {
         console.log("Session detected from LocalStorage");
         STATE.user = JSON.parse(localUser);
-        // Pastikan format localUser sesuai
+        // Fallback backward compatibility
         if (!STATE.user.cabang && STATE.user.password) {
-             STATE.user.cabang = STATE.user.password; // Fallback jika struktur lama
+             STATE.user.cabang = STATE.user.password; 
         }
         proceedToApp();
         
@@ -136,7 +169,6 @@ function checkSession() {
 }
 
 function proceedToApp() {
-    // 1. Update UI Header
     const infoEl = getEl("header-user-info");
     if(infoEl) infoEl.textContent = `Building & Maintenance — ${STATE.user.cabang || ""}`;
     
@@ -144,18 +176,15 @@ function proceedToApp() {
     show(getEl("sub-header"));
     hide(getEl("view-login"));
     
-    // 2. Pindah ke view Form
     switchToView("form");
 
-    // [INTEGRASI BARU] Otomatis isi kolom Cabang dari data User Login
+    // Otomatis isi kolom Cabang
     const inpCabang = getEl("inp-cabang");
     if (inpCabang) {
         inpCabang.value = STATE.user.cabang || "";
-        // Update STATE agar sinkron
         STATE.formData.cabang = STATE.user.cabang || ""; 
     }
 
-    // 3. Load data SPK (Ulok) berdasarkan cabang user
     if (STATE.user.cabang) {
         loadSpkData(STATE.user.cabang);
     }
@@ -163,6 +192,7 @@ function proceedToApp() {
 
 function checkTimeLimit() {
     const now = new Date();
+    // Konversi ke WIB (UTC+7)
     const utc = now.getTime() + now.getTimezoneOffset() * 60000;
     const wib = new Date(utc + 7 * 60 * 60000);
     const hour = wib.getHours();
@@ -181,7 +211,10 @@ function checkTimeLimit() {
             show(msgContainer);
             if(btnLogin) { btnLogin.disabled = true; btnLogin.style.cursor = "not-allowed"; }
         } else if (STATE.user && !isLoginView) {
-            showWarningModal(msg, () => doLogout());
+            // Cek apakah modal warning sudah ada agar tidak spam
+            if(getEl("warning-modal").classList.contains("hidden")) {
+                showWarningModal(msg, () => doLogout());
+            }
         }
     } else {
         if(msgContainer) hide(msgContainer);
@@ -214,29 +247,31 @@ function switchToView(viewName) {
 }
 
 // ==========================================
-// 4. API CALLS
+// 4. API CALLS (DIPERBAIKI SESUAI REACT)
 // ==========================================
 
 async function apiLogin(username, password) {
-    // Password di sini berfungsi sebagai Kode Cabang sesuai logic Anda
     logLoginAttempt(username, password, "Attempt");
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/login`, {
+        // [FIX] Endpoint ke /auth/login
+        const res = await fetch(`${API_BASE_URL}/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: username, cabang: password }),
+            // [FIX] Body kirim username & password
+            body: JSON.stringify({ username: username, password: password }),
         });
 
         const json = await res.json();
 
-        if (res.ok && json.status === "success") {
+        // [FIX] Cek json.ok sesuai repo
+        if (res.ok && json.ok) {
             logLoginAttempt(username, password, "Success");
             return {
                 email: username,
-                cabang: password, // Menyimpan input password sebagai cabang
-                role: (json.role || "").toUpperCase(),
-                ...json
+                cabang: password, // Asumsi user input password = kode cabang
+                role: (json.user && json.user.role) ? json.user.role.toUpperCase() : "USER",
+                ...json.user // Merge sisa data
             };
         } else {
             const errMsg = json.message || "Username atau password salah.";
@@ -253,7 +288,8 @@ async function loadSpkData(cabang) {
     if(!cabang) return;
     try {
         showLoading("Mengambil data Ulok...");
-        const res = await fetch(`${API_BASE_URL}/doc/spk-data`, {
+        // [FIX] Endpoint ke /spk-data
+        const res = await fetch(`${API_BASE_URL}/spk-data`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ cabang }),
@@ -272,7 +308,8 @@ async function loadSpkData(cabang) {
 }
 
 async function getTempByUlok(nomorUlok) {
-    const res = await fetch(`${API_BASE_URL}/doc/get-temp`, {
+    // [FIX] Endpoint ke /get-temp
+    const res = await fetch(`${API_BASE_URL}/get-temp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nomorUlok }),
     });
@@ -280,7 +317,8 @@ async function getTempByUlok(nomorUlok) {
 }
 
 async function saveTemp(payload) {
-    return fetch(`${API_BASE_URL}/doc/save-temp`, {
+    // [FIX] Endpoint ke /save-temp
+    return fetch(`${API_BASE_URL}/save-temp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
     }).then(r => r.json());
@@ -289,11 +327,16 @@ async function saveTemp(payload) {
 async function cekStatus(nomorUlok) {
     if (!nomorUlok) return null;
     try {
-        const res = await fetch(`${API_BASE_URL}/doc/status/${nomorUlok}`);
+        // [FIX] Endpoint ke /cek-status dengan POST
+        const res = await fetch(`${API_BASE_URL}/cek-status`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nomorUlok })
+        });
         return await res.json();
     } catch (e) {
         console.error("Gagal cek status:", e);
-        return null; // Asumsikan aman jika error, atau throw error tergantung kebijakan
+        return null;
     }
 }
 
@@ -314,17 +357,15 @@ function initEventListeners() {
             hide(getEl("login-error-msg"));
 
             try {
-                // Menggunakan logic login yang sudah ada
                 const user = await apiLogin(u, p);
                 
-                // Simpan session agar persistent
                 localStorage.setItem("user", JSON.stringify(user));
                 sessionStorage.setItem("authenticated", "true");
                 sessionStorage.setItem("loggedInUserEmail", user.email);
                 sessionStorage.setItem("loggedInUserCabang", user.cabang);
                 sessionStorage.setItem("userRole", user.role);
 
-                checkSession(); // Redirect otomatis via checkSession -> proceedToApp
+                checkSession(); 
             } catch (err) {
                 const errDiv = getEl("login-error-msg");
                 errDiv.textContent = err.message;
@@ -373,15 +414,14 @@ function initEventListeners() {
     if(selUlok) {
         selUlok.addEventListener("change", async (e) => {
             const val = e.target.value;
+            // Jika mode auto dipilih, set manual flag false
+            STATE.formData.isManualUlok = false;
             if(!val) return;
 
             STATE.formData.nomorUlok = val;
             const found = STATE.spkOptions.find(o => o.nomorUlok === val);
             
-            // Auto populate form lain jika data ditemukan
             if (found) populateForm(found);
-            
-            // Load foto/progress yg tersimpan
             await loadTempData(val);
         });
     }
@@ -390,6 +430,8 @@ function initEventListeners() {
     if(inpUlokMan) {
         inpUlokMan.addEventListener("change", async (e) => {
             const val = e.target.value.toUpperCase();
+            // Jika input manual diketik, set flag manual true
+            STATE.formData.isManualUlok = true; 
             STATE.formData.nomorUlok = val;
             await loadTempData(val);
         });
@@ -400,6 +442,7 @@ function initEventListeners() {
         inp.addEventListener("change", (e) => {
             const key = mapInputToKey(e.target.id);
             if(key) STATE.formData[key] = e.target.value;
+            // Auto save on change
             saveFormDataBackground();
         });
     });
@@ -425,7 +468,7 @@ function initEventListeners() {
         });
     });
 
-    // ... (Event listener kamera dan lainnya sama seperti sebelumnya) ...
+    // Camera & Upload Listeners
     const btnCloseCam = getEl("btn-close-cam");
     if(btnCloseCam) btnCloseCam.addEventListener("click", closeCamera);
     
@@ -488,15 +531,14 @@ function renderSpkOptions() {
     STATE.spkOptions.forEach(opt => {
         const op = document.createElement("option");
         op.value = opt.nomorUlok;
-        op.textContent = opt.nomorUlok; // Menampilkan nomor Ulok
+        op.textContent = opt.nomorUlok;
         sel.appendChild(op);
     });
 
-    // [INTEGRASI BARU] Jika hanya ada 1 Ulok, otomatis pilih
+    // Otomatis pilih jika cuma 1
     if (STATE.spkOptions.length === 1) {
         const oneUlok = STATE.spkOptions[0].nomorUlok;
         sel.value = oneUlok;
-        // Trigger event change secara manual agar data ter-load
         sel.dispatchEvent(new Event('change'));
         showToast("Nomor Ulok otomatis dipilih");
     }
@@ -524,7 +566,7 @@ function updateStateFormData() {
         const el = getEl(id);
         if(el) STATE.formData[map[id]] = el.value;
     }
-    // Pastikan nomor ulok juga terupdate
+    // Update nomor ulok berdasarkan mode aktif
     const selUlok = getEl("sel-ulok");
     const inpUlok = getEl("inp-ulok-manual");
     if (!STATE.formData.isManualUlok && selUlok) {
@@ -536,11 +578,20 @@ function updateStateFormData() {
 
 function populateForm(data) {
     if(!data) return;
+    
+    // [FIX] Pertahankan status Manual jika user sedang mengetik manual
+    const wasManual = STATE.formData.isManualUlok;
+    
     STATE.formData = { ...STATE.formData, ...data };
+    
+    // Restore manual state jika sebelumnya manual,
+    // karena data dari backend mungkin punya isManualUlok: undefined/false
+    if (wasManual) {
+        STATE.formData.isManualUlok = true;
+    }
     
     const safeSet = (id, val) => { const el = getEl(id); if(el) el.value = val || ""; };
     
-    // Pastikan Cabang selalu terisi dari data atau fallback ke session user
     safeSet("inp-cabang", data.cabang || STATE.user?.cabang);
     safeSet("inp-sipil", data.kontraktorSipil);
     safeSet("inp-me", data.kontraktorMe);
@@ -555,7 +606,17 @@ function populateForm(data) {
 
 function formatDateInput(dateStr) {
     if(!dateStr) return "";
-    try { return new Date(dateStr).toISOString().split("T")[0]; } 
+    try { 
+        // [FIX] Gunakan Local Time agar tidak mundur 1 hari karena Timezone
+        const d = new Date(dateStr);
+        // Pastikan valid date
+        if(isNaN(d.getTime())) return "";
+
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } 
     catch { return ""; }
 }
 
@@ -563,14 +624,14 @@ function preloadImage(src) {
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => resolve(src);
-        img.onerror = () => resolve(src); // Tetap resolve agar tidak memblokir Promise.all
+        img.onerror = () => resolve(src); 
         img.src = src;
     });
 }
 
 async function loadTempData(ulok) {
     if(!ulok) return;
-    showLoading("Sinkronisasi data..."); // Ubah text loading
+    showLoading("Sinkronisasi data..."); 
     try {
         const res = await getTempByUlok(ulok);
         if (res.ok && res.data) {
@@ -578,34 +639,28 @@ async function loadTempData(ulok) {
             
             if (Array.isArray(res.data.photos)) {
                 STATE.photos = {};
-                const preloadPromises = []; // Array untuk menampung promise gambar
+                const preloadPromises = []; 
 
                 res.data.photos.forEach((pid, idx) => {
-                    if(!pid) return; // skip jika null
+                    if(!pid) return; 
                     
                     const id = idx + 1;
-                    const url = `${API_BASE_URL}/doc/view-photo/${pid}`;
+                    // [FIX] View Photo Endpoint standar (tanpa /doc)
+                    const url = `${API_BASE_URL}/view-photo/${pid}`;
                     
-                    // Masukkan ke queue preload
                     preloadPromises.push(preloadImage(url));
 
-                    // Set state
                     STATE.photos[id] = {
                         url: url,
                         point: ALL_POINTS.find(p => p.id === id),
                         timestamp: new Date().toISOString(),
-                        // Versi React menyimpan note juga jika ada, di vanilla belum ada logic get note
-                        // Jika backend mengembalikan struktur object, sesuaikan di sini.
-                        // Asumsi backend saat ini mengembalikan array ID string.
                     };
                 });
 
-                // Tunggu semua gambar selesai di-download browser sebelum update UI
                 if (preloadPromises.length > 0) {
                     await Promise.all(preloadPromises);
                 }
                 
-                // Logic penentuan nomor foto berikutnya
                 const taken = Object.keys(STATE.photos).map(Number);
                 const next = taken.length > 0 ? Math.max(...taken) + 1 : 1;
                 STATE.currentPhotoNumber = next > 38 ? 38 : next;
@@ -616,7 +671,6 @@ async function loadTempData(ulok) {
         showToast("Gagal memuat data tersimpan", "error");
     } finally { 
         hideLoading(); 
-        // Render ulang denah setelah data siap
         renderFloorPlan(); 
     }
 }
@@ -626,7 +680,6 @@ async function saveFormDataBackground() {
     catch(e) { console.error("Save fail", e); }
 }
 
-// ... (Bagian 7: FLOOR PLAN & CAMERA dan PDF generation tetap sama) ...
 // ==========================================
 // 7. FLOOR PLAN & CAMERA
 // ==========================================
@@ -669,6 +722,7 @@ function renderFloorPlan() {
             btn.style.top = `${p.y}%`;
             btn.textContent = p.id;
             
+            // Logic disable: jika foto belum diambil dan bukan giliran saat ini
             if (p.id > STATE.currentPhotoNumber && !STATE.photos[p.id]) {
                 btn.disabled = true; btn.style.opacity = 0.6;
             } else {
@@ -834,19 +888,19 @@ function showWarningModal(msg, onOk) {
 }
 
 async function generateAndSendPDF() {
-    // 1. CEK STATUS VALIDASI TERLEBIH DAHULU (Fitur yang hilang)
     const ulok = STATE.formData.nomorUlok;
+    
+    // [FIX] Cek status validasi dengan POST sesuai backend
     if (ulok) {
         showLoading("Mengecek status dokumen...");
         try {
             const statusRes = await cekStatus(ulok);
-            // Sesuaikan logika ini dengan FloorPlan.js React
+            // Logic blokir jika sudah disetujui/menunggu validasi
             if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
                 hideLoading();
-                showToast(`Dokumen berstatus ${statusRes.status}, tidak bisa disimpan ulang!`, "error");
-                // Tampilkan modal peringatan juga agar lebih jelas
+                showToast(`Dokumen status ${statusRes.status}, tidak bisa disimpan!`, "error");
                 showWarningModal(`Gagal Simpan!\nDokumen ini sudah berstatus: ${statusRes.status}.\nAnda tidak diperbolehkan mengubah data lagi.`);
-                return; // STOP PROSES
+                return;
             }
         } catch (e) {
             console.warn("Gagal cek status, melanjutkan...", e);
@@ -873,21 +927,19 @@ async function generateAndSendPDF() {
         try {
             showLoading("Mengirim PDF & Email...");
             const user = STATE.user;
-            const safeDate = STATE.formData.tanggalAmbilFoto || "unknown";
+            const safeDate = formatDateInput(STATE.formData.tanggalAmbilFoto) || "unknown";
             const filename = `Dokumentasi_${STATE.formData.kodeToko}_${safeDate}.pdf`;
 
-            // Payload lengkap
             const payload = { 
                 ...STATE.formData, 
                 pdfBase64, 
                 emailPengirim: user.email || "" 
             };
             
-            // 2. SAVE TEMP TERAKHIR (Seperti di React, simpan state terakhir ke temp db)
             await saveTemp(payload);
 
-            // 3. SAVE KE GOOGLE DRIVE & SPREADSHEET
-            const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
+            // [FIX] Endpoint /save-toko
+            const resSave = await fetch(`${API_BASE_URL}/save-toko`, {
                 method: "POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify(payload)
             });
@@ -895,8 +947,8 @@ async function generateAndSendPDF() {
             
             if(!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan ke Spreadsheet");
 
-            // 4. KIRIM EMAIL
-            await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
+            // [FIX] Endpoint /send-pdf-email
+            await fetch(`${API_BASE_URL}/send-pdf-email`, {
                 method:"POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify({
                     email: user.email, 
@@ -907,21 +959,14 @@ async function generateAndSendPDF() {
                 })
             });
 
-            // 5. DOWNLOAD FILE LOKAL
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url; a.download = filename;
             document.body.appendChild(a); a.click(); a.remove();
 
-            // Set flag berhasil (localStorage trick seperti di React)
             localStorage.setItem("saved_ok", "1");
             showToast("Berhasil disimpan & dikirim! ✅");
             
-            // Opsional: Reload halaman atau update UI
-            setTimeout(() => {
-                // Bisa redirect atau refresh jika perlu
-            }, 2000);
-
         } catch(err) {
             console.error(err); 
             showToast("Error upload: " + err.message, "error");
