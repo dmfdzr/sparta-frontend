@@ -255,7 +255,7 @@ async function apiLogin(username, password) {
 
     try {
         // [FIX] Endpoint ke /auth/login
-        const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        const res = await fetch(`${API_BASE_URL}/doc/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             // [FIX] Body kirim username & password
@@ -318,7 +318,7 @@ async function getTempByUlok(nomorUlok) {
 
 async function saveTemp(payload) {
     // [FIX] Endpoint ke /save-temp
-    return fetch(`${API_BASE_URL}/save-temp`, {
+    return fetch(`${API_BASE_URL}/doc/save-temp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
     }).then(r => r.json());
@@ -328,7 +328,7 @@ async function cekStatus(nomorUlok) {
     if (!nomorUlok) return null;
     try {
         // [FIX] Endpoint ke /cek-status dengan POST
-        const res = await fetch(`${API_BASE_URL}/cek-status`, {
+        const res = await fetch(`${API_BASE_URL}/doc/cek-status`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ nomorUlok })
@@ -646,7 +646,7 @@ async function loadTempData(ulok) {
                     
                     const id = idx + 1;
                     // [FIX] View Photo Endpoint standar (tanpa /doc)
-                    const url = `${API_BASE_URL}/view-photo/${pid}`;
+                    const url = `${API_BASE_URL}/doc/view-photo/${pid}`;
                     
                     preloadPromises.push(preloadImage(url));
 
@@ -939,7 +939,7 @@ async function generateAndSendPDF() {
             await saveTemp(payload);
 
             // [FIX] Endpoint /save-toko
-            const resSave = await fetch(`${API_BASE_URL}/save-toko`, {
+            const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify(payload)
             });
@@ -948,7 +948,7 @@ async function generateAndSendPDF() {
             if(!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan ke Spreadsheet");
 
             // [FIX] Endpoint /send-pdf-email
-            await fetch(`${API_BASE_URL}/send-pdf-email`, {
+            await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method:"POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify({
                     email: user.email, 
