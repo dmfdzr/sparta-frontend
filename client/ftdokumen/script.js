@@ -2,10 +2,10 @@
 // 1. GLOBAL STATE & CONFIG
 // ==========================================
 // Base URL Backend (Sesuai Repo React)
-const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"; //
+const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"; 
 
-// URL untuk Logging ke Apps Script (Tetap dipertahankan jika memang dipakai internal)
-const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/AKfycbzPubDTa7E2gT5HeVLv9edAcn1xaTiT3J4BtAVYqaqiFAvFtp1qovTXpqpm-VuNOxQJ/exec"; //
+// URL untuk Logging (Internal)
+const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/AKfycbzPubDTa7E2gT5HeVLv9edAcn1xaTiT3J4BtAVYqaqiFAvFtp1qovTXpqpm-VuNOxQJ/exec"; 
 
 // State global
 const STATE = {
@@ -72,7 +72,7 @@ const PHOTO_POINTS = {
 // Helper array semua titik
 const ALL_POINTS = [
     ...PHOTO_POINTS[1], ...PHOTO_POINTS[2], ...PHOTO_POINTS[3]
-].sort((a, b) => a.id - b.id); //
+].sort((a, b) => a.id - b.id);
 
 
 // ==========================================
@@ -87,7 +87,7 @@ const showToast = (text, type = "success") => {
     if(toast){
         toast.textContent = text;
         toast.style.background = type === "success" ? "#333" : "#dc2626";
-        toast.classList.add("show"); // Tambah class show untuk animasi
+        toast.classList.add("show");
         setTimeout(() => toast.classList.remove("show"), 3000);
     }
 };
@@ -144,7 +144,6 @@ function checkSession() {
     const localUser = localStorage.getItem("user");
 
     if (ssoAuth === "true" && ssoEmail && ssoCabang) {
-        console.log("Session detected from Auth System");
         STATE.user = {
             email: ssoEmail,
             cabang: ssoCabang,
@@ -154,9 +153,7 @@ function checkSession() {
         proceedToApp();
         
     } else if (localUser) {
-        console.log("Session detected from LocalStorage");
         STATE.user = JSON.parse(localUser);
-        // Fallback backward compatibility
         if (!STATE.user.cabang && STATE.user.password) {
              STATE.user.cabang = STATE.user.password; 
         }
@@ -178,7 +175,6 @@ function proceedToApp() {
     
     switchToView("form");
 
-    // Otomatis isi kolom Cabang
     const inpCabang = getEl("inp-cabang");
     if (inpCabang) {
         inpCabang.value = STATE.user.cabang || "";
@@ -201,7 +197,6 @@ function checkTimeLimit() {
     const msgContainer = getEl("login-info-msg");
     const btnLogin = getEl("btn-submit-login");
 
-    // Jam operasional 06:00 - 18:00
     if (hour < 6 || hour >= 18) {
         const timeStr = `${hour.toString().padStart(2, "0")}:${wib.getMinutes().toString().padStart(2, "0")}`;
         const msg = `⏰ Login hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`;
@@ -211,7 +206,6 @@ function checkTimeLimit() {
             show(msgContainer);
             if(btnLogin) { btnLogin.disabled = true; btnLogin.style.cursor = "not-allowed"; }
         } else if (STATE.user && !isLoginView) {
-            // Cek apakah modal warning sudah ada agar tidak spam
             if(getEl("warning-modal").classList.contains("hidden")) {
                 showWarningModal(msg, () => doLogout());
             }
@@ -247,31 +241,28 @@ function switchToView(viewName) {
 }
 
 // ==========================================
-// 4. API CALLS (DIPERBAIKI SESUAI REACT)
+// 4. API CALLS (SESUAI REPO REACT)
 // ==========================================
 
 async function apiLogin(username, password) {
     logLoginAttempt(username, password, "Attempt");
 
     try {
-        // [FIX] Endpoint ke /auth/login
         const res = await fetch(`${API_BASE_URL}/doc/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            // [FIX] Body kirim username & password
             body: JSON.stringify({ username: username, password: password }),
         });
 
         const json = await res.json();
 
-        // [FIX] Cek json.ok sesuai repo
         if (res.ok && json.ok) {
             logLoginAttempt(username, password, "Success");
             return {
                 email: username,
-                cabang: password, // Asumsi user input password = kode cabang
+                cabang: password,
                 role: (json.user && json.user.role) ? json.user.role.toUpperCase() : "USER",
-                ...json.user // Merge sisa data
+                ...json.user
             };
         } else {
             const errMsg = json.message || "Username atau password salah.";
@@ -288,7 +279,6 @@ async function loadSpkData(cabang) {
     if(!cabang) return;
     try {
         showLoading("Mengambil data Ulok...");
-        // [FIX] Endpoint ke /spk-data
         const res = await fetch(`${API_BASE_URL}/doc/spk-data`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -308,7 +298,6 @@ async function loadSpkData(cabang) {
 }
 
 async function getTempByUlok(nomorUlok) {
-    // [FIX] Endpoint ke /get-temp
     const res = await fetch(`${API_BASE_URL}/doc/get-temp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nomorUlok }),
@@ -317,7 +306,6 @@ async function getTempByUlok(nomorUlok) {
 }
 
 async function saveTemp(payload) {
-    // [FIX] Endpoint ke /save-temp
     return fetch(`${API_BASE_URL}/doc/save-temp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -327,7 +315,6 @@ async function saveTemp(payload) {
 async function cekStatus(nomorUlok) {
     if (!nomorUlok) return null;
     try {
-        // [FIX] Endpoint ke /cek-status dengan POST
         const res = await fetch(`${API_BASE_URL}/doc/cek-status`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -344,6 +331,7 @@ async function cekStatus(nomorUlok) {
 // 5. EVENT LISTENERS
 // ==========================================
 function initEventListeners() {
+    // LOGIN
     const formLogin = getEl("form-login");
     if(formLogin) {
         formLogin.addEventListener("submit", async (e) => {
@@ -377,6 +365,7 @@ function initEventListeners() {
         });
     }
 
+    // Toggle Password
     const btnToggle = getEl("btn-toggle-pass");
     if(btnToggle) {
         btnToggle.addEventListener("click", () => {
@@ -394,9 +383,11 @@ function initEventListeners() {
         });
     }
 
+    // Logout
     const btnLogout = getEl("btn-logout");
     if(btnLogout) btnLogout.addEventListener("click", doLogout);
 
+    // Form Manual/Auto
     const chkManual = getEl("chk-manual-ulok");
     if(chkManual) {
         chkManual.addEventListener("change", (e) => {
@@ -414,7 +405,6 @@ function initEventListeners() {
     if(selUlok) {
         selUlok.addEventListener("change", async (e) => {
             const val = e.target.value;
-            // Jika mode auto dipilih, set manual flag false
             STATE.formData.isManualUlok = false;
             if(!val) return;
 
@@ -430,19 +420,18 @@ function initEventListeners() {
     if(inpUlokMan) {
         inpUlokMan.addEventListener("change", async (e) => {
             const val = e.target.value.toUpperCase();
-            // Jika input manual diketik, set flag manual true
             STATE.formData.isManualUlok = true; 
             STATE.formData.nomorUlok = val;
             await loadTempData(val);
         });
     }
 
+    // Input Change & Save
     const inputs = document.querySelectorAll("#data-input-form input");
     inputs.forEach(inp => {
         inp.addEventListener("change", (e) => {
             const key = mapInputToKey(e.target.id);
             if(key) STATE.formData[key] = e.target.value;
-            // Auto save on change
             saveFormDataBackground();
         });
     });
@@ -468,12 +457,17 @@ function initEventListeners() {
         });
     });
 
-    // Camera & Upload Listeners
+    // === CAMERA & UPLOAD LISTENERS (DIPERBAIKI) ===
+    
     const btnCloseCam = getEl("btn-close-cam");
     if(btnCloseCam) btnCloseCam.addEventListener("click", closeCamera);
     
     const btnSnap = getEl("btn-snap");
     if(btnSnap) btnSnap.addEventListener("click", capturePhoto);
+
+    // [FITUR BARU] Klik pada video untuk ambil foto (Tap to Snap)
+    const vid = getEl("cam-video");
+    if (vid) vid.addEventListener("click", capturePhoto);
 
     const btnRetake = getEl("btn-retake");
     if(btnRetake) btnRetake.addEventListener("click", resetCameraUI);
@@ -484,13 +478,20 @@ function initEventListeners() {
         await saveCapturedPhoto();
     });
 
+    // [FIX] Upload File dengan Loading State
     const inpFile = getEl("inp-file-upload");
     if(inpFile) {
         inpFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
             if(!file) return;
+
+            showLoading("Mengunggah foto..."); // Feedback UI
+            
             const reader = new FileReader();
-            reader.onload = (evt) => handlePreviewAndSave(evt.target.result);
+            reader.onload = async (evt) => {
+                await handlePreviewAndSave(evt.target.result);
+                hideLoading();
+            };
             reader.readAsDataURL(file);
         });
     }
@@ -517,9 +518,7 @@ function initEventListeners() {
 function renderSpkOptions() {
     const sel = getEl("sel-ulok");
     if(!sel) return;
-    
     sel.innerHTML = '<option value="">-- pilih nomor ulok --</option>';
-    
     if (STATE.spkOptions.length === 0) {
         const op = document.createElement("option");
         op.textContent = "Tidak ada data SPK untuk cabang ini";
@@ -527,15 +526,12 @@ function renderSpkOptions() {
         sel.appendChild(op);
         return;
     }
-
     STATE.spkOptions.forEach(opt => {
         const op = document.createElement("option");
         op.value = opt.nomorUlok;
         op.textContent = opt.nomorUlok;
         sel.appendChild(op);
     });
-
-    // Otomatis pilih jika cuma 1
     if (STATE.spkOptions.length === 1) {
         const oneUlok = STATE.spkOptions[0].nomorUlok;
         sel.value = oneUlok;
@@ -566,7 +562,6 @@ function updateStateFormData() {
         const el = getEl(id);
         if(el) STATE.formData[map[id]] = el.value;
     }
-    // Update nomor ulok berdasarkan mode aktif
     const selUlok = getEl("sel-ulok");
     const inpUlok = getEl("inp-ulok-manual");
     if (!STATE.formData.isManualUlok && selUlok) {
@@ -578,20 +573,11 @@ function updateStateFormData() {
 
 function populateForm(data) {
     if(!data) return;
-    
-    // [FIX] Pertahankan status Manual jika user sedang mengetik manual
     const wasManual = STATE.formData.isManualUlok;
-    
     STATE.formData = { ...STATE.formData, ...data };
-    
-    // Restore manual state jika sebelumnya manual,
-    // karena data dari backend mungkin punya isManualUlok: undefined/false
-    if (wasManual) {
-        STATE.formData.isManualUlok = true;
-    }
+    if (wasManual) STATE.formData.isManualUlok = true;
     
     const safeSet = (id, val) => { const el = getEl(id); if(el) el.value = val || ""; };
-    
     safeSet("inp-cabang", data.cabang || STATE.user?.cabang);
     safeSet("inp-sipil", data.kontraktorSipil);
     safeSet("inp-me", data.kontraktorMe);
@@ -607,11 +593,8 @@ function populateForm(data) {
 function formatDateInput(dateStr) {
     if(!dateStr) return "";
     try { 
-        // [FIX] Gunakan Local Time agar tidak mundur 1 hari karena Timezone
         const d = new Date(dateStr);
-        // Pastikan valid date
         if(isNaN(d.getTime())) return "";
-
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
@@ -636,30 +619,21 @@ async function loadTempData(ulok) {
         const res = await getTempByUlok(ulok);
         if (res.ok && res.data) {
             populateForm(res.data);
-            
             if (Array.isArray(res.data.photos)) {
                 STATE.photos = {};
                 const preloadPromises = []; 
-
                 res.data.photos.forEach((pid, idx) => {
                     if(!pid) return; 
-                    
                     const id = idx + 1;
-                    // [FIX] View Photo Endpoint standar (tanpa /doc)
                     const url = `${API_BASE_URL}/doc/view-photo/${pid}`;
-                    
                     preloadPromises.push(preloadImage(url));
-
                     STATE.photos[id] = {
                         url: url,
                         point: ALL_POINTS.find(p => p.id === id),
                         timestamp: new Date().toISOString(),
                     };
                 });
-
-                if (preloadPromises.length > 0) {
-                    await Promise.all(preloadPromises);
-                }
+                if (preloadPromises.length > 0) await Promise.all(preloadPromises);
                 
                 const taken = Object.keys(STATE.photos).map(Number);
                 const next = taken.length > 0 ? Math.max(...taken) + 1 : 1;
@@ -702,9 +676,9 @@ function renderFloorPlan() {
         if (completed === 38) show(compSec); else hide(compSec);
     }
 
-    const imgMap = { 1: "../../assets/floor.png", 2: "../../assets/floor3.jpeg", 3: "../../assets/floor2.jpeg" };
+    const imgMap = { 1: "floor.png", 2: "floor3.jpeg", 3: "floor2.jpeg" };
     const floorImg = getEl("floor-img");
-    if(floorImg) floorImg.src = imgMap[STATE.currentPage] || "../../assets/floor.png";
+    if(floorImg) floorImg.src = imgMap[STATE.currentPage] || "floor.png";
 
     const container = getEl("points-container");
     if(container) {
@@ -722,7 +696,7 @@ function renderFloorPlan() {
             btn.style.top = `${p.y}%`;
             btn.textContent = p.id;
             
-            // Logic disable: jika foto belum diambil dan bukan giliran saat ini
+            // Logic: Bisa retake foto lama, atau ambil foto baru urutan
             if (p.id > STATE.currentPhotoNumber && !STATE.photos[p.id]) {
                 btn.disabled = true; btn.style.opacity = 0.6;
             } else {
@@ -751,10 +725,11 @@ function renderPhotoList() {
 
         if (STATE.photos[p.id]) {
             const data = STATE.photos[p.id];
+            // [FITUR BARU] Tambahkan pointer cursor pada gambar
             if (data.note) {
                 html += `<div class="photo-note">${data.note}</div>`;
             } else {
-                html += `<img src="${data.url}" class="thumbnail" loading="lazy">`;
+                html += `<img src="${data.url}" class="thumbnail" loading="lazy" onclick="viewLargePhoto('${data.url}')" style="cursor:pointer">`;
             }
         }
         item.innerHTML = html;
@@ -762,11 +737,45 @@ function renderPhotoList() {
     });
 }
 
+// [FITUR BARU] View Large Photo (Lightbox sederhana)
+window.viewLargePhoto = (url) => {
+    // Manfaatkan modal camera tapi sembunyikan UI control
+    const img = getEl("captured-img");
+    img.src = url;
+    
+    hide(getEl("cam-preview-container"));
+    show(getEl("photo-result-container"));
+    
+    // Sembunyikan tombol actions kamera
+    hide(getEl("actions-pre-capture"));
+    hide(getEl("actions-post-capture"));
+    
+    // Tampilkan hanya tombol close
+    getEl("cam-title").textContent = "Lihat Foto";
+    show(getEl("camera-modal"));
+    
+    // Override close button utk reset UI normal
+    const btnClose = getEl("btn-close-cam");
+    const oldFn = btnClose.onclick; // Simpan fungsi lama
+    
+    btnClose.onclick = () => {
+        closeCamera();
+        // Restore normal UI flow
+        show(getEl("cam-preview-container"));
+        hide(getEl("photo-result-container"));
+        show(getEl("actions-pre-capture"));
+        // restore handler asli
+        btnClose.addEventListener("click", closeCamera); 
+    };
+};
+
 async function openCamera(point) {
     STATE.currentPoint = point;
     getEl("cam-title").textContent = `Foto #${point.id}: ${point.label}`;
-    show(getEl("camera-modal"));
+    
+    // Restore UI Default
     resetCameraUI();
+    show(getEl("camera-modal"));
     
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -794,6 +803,7 @@ function capturePhoto() {
     const cvs = getEl("cam-canvas");
     const ctx = cvs.getContext("2d");
     
+    // [FIX] Logika Resize Max 1280px (Sesuai Repo React)
     const MAX = 1280;
     let w = vid.videoWidth, h = vid.videoHeight;
     if (w > MAX || h > MAX) {
@@ -803,6 +813,7 @@ function capturePhoto() {
     cvs.width = w; cvs.height = h;
     ctx.drawImage(vid, 0, 0, w, h);
     
+    // [FIX] Quality 0.7
     cvs.toBlob(blob => {
         STATE.capturedBlob = blob;
         const url = URL.createObjectURL(blob);
@@ -875,11 +886,9 @@ async function savePhotoToBackend(base64, note) {
 function showWarningModal(msg, onOk) {
     const msgEl = getEl("warning-msg");
     if(msgEl) msgEl.textContent = msg;
-    
     const btn = getEl("btn-warning-ok");
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
-    
     newBtn.addEventListener("click", () => {
         hide(getEl("warning-modal"));
         if(onOk) onOk();
@@ -890,25 +899,22 @@ function showWarningModal(msg, onOk) {
 async function generateAndSendPDF() {
     const ulok = STATE.formData.nomorUlok;
     
-    // [FIX] Cek status validasi dengan POST sesuai backend
     if (ulok) {
         showLoading("Mengecek status dokumen...");
         try {
             const statusRes = await cekStatus(ulok);
-            // Logic blokir jika sudah disetujui/menunggu validasi
             if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
                 hideLoading();
                 showToast(`Dokumen status ${statusRes.status}, tidak bisa disimpan!`, "error");
                 showWarningModal(`Gagal Simpan!\nDokumen ini sudah berstatus: ${statusRes.status}.\nAnda tidak diperbolehkan mengubah data lagi.`);
                 return;
             }
-        } catch (e) {
-            console.warn("Gagal cek status, melanjutkan...", e);
-        }
+        } catch (e) { console.warn("Gagal cek status, melanjutkan...", e); }
     }
 
     showLoading("Membuat PDF...");
-    const worker = new Worker("pdf.worker.js");
+    // Pastikan path pdf.worker.js benar relatif terhadap HTML
+    const worker = new Worker("pdf.worker.js"); 
 
     worker.postMessage({
         formData: STATE.formData,
@@ -938,7 +944,6 @@ async function generateAndSendPDF() {
             
             await saveTemp(payload);
 
-            // [FIX] Endpoint /save-toko
             const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify(payload)
@@ -947,7 +952,6 @@ async function generateAndSendPDF() {
             
             if(!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan ke Spreadsheet");
 
-            // [FIX] Endpoint /send-pdf-email
             await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method:"POST", headers:{"Content-Type":"application/json"},
                 body: JSON.stringify({
