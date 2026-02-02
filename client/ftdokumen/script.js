@@ -1,7 +1,7 @@
 // ==========================================
 // 1. GLOBAL STATE & CONFIG
 // ==========================================
-// Base URL Backend (Sesuai Repo React)
+// Base URL Backend
 const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"; 
 
 // URL untuk Logging (Internal)
@@ -18,7 +18,8 @@ const STATE = {
     isCameraReady: false,
     capturedBlob: null, 
     currentPoint: null, 
-    stream: null
+    stream: null,
+    currentPhotoNote: null // Tambahan untuk handle note foto
 };
 
 // Data titik koordinat (DATA INI TETAP SAMA)
@@ -86,7 +87,7 @@ const showToast = (text, type = "success") => {
     const toast = getEl("form-status-toast");
     if(toast){
         toast.textContent = text;
-        toast.style.background = type === "success" ? "#333" : "#dc2626";
+        toast.style.background = type === "success" ? "#16a34a" : "#dc2626";
         toast.classList.add("show");
         setTimeout(() => toast.classList.remove("show"), 3000);
     }
@@ -106,7 +107,8 @@ const hideLoading = () => hide(getEl("loading-overlay"));
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
     checkSession(); 
-    setInterval(checkTimeLimit, 60000); 
+    checkTimeLimit(); // Cek jam saat load
+    setInterval(checkTimeLimit, 60000); // Cek ulang tiap menit
     
     const dateEl = getEl("current-date-display");
     if(dateEl) {
@@ -173,6 +175,12 @@ function proceedToApp() {
     show(getEl("sub-header"));
     hide(getEl("view-login"));
     
+    // Jika ada saved_ok dari reload sebelumnya
+    if(localStorage.getItem("saved_ok") === "1"){
+        showToast("Berhasil disimpan! ✅");
+        localStorage.removeItem("saved_ok");
+    }
+
     switchToView("form");
 
     const inpCabang = getEl("inp-cabang");
@@ -204,15 +212,16 @@ function checkTimeLimit() {
         if (isLoginView && msgContainer) {
             msgContainer.textContent = msg;
             show(msgContainer);
-            if(btnLogin) { btnLogin.disabled = true; btnLogin.style.cursor = "not-allowed"; }
+            if(btnLogin) { btnLogin.disabled = true; btnLogin.style.cursor = "not-allowed"; btnLogin.style.opacity = 0.6; }
         } else if (STATE.user && !isLoginView) {
+            // Jika user sedang di dalam aplikasi tapi waktu habis
             if(getEl("warning-modal").classList.contains("hidden")) {
-                showWarningModal(msg, () => doLogout());
+                showWarningModal(`Sesi Anda telah berakhir.\nLogin hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`, () => doLogout());
             }
         }
     } else {
         if(msgContainer) hide(msgContainer);
-        if(btnLogin) { btnLogin.disabled = false; btnLogin.style.cursor = "pointer"; }
+        if(btnLogin) { btnLogin.disabled = false; btnLogin.style.cursor = "pointer"; btnLogin.style.opacity = 1; }
     }
 }
 
@@ -278,7 +287,7 @@ async function apiLogin(username, password) {
 async function loadSpkData(cabang) {
     if(!cabang) return;
     try {
-        showLoading("Mengambil data Ulok...");
+        // showLoading("Mengambil data Ulok..."); // Optional: silent load
         const res = await fetch(`${API_BASE_URL}/doc/spk-data`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -291,10 +300,8 @@ async function loadSpkData(cabang) {
         }
     } catch (e) { 
         console.error(e); 
-        showToast("Gagal mengambil data SPK", "error");
-    } finally {
-        hideLoading();
-    }
+        // showToast("Gagal mengambil data SPK", "error");
+    } 
 }
 
 async function getTempByUlok(nomorUlok) {
@@ -395,8 +402,14 @@ function initEventListeners() {
             const sel = getEl("sel-ulok");
             const inp = getEl("inp-ulok-manual");
 
-            if (isManual) { hide(sel); show(inp); STATE.formData.nomorUlok = inp.value; } 
-            else { show(sel); hide(inp); STATE.formData.nomorUlok = sel.value; }
+            if (isManual) { 
+                hide(sel); show(inp); 
+                STATE.formData.nomorUlok = inp.value; 
+            } 
+            else { 
+                show(sel); hide(inp); 
+                STATE.formData.nomorUlok = sel.value; 
+            }
             STATE.formData.isManualUlok = isManual;
         });
     }
@@ -422,7 +435,8 @@ function initEventListeners() {
             const val = e.target.value.toUpperCase();
             STATE.formData.isManualUlok = true; 
             STATE.formData.nomorUlok = val;
-            await loadTempData(val);
+            // Di React: Manual input tries to fetch temp but keeps manual flag
+            await loadTempData(val, true); // Pass true to indicate manual override logic
         });
     }
 
@@ -441,6 +455,7 @@ function initEventListeners() {
         formInput.addEventListener("submit", (e) => {
             e.preventDefault();
             updateStateFormData();
+            showToast("Menyimpan data...", "success");
             saveFormDataBackground().then(() => switchToView("floorplan"));
         });
     }
@@ -457,7 +472,7 @@ function initEventListeners() {
         });
     });
 
-    // === CAMERA & UPLOAD LISTENERS (DIPERBAIKI) ===
+    // === CAMERA & UPLOAD LISTENERS ===
     
     const btnCloseCam = getEl("btn-close-cam");
     if(btnCloseCam) btnCloseCam.addEventListener("click", closeCamera);
@@ -465,43 +480,66 @@ function initEventListeners() {
     const btnSnap = getEl("btn-snap");
     if(btnSnap) btnSnap.addEventListener("click", capturePhoto);
 
-    // [FITUR BARU] Klik pada video untuk ambil foto (Tap to Snap)
+    // Tap to snap
     const vid = getEl("cam-video");
     if (vid) vid.addEventListener("click", capturePhoto);
 
     const btnRetake = getEl("btn-retake");
     if(btnRetake) btnRetake.addEventListener("click", resetCameraUI);
     
+    // Logic Confirm Photo
     const btnConfirm = getEl("btn-confirm-snap");
     if(btnConfirm) btnConfirm.addEventListener("click", async () => {
-        if (!STATE.capturedBlob && !STATE.currentPhotoNote) return;
-        await saveCapturedPhoto();
+        // Hanya save jika ada blob (foto baru)
+        if (STATE.capturedBlob && STATE.capturedBlob !== "TIDAK_BISA_DIFOTO") {
+            await saveCapturedPhoto();
+        } else {
+             closeCamera(); // Jika cuma view
+        }
     });
 
-    // [FIX] Upload File dengan Loading State
+    // UPLOAD PHOTO (Matches React CameraCapture.js Logic)
     const inpFile = getEl("inp-file-upload");
     if(inpFile) {
         inpFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
             if(!file) return;
 
-            showLoading("Mengunggah foto..."); // Feedback UI
+            showLoading("Mengunggah foto..."); 
             
             const reader = new FileReader();
-            reader.onload = async (evt) => {
-                await handlePreviewAndSave(evt.target.result);
-                hideLoading();
+            reader.onloadend = async () => {
+                const base64 = reader.result;
+                try {
+                    // Simpan Langsung (React style)
+                    await savePhotoToBackend(base64, null);
+                } catch (err) {
+                    showToast("Gagal upload: " + err.message, "error");
+                } finally {
+                    hideLoading();
+                }
             };
             reader.readAsDataURL(file);
         });
     }
 
+    // TIDAK BISA DIFOTO (Matches React Logic)
     const btnCant = getEl("btn-cant-snap");
     if(btnCant) {
-        btnCant.addEventListener("click", () => {
-            STATE.capturedBlob = "TIDAK_BISA_DIFOTO";
-            STATE.currentPhotoNote = "TIDAK BISA DIFOTO";
-            saveCapturedPhoto();
+        btnCant.addEventListener("click", async () => {
+            showLoading("Memproses...");
+            try {
+                // Set special note
+                STATE.currentPhotoNote = "TIDAK BISA DIFOTO";
+                // Kirim null base64, backend will handle or we send default asset logic if needed.
+                // React sends payload: { photoNote: "TIDAK BISA DIFOTO", photoBase64: null }
+                // savePhotoToBackend handles the rest.
+                await savePhotoToBackend(null, "TIDAK BISA DIFOTO");
+            } catch (err) {
+                showToast("Error: " + err.message, "error");
+            } finally {
+                hideLoading();
+            }
         });
     }
 
@@ -532,11 +570,14 @@ function renderSpkOptions() {
         op.textContent = opt.nomorUlok;
         sel.appendChild(op);
     });
+    // Auto select if only 1
     if (STATE.spkOptions.length === 1) {
         const oneUlok = STATE.spkOptions[0].nomorUlok;
         sel.value = oneUlok;
-        sel.dispatchEvent(new Event('change'));
-        showToast("Nomor Ulok otomatis dipilih");
+        // Trigger change manual
+        const event = new Event('change');
+        sel.dispatchEvent(event);
+        // showToast("Nomor Ulok otomatis dipilih");
     }
 }
 
@@ -575,6 +616,8 @@ function populateForm(data) {
     if(!data) return;
     const wasManual = STATE.formData.isManualUlok;
     STATE.formData = { ...STATE.formData, ...data };
+    
+    // React Logic: If manual, keep manual flag true
     if (wasManual) STATE.formData.isManualUlok = true;
     
     const safeSet = (id, val) => { const el = getEl(id); if(el) el.value = val || ""; };
@@ -612,16 +655,27 @@ function preloadImage(src) {
     });
 }
 
-async function loadTempData(ulok) {
+async function loadTempData(ulok, isManualOverride = false) {
     if(!ulok) return;
     showLoading("Sinkronisasi data..."); 
     try {
         const res = await getTempByUlok(ulok);
         if (res.ok && res.data) {
-            populateForm(res.data);
+            // Jika mode manual, kita ambil data temp tapi flag isManualUlok di UI harus tetap true
+            if (isManualOverride) {
+                const { isManualUlok: _ignored, ...rest } = res.data;
+                populateForm(rest);
+                STATE.formData.isManualUlok = true; // Force Keep manual
+            } else {
+                populateForm(res.data);
+            }
+
             if (Array.isArray(res.data.photos)) {
                 STATE.photos = {};
                 const preloadPromises = []; 
+                
+                // Matches React FloorPlan.js "restorePhotos" logic
+                console.log("Preloading images...");
                 res.data.photos.forEach((pid, idx) => {
                     if(!pid) return; 
                     const id = idx + 1;
@@ -633,6 +687,8 @@ async function loadTempData(ulok) {
                         timestamp: new Date().toISOString(),
                     };
                 });
+                
+                // Wait for ALL images to load (Prevent Flickering)
                 if (preloadPromises.length > 0) await Promise.all(preloadPromises);
                 
                 const taken = Object.keys(STATE.photos).map(Number);
@@ -642,7 +698,7 @@ async function loadTempData(ulok) {
         }
     } catch(e) { 
         console.error(e); 
-        showToast("Gagal memuat data tersimpan", "error");
+        // showToast("Gagal memuat data tersimpan", "error");
     } finally { 
         hideLoading(); 
         renderFloorPlan(); 
@@ -676,7 +732,7 @@ function renderFloorPlan() {
         if (completed === 38) show(compSec); else hide(compSec);
     }
 
-    // [FIX] Path gambar ke folder ../../assets/
+    // Image Map
     const imgMap = { 
         1: "../../assets/floor.png", 
         2: "../../assets/floor3.jpeg", 
@@ -701,12 +757,24 @@ function renderFloorPlan() {
             btn.style.top = `${p.y}%`;
             btn.textContent = p.id;
             
-            // Logic: Bisa retake foto lama, atau ambil foto baru urutan
-            if (p.id > STATE.currentPhotoNumber && !STATE.photos[p.id]) {
-                btn.disabled = true; btn.style.opacity = 0.6;
+            // Logic: Sequential Check
+            // Allow clicking if: Photo already taken OR it is the current target
+            if (!STATE.photos[p.id] && p.id > STATE.currentPhotoNumber) {
+                btn.disabled = true; 
+                btn.style.opacity = 0.6;
+                btn.style.cursor = "not-allowed";
             } else {
                 btn.onclick = () => openCamera(p);
             }
+            
+            // Add checkmark if completed
+            if (STATE.photos[p.id]) {
+                const check = document.createElement("span");
+                check.className = "check-mark";
+                check.textContent = "✓";
+                btn.appendChild(check);
+            }
+
             container.appendChild(btn);
         });
     }
@@ -730,11 +798,11 @@ function renderPhotoList() {
 
         if (STATE.photos[p.id]) {
             const data = STATE.photos[p.id];
-            // [FITUR BARU] Tambahkan pointer cursor pada gambar
             if (data.note) {
-                html += `<div class="photo-note">${data.note}</div>`;
+                 // Note display (e.g. TIDAK BISA DIFOTO)
+                 html += `<div class="photo-note" style="color:red; font-size:0.75rem; border:1px solid red; padding:2px; margin-top:4px;">${data.note}</div>`;
             } else {
-                html += `<img src="${data.url}" class="thumbnail" loading="lazy" onclick="viewLargePhoto('${data.url}')" style="cursor:pointer">`;
+                 html += `<img src="${data.url}" class="thumbnail" loading="lazy" onclick="viewLargePhoto('${data.url}')" style="cursor:pointer">`;
             }
         }
         item.innerHTML = html;
@@ -742,43 +810,39 @@ function renderPhotoList() {
     });
 }
 
-// [FITUR BARU] View Large Photo (Lightbox sederhana)
+// Lightbox Sederhana
 window.viewLargePhoto = (url) => {
-    // Manfaatkan modal camera tapi sembunyikan UI control
     const img = getEl("captured-img");
     img.src = url;
     
     hide(getEl("cam-preview-container"));
     show(getEl("photo-result-container"));
     
-    // Sembunyikan tombol actions kamera
     hide(getEl("actions-pre-capture"));
     hide(getEl("actions-post-capture"));
     
-    // Tampilkan hanya tombol close
     getEl("cam-title").textContent = "Lihat Foto";
     show(getEl("camera-modal"));
     
-    // Override close button utk reset UI normal
     const btnClose = getEl("btn-close-cam");
-    const oldFn = btnClose.onclick; // Simpan fungsi lama
+    // Remove old listeners to prevent stacking (simple way: clone)
+    const newBtn = btnClose.cloneNode(true);
+    btnClose.parentNode.replaceChild(newBtn, btnClose);
     
-    btnClose.onclick = () => {
+    newBtn.addEventListener("click", () => {
         closeCamera();
-        // Restore normal UI flow
-        show(getEl("cam-preview-container"));
-        hide(getEl("photo-result-container"));
-        show(getEl("actions-pre-capture"));
-        // restore handler asli
-        btnClose.addEventListener("click", closeCamera); 
-    };
+        // Restore default handler for next time
+        newBtn.addEventListener("click", closeCamera);
+    });
 };
 
 async function openCamera(point) {
+    // Prevent opening if photo exists (unless you want to view/retake logic, here we stick to basic)
+    // if(STATE.photos[point.id]) { viewLargePhoto(STATE.photos[point.id].url); return; }
+
     STATE.currentPoint = point;
     getEl("cam-title").textContent = `Foto #${point.id}: ${point.label}`;
     
-    // Restore UI Default
     resetCameraUI();
     show(getEl("camera-modal"));
     
@@ -800,6 +864,11 @@ function closeCamera() {
     if (STATE.stream) { STATE.stream.getTracks().forEach(t => t.stop()); STATE.stream = null; }
     STATE.isCameraReady = false;
     hide(getEl("camera-modal"));
+    // Restore normal close button behavior if modified by lightbox
+    const btnClose = getEl("btn-close-cam");
+    const newBtn = btnClose.cloneNode(true);
+    btnClose.parentNode.replaceChild(newBtn, btnClose);
+    newBtn.addEventListener("click", closeCamera);
 }
 
 function capturePhoto() {
@@ -808,7 +877,7 @@ function capturePhoto() {
     const cvs = getEl("cam-canvas");
     const ctx = cvs.getContext("2d");
     
-    // [FIX] Logika Resize Max 1280px (Sesuai Repo React)
+    // [FIX] Resize Max 1280px (Matches React CameraCapture.js)
     const MAX = 1280;
     let w = vid.videoWidth, h = vid.videoHeight;
     if (w > MAX || h > MAX) {
@@ -818,9 +887,10 @@ function capturePhoto() {
     cvs.width = w; cvs.height = h;
     ctx.drawImage(vid, 0, 0, w, h);
     
-    // [FIX] Quality 0.7
+    // [FIX] Quality 0.7 (Matches React)
     cvs.toBlob(blob => {
         STATE.capturedBlob = blob;
+        STATE.currentPhotoNote = null; // Clear note logic
         const url = URL.createObjectURL(blob);
         getEl("captured-img").src = url;
         hide(getEl("cam-preview-container"));
@@ -832,21 +902,19 @@ function capturePhoto() {
 
 function resetCameraUI() {
     STATE.capturedBlob = null;
+    STATE.currentPhotoNote = null;
     show(getEl("cam-preview-container"));
     hide(getEl("photo-result-container"));
     show(getEl("actions-pre-capture"));
     hide(getEl("actions-post-capture"));
 }
 
-async function handlePreviewAndSave(base64) {
-    await savePhotoToBackend(base64, null);
-}
-
 async function saveCapturedPhoto() {
     showLoading("Menyimpan foto...");
     try {
         let base64 = null;
-        let note = STATE.currentPhotoNote || null;
+        let note = STATE.currentPhotoNote || null; // Ambil note jika ada
+        
         if (STATE.capturedBlob && STATE.capturedBlob !== "TIDAK_BISA_DIFOTO") {
             base64 = await new Promise((resolve) => {
                 const reader = new FileReader();
@@ -854,6 +922,8 @@ async function saveCapturedPhoto() {
                 reader.readAsDataURL(STATE.capturedBlob);
             });
         }
+        
+        // Simpan langsung
         await savePhotoToBackend(base64, note);
     } catch (e) { alert("Gagal simpan: " + e.message); } 
     finally { hideLoading(); }
@@ -867,12 +937,13 @@ async function savePhotoToBackend(base64, note) {
         photoNote: note,
         photoBase64: base64
     };
+
     const res = await saveTemp(payload);
     if (!res.ok) throw new Error(res.error || "Gagal save server");
 
-    // [FIX] Path gambar default ke assets jika terjadi error
+    // Update Local State
     STATE.photos[pointId] = {
-        url: base64 || "../../assets/fototidakbisadiambil.jpeg",
+        url: base64 || "../../assets/fototidakbisadiambil.jpeg", // Fallback local
         point: STATE.currentPoint,
         timestamp: new Date().toISOString(),
         note: note
@@ -893,8 +964,10 @@ function showWarningModal(msg, onOk) {
     const msgEl = getEl("warning-msg");
     if(msgEl) msgEl.textContent = msg;
     const btn = getEl("btn-warning-ok");
+    // Clean old listeners
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
+    
     newBtn.addEventListener("click", () => {
         hide(getEl("warning-modal"));
         if(onOk) onOk();
@@ -905,19 +978,21 @@ function showWarningModal(msg, onOk) {
 async function generateAndSendPDF() {
     const ulok = STATE.formData.nomorUlok;
     
-    // 1. Cek Status Dokumen
+    // 1. CEK STATUS VALIDASI (Matches React Logic)
     if (ulok) {
         showLoading("Mengecek status dokumen...");
         try {
             const statusRes = await cekStatus(ulok);
-            // Jika status sudah final, tolak
+            // React: if APPROVED or WAITING VALIDATION -> Block
             if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
                 hideLoading();
                 showToast(`Dokumen status ${statusRes.status}, tidak bisa disimpan!`, "error");
                 showWarningModal(`Gagal Simpan!\nDokumen ini sudah berstatus: ${statusRes.status}.\nAnda tidak diperbolehkan mengubah data lagi.`);
                 return;
             }
-        } catch (e) { console.warn("Gagal cek status, melanjutkan...", e); }
+        } catch (e) { 
+            console.warn("Gagal cek status, melanjutkan...", e); 
+        }
     }
 
     showLoading("Membuat PDF...");
@@ -925,11 +1000,10 @@ async function generateAndSendPDF() {
     // Inisialisasi Worker
     const worker = new Worker("pdf.worker.js"); 
 
-    // KIRIM SEMUA DATA YANG DIBUTUHKAN WORKER DI SINI
     worker.postMessage({
-        formData: STATE.formData,      // Data text form
-        capturedPhotos: STATE.photos,  // Data foto (url/base64)
-        allPhotoPoints: ALL_POINTS     // Data label titik foto (PENTING)
+        formData: STATE.formData,      
+        capturedPhotos: STATE.photos,  
+        allPhotoPoints: ALL_POINTS     
     });
 
     worker.onmessage = async (e) => {
@@ -960,7 +1034,7 @@ async function generateAndSendPDF() {
             await saveTemp(payload);
 
             // Simpan Final ke Spreadsheet
-            const resSave = await fetch(`${API_BASE_URL}/save-toko`, {
+            const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST", 
                 headers: {"Content-Type":"application/json"},
                 body: JSON.stringify(payload)
@@ -970,7 +1044,7 @@ async function generateAndSendPDF() {
             if(!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan ke Spreadsheet");
 
             // Kirim Email
-            await fetch(`${API_BASE_URL}/send-pdf-email`, {
+            await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method:"POST", 
                 headers:{"Content-Type":"application/json"},
                 body: JSON.stringify({
@@ -988,14 +1062,15 @@ async function generateAndSendPDF() {
             a.href = url; a.download = filename;
             document.body.appendChild(a); a.click(); a.remove();
 
+            // Simpan flag & reload untuk refresh state
             localStorage.setItem("saved_ok", "1");
-            showToast("Berhasil disimpan & dikirim! ✅");
+            location.reload(); 
             
         } catch(err) {
             console.error(err); 
             showToast("Error upload: " + err.message, "error");
-        } finally {
             hideLoading(); 
+        } finally {
             worker.terminate();
         }
     };
