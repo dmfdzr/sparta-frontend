@@ -289,7 +289,7 @@ async function loadSpkData(cabang) {
     try {
         showLoading("Mengambil data Ulok...");
         // [FIX] Endpoint ke /spk-data
-        const res = await fetch(`${API_BASE_URL}/spk-data`, {
+        const res = await fetch(`${API_BASE_URL}/doc/spk-data`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ cabang }),
