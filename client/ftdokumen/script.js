@@ -1,20 +1,14 @@
-/* =========================================
-   SPARTA - DOKUMENTASI BANGUNAN (FULL MIGRATION)
-   ========================================= */
+const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com";
 
-const API_BASE_URL = "https://dokumentasi-bangunan.onrender.com";
-
-// --- DATA CONFIGURATION ---
+// --- KONFIGURASI ---
 const CONFIG = {
-    // Definisi Lantai
     PAGES: [
-        { id: 1, img: './assets/floor.png' },
-        { id: 2, img: './assets/floor3.jpeg' }, // Sesuai mapping asli
-        { id: 3, img: './assets/floor2.jpeg' }
+        { id: 1, img: '../../assets/floor.png' },
+        { id: 2, img: '../../assets/floor3.jpeg' }, 
+        { id: 3, img: '../../assets/floor2.jpeg' }
     ],
-    // FULL 38 TITIK (Extracted from FloorPlan.js)
+    // DAFTAR TITIK LENGKAP (38 TITIK)
     POINTS: [
-        // Page 1
         { id: 1, page: 1, x: 67.8, y: 92.8, label: "KANAN 50 M" },
         { id: 2, page: 1, x: 63.7, y: 97.5, label: "DEPAN KANAN" },
         { id: 3, page: 1, x: 50.5, y: 97.5, label: "DEPAN" },
@@ -24,29 +18,29 @@ const CONFIG = {
         { id: 7, page: 1, x: 67.8, y: 85.8, label: "KANAN BAHU JALAN" },
         { id: 8, page: 1, x: 66, y: 82.5, label: "TAMPAK KANAN DEPAN KEBELAKANG" },
         { id: 9, page: 1, x: 33.5, y: 81.8, label: "TAMPAK KIRI DEPAN KEBELAKANG" },
-        { id: 10, page: 1, x: 65.1, y: 11.3, label: "KANAN BELAKANG BANGUNAN MENGHADAP DEPAN" },
-        { id: 11, page: 1, x: 63.7, y: 7.8, label: "KANAN BELAKANG BANGUNAN MENGHADAP SAMPING" },
-        { id: 12, page: 1, x: 37.5, y: 7.5, label: "KIRI BELAKANG BANGUNAN MENGHADAP SAMPING" },
-        { id: 13, page: 1, x: 35, y: 11, label: "KIRI BELAKANG BANGUNAN MENGHADAP DEPAN" },
+        { id: 10, page: 1, x: 65.1, y: 11.3, label: "KANAN BELAKANG BANGUNAN" },
+        { id: 11, page: 1, x: 63.7, y: 7.8, label: "KANAN BELAKANG SAMPING" },
+        { id: 12, page: 1, x: 37.5, y: 7.5, label: "KIRI BELAKANG SAMPING" },
+        { id: 13, page: 1, x: 35, y: 11, label: "KIRI BELAKANG DEPAN" },
         { id: 14, page: 1, x: 58.2, y: 81.7, label: "INSTALASI LISTRIK POLE SIGN" },
         { id: 15, page: 1, x: 56.8, y: 73.3, label: "GUTTER" },
-        { id: 16, page: 1, x: 57.6, y: 63.8, label: "KOLOM IWF DUDUKAN LISTPLANK" },
+        { id: 16, page: 1, x: 57.6, y: 63.8, label: "KOLOM IWF" },
         { id: 17, page: 1, x: 59, y: 60, label: "KANAN TERAS LUAR" },
         { id: 18, page: 1, x: 41.4, y: 60.2, label: "KIRI TERAS LUAR" },
         { id: 19, page: 1, x: 61.5, y: 56.5, label: "KANAN TERAS DALAM" },
         { id: 20, page: 1, x: 39, y: 56.5, label: "KIRI TERAS DALAM" },
         { id: 21, page: 1, x: 48.7, y: 49.4, label: "PINTU KACA ALLUMUNIUM" },
-        { id: 22, page: 1, x: 38.8, y: 52.5, label: "SUDUT KIRI DEPAN AREA SALES" },
-        { id: 23, page: 1, x: 42.4, y: 45.5, label: "INSTALASI LISTRIK FREEZER" },
-        { id: 24, page: 1, x: 58.8, y: 37.5, label: "SUDUT KANAN DEPAN AREA SALES" },
-        { id: 25, page: 1, x: 61.1, y: 51, label: "INSTALASI LISTRIK MEJA KASIR" },
-        { id: 26, page: 1, x: 61.5, y: 27.5, label: "SUDUT KANAN BELAKANG AREA SALES" },
-        { id: 27, page: 1, x: 39, y: 28.2, label: "SUDUT KIRI BELAKANG AREA SALES" },
+        { id: 22, page: 1, x: 38.8, y: 52.5, label: "SUDUT KIRI DEPAN" },
+        { id: 23, page: 1, x: 42.4, y: 45.5, label: "INSTALASI FREEZER" },
+        { id: 24, page: 1, x: 58.8, y: 37.5, label: "SUDUT KANAN DEPAN" },
+        { id: 25, page: 1, x: 61.1, y: 51, label: "INSTALASI MEJA KASIR" },
+        { id: 26, page: 1, x: 61.5, y: 27.5, label: "SUDUT KANAN BELAKANG" },
+        { id: 27, page: 1, x: 39, y: 28.2, label: "SUDUT KIRI BELAKANG" },
         { id: 28, page: 1, x: 61.7, y: 22.2, label: "SELASAR + JANITOR" },
         { id: 29, page: 1, x: 59.5, y: 12.5, label: "KAMAR MANDI" },
         { id: 30, page: 1, x: 53.1, y: 16.2, label: "GUDANG SEBELAH KANAN" },
         { id: 31, page: 1, x: 38.6, y: 13, label: "GUDANG SEBELAH KIRI" },
-        { id: 32, page: 1, x: 48.5, y: 23.5, label: "INSTALASI LISTRIK & DRAINASE CHILLER" },
+        { id: 32, page: 1, x: 48.5, y: 23.5, label: "INSTALASI DRAINASE CHILLER" },
         { id: 37, page: 1, x: 59.7, y: 68.8, label: "SEPTICTANK EXISTING" },
         { id: 38, page: 1, x: 41, y: 68.8, label: "SUMUR EXISTING" },
         // Page 2
@@ -58,11 +52,11 @@ const CONFIG = {
     ]
 };
 
-// --- STATE MANAGEMENT ---
+// --- STATE ---
 const STATE = {
     user: null,
     formData: {},
-    photos: {}, // { id: base64_string }
+    photos: {}, // { id: base64 }
     currentPage: 1,
     activePoint: null,
     stream: null
@@ -70,94 +64,173 @@ const STATE = {
 
 // --- DOM ELEMENTS ---
 const els = {
-    // View Sections
+    headerCabang: document.getElementById('headerCabangText'),
+    inputCabang: document.getElementById('inputCabang'),
+    inputUlok: document.getElementById('inputNomorUlok'),
     views: {
         form: document.getElementById('view-form'),
         floor: document.getElementById('view-floorplan')
     },
-    // Form Elements
-    form: document.getElementById('dataForm'),
-    inputs: document.querySelectorAll('#dataForm input'),
-    inputCabang: document.getElementById('inputCabang'),
-    inputNomorUlok: document.getElementById('inputNomorUlok'),
-    userDisplay: document.getElementById('userDisplay'),
     // Floor Elements
     floorImage: document.getElementById('floorImage'),
-    mapWrapper: document.getElementById('mapWrapper'),
-    pageBtns: document.querySelectorAll('.page-btn'),
+    pointsContainer: document.getElementById('pointsContainer'),
+    photoGrid: document.getElementById('photoGrid'),
+    progressFill: document.getElementById('progressBarFill'),
     progressText: document.getElementById('progressText'),
-    btnFinish: document.getElementById('btnFinish'),
-    // Camera Elements
+    countPhoto: document.getElementById('countPhoto'),
+    fpStoreName: document.getElementById('fpStoreName'),
+    fpDate: document.getElementById('fpDate'),
+    completionSection: document.getElementById('completionSection'),
+    // Camera
     cameraModal: document.getElementById('cameraModal'),
     video: document.getElementById('cameraFeed'),
     canvas: document.getElementById('cameraCanvas'),
-    photoPreview: document.getElementById('photoPreview'),
+    preview: document.getElementById('photoPreview'),
     cameraTitle: document.getElementById('cameraTitle'),
-    fileInput: document.getElementById('fileInput'),
-    // Actions
-    actionCapture: document.getElementById('actionCapture'),
-    actionConfirm: document.getElementById('actionConfirm'),
-    // Loading & Toast
-    loading: document.getElementById('loadingOverlay'),
-    loadingText: document.getElementById('loadingText'),
-    toast: document.getElementById('toast'),
-    warningModal: document.getElementById('warningModal'),
-    warningMsg: document.getElementById('warningMsg')
+    fileInput: document.getElementById('fileInput')
 };
 
-// --- INITIALIZATION ---
+// --- INIT ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Cek Auth dari Session Storage (dari login sebelumnya)
+    // 1. Cek Auth dari Session Storage (dari login page sebelumnya)
     const isAuth = sessionStorage.getItem("authenticated");
     if (isAuth !== "true") {
         alert("Sesi tidak valid. Harap login kembali.");
-        window.location.href = "../index.html"; // Redirect ke halaman login utama
+        window.location.href = "../index.html"; 
         return;
     }
 
-    // 2. Load User Data
+    // 2. Load User Info
     STATE.user = {
         username: sessionStorage.getItem("loggedInUserEmail"),
-        cabang: sessionStorage.getItem("loggedInUserCabang") // Cabang disimpan di sini
+        cabang: sessionStorage.getItem("loggedInUserCabang")
     };
-    els.userDisplay.textContent = `User: ${STATE.user.username} | Cabang: ${STATE.user.cabang}`;
+    
+    // Update Header
+    els.headerCabang.textContent = `Building & Maintenance — ${STATE.user.cabang}`;
     els.inputCabang.value = STATE.user.cabang;
 
-    // 3. Setup Logic Waktu (06:00 - 18:00 WIB)
-    checkOperationalHours();
-    setInterval(checkOperationalHours, 60000); // Cek tiap menit
+    // 3. Operational Hours Check
+    checkTime();
+    setInterval(checkTime, 60000);
 
-    // 4. Load Data Temp jika ada
-    await loadTempData();
+    // 4. Load Temp Data (jika ada)
+    loadLocalData();
 
-    // 5. Setup Event Listeners
+    // 5. Setup Events
     setupEvents();
 });
 
-// --- OPERATIONAL HOURS LOGIC ---
-function checkOperationalHours() {
+// --- HELPER FUNCTIONS ---
+function checkTime() {
     const now = new Date();
-    // Convert to WIB (UTC+7)
+    // Konversi ke WIB UTC+7
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const wib = new Date(utc + (7 * 3600000));
-    const hour = wib.getHours();
-
-    if (hour >= 18 || hour < 6) {
-        showWarningModal(`Sekarang pukul ${wib.getHours()}:${wib.getMinutes()} WIB.\nLogin hanya 06.00-18.00 WIB.`);
+    const h = wib.getHours();
+    
+    if (h >= 18 || h < 6) {
+        document.getElementById('warningMsg').textContent = `Sekarang pukul ${h}:${wib.getMinutes()} WIB.\nLogin hanya 06.00-18.00 WIB.`;
+        document.getElementById('warningModal').classList.remove('hidden');
+        document.getElementById('btnLogoutNow').onclick = () => {
+            sessionStorage.clear();
+            window.location.href = "../index.html";
+        };
     }
 }
 
-function showWarningModal(msg) {
-    els.warningMsg.textContent = msg;
-    els.warningModal.classList.remove('hidden');
-    document.getElementById('btnLogoutNow').onclick = () => {
-        sessionStorage.clear();
-        localStorage.clear();
-        window.location.href = "../index.html";
-    };
+function loadLocalData() {
+    const saved = localStorage.getItem('sparta_formData');
+    if (saved) {
+        STATE.formData = JSON.parse(saved);
+        // Isi form field
+        for (const [key, val] of Object.entries(STATE.formData)) {
+            const input = document.querySelector(`[name="${key}"]`);
+            if (input) input.value = val;
+        }
+    }
+    
+    // Tarik data temp dari server jika Ulok diisi
+    els.inputUlok.addEventListener('blur', async () => {
+        const ulok = els.inputUlok.value;
+        if(ulok.length > 5) {
+            showLoading(true);
+            try {
+                const res = await fetch(`${API_BASE_URL}/get-temp`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ nomorUlok: ulok })
+                });
+                const json = await res.json();
+                if(json.ok && json.data) {
+                    STATE.formData = { ...STATE.formData, ...json.data };
+                    // Populate Form
+                    for (const [key, val] of Object.entries(STATE.formData)) {
+                        const input = document.querySelector(`[name="${key}"]`);
+                        if (input) input.value = val;
+                    }
+                    showToast("Data ditemukan dan dimuat");
+                }
+            } catch(e) { console.error(e); }
+            showLoading(false);
+        }
+    });
 }
 
-// --- NAVIGATION & FORM LOGIC ---
+// --- NAVIGATION & LOGIC ---
+function setupEvents() {
+    // Submit Form
+    document.getElementById('dataForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        STATE.formData = Object.fromEntries(fd.entries());
+        
+        // Simpan Local
+        localStorage.setItem('sparta_formData', JSON.stringify(STATE.formData));
+        
+        // Pindah ke View Floor Plan
+        switchView('FLOOR');
+    });
+
+    // Pagination
+    document.querySelectorAll('.pagination-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.pagination-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            STATE.currentPage = parseInt(btn.dataset.page);
+            renderFloorPlan();
+        });
+    });
+
+    // Back Buttons
+    document.getElementById('btnBackToDashboard').onclick = () => window.location.href = "../dashboard/index.html";
+    document.getElementById('btnBackToForm').onclick = () => switchView('FORM');
+
+    // Camera Buttons
+    document.getElementById('btnCapture').onclick = takePhoto;
+    document.getElementById('btnCantPhoto').onclick = () => savePhotoResult('TIDAK BISA DIFOTO');
+    document.getElementById('btnRetake').onclick = resetCamera;
+    document.getElementById('btnCloseCamera').onclick = closeCamera;
+    
+    // Save Photo (Confirm)
+    document.getElementById('btnSavePhoto').onclick = () => {
+        savePhotoResult(els.preview.src);
+    };
+
+    // Upload File
+    els.fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if(file) {
+            const reader = new FileReader();
+            reader.onload = (evt) => savePhotoResult(evt.target.result);
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Finish
+    document.getElementById('btnFinish').onclick = finishProcess;
+}
+
 function switchView(view) {
     els.views.form.classList.add('hidden');
     els.views.floor.classList.add('hidden');
@@ -165,358 +238,242 @@ function switchView(view) {
     if (view === 'FORM') els.views.form.classList.remove('hidden');
     if (view === 'FLOOR') {
         els.views.floor.classList.remove('hidden');
-        renderPoints();
+        initFloorPlanView();
     }
 }
 
-async function loadTempData() {
-    // Coba load dari LocalStorage dulu (offline support basic)
-    const savedForm = localStorage.getItem('formData');
-    if (savedForm) {
-        const data = JSON.parse(savedForm);
-        STATE.formData = data;
-        Object.keys(data).forEach(key => {
-            const input = els.form.querySelector(`[name="${key}"]`);
-            if (input) input.value = data[key];
-        });
-    }
-
-    // Jika user isi Ulok, coba tarik dari API Backend
-    els.inputNomorUlok.addEventListener('blur', async () => {
-        const ulok = els.inputNomorUlok.value;
-        if (!ulok) return;
-        
-        showLoading(true, "Mencari Data...");
-        try {
-            const res = await fetch(`${API_BASE_URL}/get-temp`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ nomorUlok: ulok })
-            });
-            const json = await res.json();
-            if (json.ok && json.data) {
-                // Populate form
-                Object.keys(json.data).forEach(key => {
-                    const input = els.form.querySelector(`[name="${key}"]`);
-                    if (input) input.value = json.data[key];
-                });
-                // Populate photos
-                if (json.data.photos && Array.isArray(json.data.photos)) {
-                    // Logic restore photos (perlu fetch blob url, disederhanakan disini)
-                    console.log("Found existing photos count:", json.data.photos.length);
-                }
-                showToast("Data ditemukan dan dimuat");
-            }
-        } catch (e) {
-            console.warn("Gagal fetch temp:", e);
-        } finally {
-            showLoading(false);
-        }
-    });
-}
-
-function setupEvents() {
-    // Form Submit
-    els.form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(els.form);
-        STATE.formData = Object.fromEntries(formData.entries());
-        
-        // Auto Save Temp
-        localStorage.setItem('formData', JSON.stringify(STATE.formData));
-        await saveTempData(); // Kirim ke backend
-        
-        switchView('FLOOR');
-    });
-
-    // Pagination Denah
-    els.pageBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            els.pageBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            STATE.currentPage = parseInt(btn.dataset.page);
-            renderPoints();
-        });
-    });
-
-    // Button Back
-    document.getElementById('btnBackToForm').onclick = () => switchView('FORM');
-    document.getElementById('btnBackToDashboard').onclick = () => window.location.href = "../dashboard/index.html";
-
-    // Camera Actions
-    document.getElementById('btnCapture').onclick = takePicture;
-    document.getElementById('btnCantPhoto').onclick = () => handlePhotoResult('TIDAK BISA DIFOTO');
-    document.getElementById('btnRetake').onclick = resetCameraUI;
-    document.getElementById('btnCloseCamera').onclick = closeCamera;
+function initFloorPlanView() {
+    // Set Info Header
+    els.fpStoreName.textContent = `${STATE.formData.namaToko || '-'} (${STATE.formData.kodeToko || '-'})`;
+    els.fpDate.textContent = STATE.formData.tanggalAmbilFoto || '-';
     
-    // Save Photo
-    document.getElementById('btnSavePhoto').onclick = async () => {
-        const base64 = els.photoPreview.src;
-        await handlePhotoResult(base64);
-    };
-
-    // File Upload
-    els.fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (res) => handlePhotoResult(res.target.result);
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // Final Finish
-    els.btnFinish.onclick = finishProcess;
+    renderFloorPlan();
+    renderPhotoGrid(); // Render grid foto di bawah
 }
 
-// --- FLOOR PLAN & POINTS ---
-function renderPoints() {
-    // Update Image Background
-    const pageConfig = CONFIG.PAGES.find(p => p.id === STATE.currentPage);
-    els.floorImage.src = pageConfig.img;
+// --- RENDER FUNCTIONS ---
+function renderFloorPlan() {
+    // Ganti Gambar
+    const pageCfg = CONFIG.PAGES.find(p => p.id === STATE.currentPage);
+    els.floorImage.src = pageCfg.img;
 
-    // Clear existing
-    els.mapWrapper.querySelectorAll('.point-btn').forEach(e => e.remove());
+    // Bersihkan titik
+    els.pointsContainer.innerHTML = '';
 
-    // Filter points for current page
+    // Render titik
     const points = CONFIG.POINTS.filter(p => p.page === STATE.currentPage);
-
     points.forEach(p => {
         const btn = document.createElement('div');
-        btn.className = `point-btn ${STATE.photos[p.id] ? 'done' : ''}`;
+        const isDone = STATE.photos[p.id];
+        btn.className = `point-btn ${isDone ? 'done' : ''}`;
         btn.textContent = p.id;
         btn.style.left = `${p.x}%`;
         btn.style.top = `${p.y}%`;
-        
         btn.onclick = () => openCamera(p);
-        els.mapWrapper.appendChild(btn);
+        
+        // Cek urutan (harus urut)
+        // Logic simple: Boleh klik kalau titik sebelumnya sudah ada, atau ini titik pertama
+        // const prevDone = p.id === 1 || STATE.photos[p.id - 1]; 
+        // if(!prevDone && !isDone) btn.style.opacity = '0.5'; // Optional styling
+        
+        els.pointsContainer.appendChild(btn);
+    });
+}
+
+function renderPhotoGrid() {
+    els.photoGrid.innerHTML = '';
+    const sortedPoints = CONFIG.POINTS.sort((a,b) => a.id - b.id);
+    let doneCount = 0;
+
+    sortedPoints.forEach(p => {
+        const photoData = STATE.photos[p.id];
+        if(photoData) doneCount++;
+
+        const div = document.createElement('div');
+        div.className = `photo-item ${photoData ? 'completed' : ''}`;
+        
+        let thumbHtml = `<div class="photo-placeholder"><i class="fa-solid fa-camera"></i></div>`;
+        if (photoData) {
+            if (photoData === 'TIDAK BISA DIFOTO') {
+                thumbHtml = `<div class="photo-placeholder" style="background:#fee2e2; color:#ef4444;"><i class="fa-solid fa-ban"></i></div>`;
+            } else {
+                thumbHtml = `<img src="${photoData}" class="photo-thumb">`;
+            }
+        }
+
+        div.innerHTML = `
+            <div class="photo-number">${p.id}</div>
+            <div class="photo-label" title="${p.label}">${p.label}</div>
+            ${thumbHtml}
+        `;
+        els.photoGrid.appendChild(div);
     });
 
-    updateProgress();
-}
+    // Update Progress Bar
+    const percent = (doneCount / 38) * 100;
+    els.progressFill.style.width = `${percent}%`;
+    els.progressText.textContent = `Progress: ${doneCount}/38 foto`;
+    els.countPhoto.textContent = doneCount;
 
-function updateProgress() {
-    const total = CONFIG.POINTS.length;
-    const current = Object.keys(STATE.photos).length;
-    els.progressText.textContent = `${current}/${total} Selesai`;
-    
-    if (current >= total) {
-        els.btnFinish.classList.remove('hidden');
+    if(doneCount === 38) {
+        els.completionSection.classList.remove('hidden');
+    } else {
+        els.completionSection.classList.add('hidden');
     }
 }
 
-// --- CAMERA LOGIC ---
+// --- CAMERA FUNCTIONS ---
 async function openCamera(point) {
     STATE.activePoint = point;
-    els.cameraTitle.textContent = `#${point.id} ${point.label}`;
+    els.cameraTitle.textContent = `Foto #${point.id}: ${point.label}`;
     els.cameraModal.classList.remove('hidden');
-    resetCameraUI();
-
+    resetCamera();
+    
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         STATE.stream = stream;
         els.video.srcObject = stream;
-    } catch (err) {
-        alert("Gagal membuka kamera: " + err.message);
-        els.cameraModal.classList.add('hidden');
+    } catch(e) {
+        alert("Gagal akses kamera: " + e.message);
     }
 }
 
-function takePicture() {
-    if (!STATE.stream) return;
-    
-    const w = els.video.videoWidth;
-    const h = els.video.videoHeight;
-    els.canvas.width = w;
-    els.canvas.height = h;
-    
+function takePhoto() {
+    if(!STATE.stream) return;
+    els.canvas.width = els.video.videoWidth;
+    els.canvas.height = els.video.videoHeight;
     const ctx = els.canvas.getContext('2d');
-    ctx.drawImage(els.video, 0, 0, w, h);
+    ctx.drawImage(els.video, 0, 0);
     
-    // Convert to Base64 (JPEG Quality 0.7)
-    const dataUrl = els.canvas.toDataURL('image/jpeg', 0.7);
-    
-    // Show Preview
-    els.photoPreview.src = dataUrl;
-    els.photoPreview.classList.remove('hidden');
+    // Preview
+    els.preview.src = els.canvas.toDataURL('image/jpeg', 0.7);
+    els.preview.classList.remove('hidden');
     els.video.classList.add('hidden');
     
-    // Toggle Actions
-    els.actionCapture.classList.add('hidden');
-    els.actionConfirm.classList.remove('hidden');
+    // Toggle Buttons
+    document.getElementById('actionCapture').classList.add('hidden');
+    document.getElementById('actionConfirm').classList.remove('hidden');
 }
 
-function resetCameraUI() {
-    els.photoPreview.classList.add('hidden');
+function resetCamera() {
+    els.preview.classList.add('hidden');
     els.video.classList.remove('hidden');
-    els.actionCapture.classList.remove('hidden');
-    els.actionConfirm.classList.add('hidden');
+    document.getElementById('actionCapture').classList.remove('hidden');
+    document.getElementById('actionConfirm').classList.add('hidden');
 }
 
 function closeCamera() {
-    if (STATE.stream) {
+    if(STATE.stream) {
         STATE.stream.getTracks().forEach(t => t.stop());
         STATE.stream = null;
     }
     els.cameraModal.classList.add('hidden');
 }
 
-async function handlePhotoResult(data) {
-    // data bisa berupa Base64 string atau text "TIDAK BISA DIFOTO"
-    const pointId = STATE.activePoint.id;
+async function savePhotoResult(data) {
+    // Simpan ke state
+    STATE.photos[STATE.activePoint.id] = data;
     
-    // 1. Simpan ke State Lokal
-    // Jika "TIDAK BISA DIFOTO", kita pakai placeholder image (bisa diload dari assets)
-    if (data === 'TIDAK BISA DIFOTO') {
-        // Gunakan path relatif ke placeholder
-        STATE.photos[pointId] = './assets/fototidakbisadiambil.jpeg'; 
-    } else {
-        STATE.photos[pointId] = data;
-    }
+    // Simpan ke server (Temp)
+    const payload = {
+        nomorUlok: STATE.formData.nomorUlok,
+        photoId: STATE.activePoint.id,
+        photoNote: data === 'TIDAK BISA DIFOTO' ? 'TIDAK BISA DIFOTO' : null,
+        photoBase64: data !== 'TIDAK BISA DIFOTO' ? data : null
+    };
 
-    // 2. Kirim ke Backend (Auto Save)
-    showLoading(true, "Menyimpan foto...");
+    showLoading(true, "Menyimpan...");
     try {
-        const payload = {
-            nomorUlok: STATE.formData.nomorUlok,
-            photoId: pointId,
-            // Jika TIDAK BISA DIFOTO, kirim note. Jika ada foto, kirim base64.
-            photoNote: data === 'TIDAK BISA DIFOTO' ? 'TIDAK BISA DIFOTO' : null,
-            photoBase64: data !== 'TIDAK BISA DIFOTO' ? data : null
-        };
-        
         await fetch(`${API_BASE_URL}/save-temp`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
-
-        showToast(`Foto #${pointId} tersimpan`);
-        closeCamera();
-        renderPoints();
-
-    } catch (err) {
-        alert("Gagal menyimpan ke server: " + err.message);
-    } finally {
-        showLoading(false);
+        showToast("Foto tersimpan");
+    } catch(e) {
+        console.error(e);
+        showToast("Gagal simpan ke server (Saved Locally)");
     }
+    showLoading(false);
+
+    closeCamera();
+    renderFloorPlan(); // Refresh titik di denah
+    renderPhotoGrid(); // Refresh grid di bawah
 }
 
-async function saveTempData() {
-    try {
-        await fetch(`${API_BASE_URL}/save-temp`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(STATE.formData)
-        });
-    } catch (e) { console.error("Auto-save failed", e); }
-}
-
-// --- FINISH & PDF ---
+// --- PDF & FINISH ---
 async function finishProcess() {
-    if (!confirm("Apakah Anda yakin ingin menyimpan dan memproses PDF?")) return;
-
+    if(!confirm("Yakin ingin menyimpan dan memproses PDF?")) return;
+    
     showLoading(true, "Membuat PDF...");
-
     try {
-        // 1. Generate PDF Client-Side using jsPDF
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
+        // Cover
         doc.setFontSize(16);
-        doc.text("DOKUMENTASI BANGUNAN TOKO BARU", 105, 15, null, null, "center");
+        doc.text("DOKUMENTASI BANGUNAN TOKO BARU", 105, 20, null, null, "center");
         doc.setFontSize(12);
-        doc.text(`Toko: ${STATE.formData.namaToko} (${STATE.formData.kodeToko})`, 105, 25, null, null, "center");
-        doc.text(`Ulok: ${STATE.formData.nomorUlok}`, 105, 32, null, null, "center");
-
-        let yPos = 40;
-        let count = 0;
+        doc.text(`Toko: ${STATE.formData.namaToko} (${STATE.formData.kodeToko})`, 105, 30, null, null, "center");
         
-        // Loop through all points sorted by ID
-        const sortedPoints = CONFIG.POINTS.sort((a,b) => a.id - b.id);
+        let y = 40;
+        let pIndex = 0;
+        const points = CONFIG.POINTS.sort((a,b)=>a.id-b.id);
         
-        for (const p of sortedPoints) {
+        for(let i=0; i<points.length; i++) {
+            const p = points[i];
             const imgData = STATE.photos[p.id];
-            if (imgData) {
-                // Tambah Halaman baru setiap 2 foto agar rapi
-                if (count > 0 && count % 2 === 0) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-
+            
+            if(imgData && imgData !== 'TIDAK BISA DIFOTO') {
+                if(y > 250) { doc.addPage(); y = 20; }
+                
                 doc.setFontSize(10);
-                doc.text(`#${p.id} - ${p.label}`, 20, yPos);
+                doc.text(`#${p.id} ${p.label}`, 20, y);
+                doc.addImage(imgData, 'JPEG', 20, y+5, 80, 60);
                 
-                // Add Image (pastikan base64 valid)
-                if (imgData.startsWith('data:image')) {
-                    doc.addImage(imgData, 'JPEG', 20, yPos + 5, 120, 90); // Sesuaikan ukuran
-                } else {
-                     doc.text("[Gambar tidak tersedia]", 20, yPos + 20);
-                }
-                
-                yPos += 110;
-                count++;
+                // Layout 2 kolom (simple logic for now vertical)
+                y += 80;
             }
         }
-
-        const pdfBase64 = doc.output('datauristring'); // Format: "data:application/pdf;base64,..."
-
-        // 2. Kirim ke Backend (saveToko)
-        showLoading(true, "Mengirim Data...");
         
-        const finalPayload = {
-            ...STATE.formData,
-            emailPengirim: STATE.user.username,
-            pdfBase64: pdfBase64
-        };
-
+        const pdfBase64 = doc.output('datauristring');
+        
+        // Final Save
+        const finalData = { ...STATE.formData, emailPengirim: STATE.user.username, pdfBase64 };
         const res = await fetch(`${API_BASE_URL}/save-toko`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(finalPayload)
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(finalData)
         });
         
         const json = await res.json();
-        
-        if (json.ok) {
-            // 3. Kirim Email (Opsional, backend mungkin sudah handle trigger email)
-             await fetch(`${API_BASE_URL}/send-pdf-email`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    email: STATE.user.username,
-                    pdfBase64: pdfBase64,
-                    filename: `Dokumentasi_${STATE.formData.kodeToko}.pdf`,
-                    ...STATE.formData
-                })
-            });
-
-            alert("Berhasil! Data disimpan dan PDF telah dikirim.");
-            localStorage.removeItem('formData'); // Clear temp
-            location.reload(); // Refresh
+        if(json.ok) {
+            alert("Berhasil! Data tersimpan.");
+            localStorage.removeItem('sparta_formData');
+            window.location.reload();
         } else {
-            throw new Error(json.error || "Gagal menyimpan data akhir");
+            throw new Error(json.error);
         }
-
-    } catch (e) {
-        alert("Terjadi kesalahan: " + e.message);
-        console.error(e);
-    } finally {
-        showLoading(false);
+        
+    } catch(e) {
+        alert("Error: " + e.message);
     }
+    showLoading(false);
 }
 
 // --- UI UTILS ---
-function showLoading(show, text="Loading...") {
-    els.loadingText.textContent = text;
-    if (show) els.loading.classList.remove('hidden');
-    else els.loading.classList.add('hidden');
+function showLoading(show, txt) {
+    const el = document.getElementById('loadingOverlay');
+    if(show) {
+        if(txt) document.getElementById('loadingText').textContent = txt;
+        el.classList.remove('hidden');
+    } else {
+        el.classList.add('hidden');
+    }
 }
-
 function showToast(msg) {
-    els.toast.textContent = msg;
-    els.toast.classList.remove('hidden');
-    setTimeout(() => els.toast.classList.add('hidden'), 3000);
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    setTimeout(()=>t.classList.add('hidden'), 3000);
 }
