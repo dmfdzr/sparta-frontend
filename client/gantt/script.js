@@ -1492,40 +1492,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const DAY_WIDTH = 40;
         const ROW_HEIGHT = 50;
-        // Offset vertikal dari tengah baris agar garis mulai dari atas dan berakhir di bawah
-        // Asumsi tinggi visual bar sekitar 26-30px, jadi offset 12-13px dari tengah sudah pas di tepi.
-        const VERTICAL_OFFSET = 13;
-
-        // --- 1. LOGIKA RIPPLE EFFECT (Kalkulasi Pergeseran) ---
-        const effectiveEndDates = {};
+        
+        // --- 1. LOGIKA RIPPLE EFFECT (Kalkulasi Pergeseran Relatif) ---
+        // Logika Baru: Mempertahankan Overlap, tapi mewariskan Delay.
+        
+        const effectiveEndDates = {}; 
 
         // Reset computed shift
         currentTasks.forEach(t => t.computed = { shift: 0 });
 
-        // Calculate visual shifts (MODIFIED: NO AUTO SHIFT)
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
-            
-            // MODIFIKASI: Kita paksa shift selalu 0 agar Bar tetap di posisi sesuai input user
-            // meskipun dependency-nya belum selesai.
-            let shift = 0; 
-            
-            /* LOGIKA LAMA (AUTO SHIFT) DI-NONAKTIFKAN:
+            let shift = 0;
+
             if (task.dependency) {
-                const parentEffectiveEnd = effectiveEndDates[task.dependency] || 0;
-                if (ranges.length > 0) {
-                    const plannedStart = ranges[0].start;
-                    if (plannedStart <= parentEffectiveEnd) {
-                        shift = parentEffectiveEnd - plannedStart + 1;
+                const parentTask = currentTasks.find(t => t.id === task.dependency);
+                if (parentTask) {
+                    // Ambil shift akumulatif dari parent
+                    const parentExistingShift = parentTask.computed.shift || 0;
+                    
+                    // Ambil input delay user pada parent (dari range terakhir)
+                    let parentInputDelay = 0;
+                    const pRanges = parentTask.inputData?.ranges || [];
+                    if (pRanges.length > 0) {
+                        parentInputDelay = parseInt(pRanges[pRanges.length - 1].keterlambatan || 0);
                     }
+
+                    // Shift anak = Total pergeseran parent
+                    shift = parentExistingShift + parentInputDelay;
                 }
             }
-            */
 
             task.computed.shift = shift;
 
-            // Kita tetap perlu menghitung effectiveEndDates agar garis panah dependency 
-            // tahu titik koordinat akhirnya.
+            // Hitung titik akhir efektif untuk keperluan panah garis
             if (ranges.length > 0) {
                 const lastRange = ranges[ranges.length - 1];
                 const actualEnd = lastRange.end + shift;
@@ -1581,11 +1581,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxEnd = ranges.length ? Math.max(...ranges.map(r => r.end + shift + (parseInt(r.keterlambatan) || 0))) : 0;
             const minStart = ranges.length ? Math.min(...ranges.map(r => r.start + shift)) : 0;
 
-            // Simpan koordinat titik tengah Y dan ujung X
             taskCoordinates[task.id] = {
-                centerY: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2), // Titik tengah vertikal baris
-                endX: maxEnd * DAY_WIDTH,       // Titik keluar (Kanan)
-                startX: (minStart - 1) * DAY_WIDTH // Titik masuk (Kiri)
+                centerY: (index * ROW_HEIGHT) + (ROW_HEIGHT / 2),
+                endX: maxEnd * DAY_WIDTH,
+                startX: (minStart - 1) * DAY_WIDTH
             };
 
             html += `<div class="task-row"><div class="task-name"><span>${task.name}</span><span class="task-duration">${durTxt} hari</span></div>`;
@@ -1627,8 +1626,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `</div></div>`;
         });
 
-        // --- 5. RENDER DEPENDENCY LINES (TOP-RIGHT to BOTTOM-LEFT) ---
-        // SVG defs for arrow marker (ensures arrowhead aligns with curve end)
+        // --- 5. RENDER DEPENDENCY LINES (SVG) ---
         const svgDefs = `
             <defs>
                 <marker id="depArrow" viewBox="0 0 10 6" refX="7" refY="3" markerWidth="8" markerHeight="6" orient="auto">
@@ -1643,17 +1641,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const me = taskCoordinates[task.id];
 
                 if (parent && me && parent.endX !== undefined && me.startX !== undefined) {
-                    // Anchor: source right-center (parent) -> target left-center (child)
-                    const startX = parent.endX;                        // right edge of parent bar
-                    const startY = parent.centerY;                     // center of parent bar
-                    const endX = me.startX;                            // left edge of child bar
-                    const endY = me.centerY;                           // center of child bar
+                    const startX = parent.endX;
+                    const startY = parent.centerY;
+                    const endX = me.startX;
+                    const endY = me.centerY;
 
-                    // Bezier curve: subtle horizontal lead-in/out
                     const deltaX = endX - startX;
-                    let tension = 40;                                   // default handle length
-                    if (deltaX < 40) tension = 60;                      // closer bars → smoother curve
-                    if (deltaX < 0) tension = 100;                      // overlap case → larger bend
+                    let tension = 40;
+                    if (deltaX < 40) tension = 60;
+                    if (deltaX < 0) tension = 100;
 
                     const cp1x = startX + tension;
                     const cp1y = startY;
@@ -1661,16 +1657,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const cp2y = endY;
 
                     const path = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
-
+                    
                     const parentTask = currentTasks.find(t => t.id === task.dependency);
                     const tooltipText = parentTask ? `${task.name} menunggu ${parentTask.name}` : '';
 
-                    // Style: smooth line with marker-end arrow
-                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95">
-                        <title>${tooltipText}</title>
-                    </path>`;
-
-                    // Small dots at anchors for clearer start/target points
+                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95"><title>${tooltipText}</title></path>`;
                     svgLines += `<circle class="dependency-node" cx="${startX}" cy="${startY}" r="4" />`;
                     svgLines += `<circle class="dependency-node" cx="${endX}" cy="${endY}" r="4" />`;
                 }
@@ -1679,7 +1670,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const svgHeight = currentTasks.length * ROW_HEIGHT;
 
-        // SVG Container
         html += `
             <svg class="chart-lines-svg" style="position:absolute; top:0; left:250px; width:${totalChartWidth}px; height:${svgHeight}px; pointer-events:none; z-index:10;">
                 ${svgDefs}
