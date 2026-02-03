@@ -132,50 +132,31 @@ document.addEventListener("DOMContentLoaded", () => {
     initEventListeners();
 });
 
-async function logLoginAttempt(username, cabang, status) {
-    const logData = {
-        requestType: "loginAttempt",
-        username: username,
-        cabang: cabang,
-        status: status,
-    };
-    try {
-        await fetch(APPS_SCRIPT_POST_URL, {
-            method: "POST",
-            redirect: "follow",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(logData),
-        });
-    } catch (error) {
-        console.error("Log failed", error);
-    }
-}
-
 function checkSession() {
+    // Cek SessionStorage yang diset oleh modul Auth utama
     const ssoAuth = sessionStorage.getItem("authenticated");
     const ssoEmail = sessionStorage.getItem("loggedInUserEmail");
     const ssoCabang = sessionStorage.getItem("loggedInUserCabang");
     const ssoRole = sessionStorage.getItem("userRole");
-    const localUser = localStorage.getItem("user");
 
-    if (ssoAuth === "true" && ssoEmail && ssoCabang) {
-        STATE.user = {
-            email: ssoEmail,
-            cabang: ssoCabang,
-            role: ssoRole || "USER",
-            source: "sso"
-        };
-        proceedToApp();
-    } else if (localUser) {
-        STATE.user = JSON.parse(localUser);
-        if (!STATE.user.cabang && STATE.user.password) {
-            STATE.user.cabang = STATE.user.password;
-        }
-        proceedToApp();
-    } else {
-        switchToView("login");
-        checkTimeLimit();
+    // Jika tidak ada session auth yang valid, tendang ke halaman login utama
+    if (ssoAuth !== "true" || !ssoEmail) {
+        alert("Sesi Anda telah habis atau Anda belum login.");
+        // Ganti URL di bawah sesuai dengan URL login utama app Anda
+        // Misalnya root '/' atau '/auth/index.html'
+        window.location.href = '/'; 
+        return;
     }
+
+    // Set STATE user dari session
+    STATE.user = {
+        email: ssoEmail,
+        cabang: ssoCabang,
+        role: ssoRole || "USER",
+        source: "sso"
+    };
+
+    proceedToApp();
 }
 
 function proceedToApp() {
@@ -183,8 +164,8 @@ function proceedToApp() {
     if (headerCabang) headerCabang.textContent = STATE.user.cabang || "";
 
     show(getEl("main-header"));
-    hide(getEl("view-login"));
-
+    
+    // Tampilkan pesan sukses jika baru saja redirect setelah simpan
     if (localStorage.getItem("saved_ok") === "1") {
         showToast("Berhasil disimpan! ✅", "success");
         localStorage.removeItem("saved_ok");
@@ -209,53 +190,31 @@ function checkTimeLimit() {
     const wib = new Date(utc + 7 * 60 * 60000);
     const hour = wib.getHours();
 
-    const isLoginView = !getEl("view-login").classList.contains("hidden");
-    const msgContainer = getEl("login-info-msg");
-    const btnLogin = getEl("btn-submit-login");
-
+    // Hanya cek jika user sudah di dalam aplikasi
     if (hour < 6 || hour >= 18) {
         const timeStr = `${hour.toString().padStart(2, "0")}:${wib.getMinutes().toString().padStart(2, "0")}`;
-        const msg = `⏰ Login hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`;
-
-        if (isLoginView && msgContainer) {
-            msgContainer.textContent = msg;
-            show(msgContainer);
-            if (btnLogin) {
-                btnLogin.disabled = true;
-                btnLogin.style.cursor = "not-allowed";
-                btnLogin.style.opacity = 0.6;
+        
+        if (STATE.user) {
+            if (getEl("warning-modal") && getEl("warning-modal").classList.contains("hidden")) {
+                showWarningModal(`Sesi Anda telah berakhir.\nAplikasi hanya dapat diakses pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`, () => doLogout());
             }
-        } else if (STATE.user && !isLoginView) {
-            if (getEl("warning-modal").classList.contains("hidden")) {
-                showWarningModal(`Sesi Anda telah berakhir.\nLogin hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`, () => doLogout());
-            }
-        }
-    } else {
-        if (msgContainer) hide(msgContainer);
-        if (btnLogin) {
-            btnLogin.disabled = false;
-            btnLogin.style.cursor = "pointer";
-            btnLogin.style.opacity = 1;
         }
     }
 }
 
 function doLogout() {
-    localStorage.removeItem("user");
+    // Hapus sesi dan redirect ke login utama
     sessionStorage.clear();
+    localStorage.removeItem("user"); // Bersihkan legacy local jika ada
     STATE.user = null;
-    location.reload();
+    window.location.href = '/';
 }
 
 function switchToView(viewName) {
-    hide(getEl("view-login"));
     hide(getEl("view-form"));
     hide(getEl("view-floorplan"));
 
-    if (viewName === "login") {
-        show(getEl("view-login"));
-        hide(getEl("main-header"));
-    } else if (viewName === "form") {
+    if (viewName === "form") {
         show(getEl("view-form"));
         show(getEl("main-header"));
     } else if (viewName === "floorplan") {
@@ -268,36 +227,7 @@ function switchToView(viewName) {
 // ==========================================
 // 4. API CALLS
 // ==========================================
-async function apiLogin(username, password) {
-    logLoginAttempt(username, password, "Attempt");
-
-    try {
-        const res = await fetch(`${API_BASE_URL}/doc/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: username, password: password }),
-        });
-
-        const json = await res.json();
-
-        if (res.ok && json.ok) {
-            logLoginAttempt(username, password, "Success");
-            return {
-                email: username,
-                cabang: password,
-                role: (json.user && json.user.role) ? json.user.role.toUpperCase() : "USER",
-                ...json.user
-            };
-        } else {
-            const errMsg = json.message || "Username atau password salah.";
-            logLoginAttempt(username, password, "Failed");
-            throw new Error(errMsg);
-        }
-    } catch (e) {
-        logLoginAttempt(username, password, "Failed");
-        throw e;
-    }
-}
+// apiLogin dihapus karena login ditangani terpusat
 
 async function loadSpkData(cabang) {
     if (!cabang) return;
@@ -353,63 +283,7 @@ async function cekStatus(nomorUlok) {
 // 5. EVENT LISTENERS
 // ==========================================
 function initEventListeners() {
-    // LOGIN FORM
-    const formLogin = getEl("form-login");
-    if (formLogin) {
-        formLogin.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const u = getEl("login-username").value.trim();
-            const p = getEl("login-password").value.trim();
-            const btn = getEl("btn-submit-login");
-
-            if (!u || !p) {
-                showToast("Username dan password harus diisi!", "error");
-                return;
-            }
-
-            btn.textContent = "Memproses...";
-            btn.disabled = true;
-            hide(getEl("login-error-msg"));
-
-            try {
-                const user = await apiLogin(u, p);
-
-                localStorage.setItem("user", JSON.stringify(user));
-                sessionStorage.setItem("authenticated", "true");
-                sessionStorage.setItem("loggedInUserEmail", user.email);
-                sessionStorage.setItem("loggedInUserCabang", user.cabang);
-                sessionStorage.setItem("userRole", user.role);
-
-                checkSession();
-            } catch (err) {
-                const errDiv = getEl("login-error-msg");
-                errDiv.textContent = err.message;
-                show(errDiv);
-            } finally {
-                btn.textContent = "Login";
-                btn.disabled = false;
-            }
-        });
-    }
-
-    // TOGGLE PASSWORD
-    const btnToggle = getEl("btn-toggle-pass");
-    if (btnToggle) {
-        btnToggle.addEventListener("click", (e) => {
-            e.preventDefault();
-            const inp = getEl("login-password");
-            const icon = btnToggle.querySelector("i");
-            if (inp.type === "password") {
-                inp.type = "text";
-                icon.classList.remove("fa-eye");
-                icon.classList.add("fa-eye-slash");
-            } else {
-                inp.type = "password";
-                icon.classList.remove("fa-eye-slash");
-                icon.classList.add("fa-eye");
-            }
-        });
-    }
+    // LOGIN FORM LISTENERS DIHAPUS
 
     // LOGOUT
     const btnLogout = getEl("btn-logout");

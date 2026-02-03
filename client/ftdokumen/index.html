@@ -10,7 +10,6 @@
 </head>
 <body>
 
-    <!-- HEADER UTAMA -->
     <header class="app-header hidden" id="main-header">
         <div class="header-top">
             <h1>FOTO DOKUMENTASI BANGUNAN TOKO BARU ALFAMART</h1>
@@ -29,34 +28,6 @@
 
     <main class="container">
         
-        <!-- LOGIN VIEW -->
-        <div id="view-login" class="view-section login-card">
-            <div style="text-align: center; margin-bottom: 2rem;">
-                <img src="../../assets/Alfamart-Emblem.png" alt="Logo" style="height: 50px; margin-bottom: 1rem;">
-                <h2 style="margin-bottom: 0.5rem; color: #111;">Building & Maintenance</h2>
-                <p style="color: #666; margin-bottom: 0;">Foto Dokumentasi Bangunan Toko Baru</p>
-            </div>
-
-            <div id="login-info-msg" class="hidden alert alert-info" style="margin-bottom: 1rem;"></div>
-            <div id="login-error-msg" class="hidden alert alert-error" style="margin-bottom: 1rem;"></div>
-
-            <form id="form-login">
-                <div class="form-group">
-                    <label>Username (Email)</label>
-                    <input type="text" id="login-username" placeholder="Masukkan email..." required>
-                </div>
-                <div class="form-group" style="position: relative;">
-                    <label>Cabang (Kode)</label>
-                    <input type="password" id="login-password" placeholder="Masukkan kode cabang..." required style="width: 100%;">
-                    <button type="button" id="btn-toggle-pass" class="btn-toggle-password">
-                        <i class="fa-solid fa-eye"></i>
-                    </button>
-                </div>
-                <button type="submit" id="btn-submit-login" class="btn-primary full-width">Login</button>
-            </form>
-        </div>
-
-        <!-- FORM DATA VIEW -->
         <div id="view-form" class="view-section hidden">
             <h2 class="section-title">
                 <i class="fa-solid fa-file-lines"></i> Data Dokumentasi
@@ -134,7 +105,6 @@
             </form>
         </div>
 
-        <!-- FLOOR PLAN VIEW -->
         <div id="view-floorplan" class="view-section hidden">
             <div class="floor-plan-header">
                 <button id="btn-back-form" class="btn-text">
@@ -191,31 +161,25 @@
 
     </main>
 
-    <!-- CAMERA MODAL -->
     <div id="camera-modal" class="modal-overlay hidden" style="z-index: 2000;">
         <div class="camera-container">
-            <!-- Preview Container -->
             <div id="cam-preview-container" style="position: relative; width: 100%; height: 100%;">
                 <video id="cam-video" autoplay playsinline style="width:100%; height:100%; object-fit: cover;"></video>
                 <div class="camera-grid-overlay"></div>
             </div>
 
-            <!-- Result Container (Tersembunyi, muncul saat ada preview) -->
             <div id="photo-result-container" class="hidden" style="width: 100%; height: 100%; background: black; display: flex; align-items: center; justify-content: center;">
                 <img id="captured-img" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
             </div>
             
             <canvas id="cam-canvas" style="display:none;"></canvas>
 
-            <!-- Camera UI (Header & Controls) -->
             <div class="camera-ui">
-                <!-- Header -->
                 <div class="camera-header">
                     <span id="cam-title" style="color:white; font-weight:bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">Titik Foto</span>
                     <button id="btn-close-cam" class="btn-close-camera">&times;</button>
                 </div>
 
-                <!-- Pre-Capture Actions (Kamera Aktif) -->
                 <div id="actions-pre-capture" class="camera-controls">
                     <label class="btn-file-upload" title="Upload Foto">
                         <i class="fa-solid fa-upload"></i>
@@ -229,7 +193,6 @@
                     </button>
                 </div>
 
-                <!-- Post-Capture Actions (Ada Preview) -->
                 <div id="actions-post-capture" class="capture-actions hidden">
                     <button id="btn-retake" class="btn-secondary">
                         <i class="fa-solid fa-rotate-left"></i> Ulangi
@@ -242,7 +205,6 @@
         </div>
     </div>
 
-    <!-- WARNING MODAL -->
     <div id="warning-modal" class="modal-overlay hidden" style="z-index: 3000;">
         <div class="warning-box">
             <div class="warning-icon">!</div>
@@ -252,15 +214,12 @@
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATION -->
     <div id="form-status-toast" class="toast">Notifikasi</div>
 
-    <!-- LOADING OVERLAY -->
     <div id="loading-overlay" class="loading-overlay hidden">
         <div class="spinner"></div>
         <div id="loading-text" style="margin-top: 1rem; font-weight: 600; color: #333;">Loading...</div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
