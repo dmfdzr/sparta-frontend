@@ -1,7 +1,7 @@
 // ==========================================
 // 1. CONFIG & AUTHENTICATION
 // ==========================================
-const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; // Sesuaikan jika perlu
+const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; 
 let currentUser = null;
 let allLogs = [];
 let filteredLogs = [];
@@ -63,21 +63,26 @@ function initApp() {
 async function fetchLogs() {
     showLoading(true);
     try {
-        // Ganti URL ini dengan endpoint User Log yang sesuai
-        const url = `${BASE_URL}/api/logs/list`; 
+        // [UPDATE] Menggunakan endpoint yang benar
+        const url = `${BASE_URL}/api/filter_user_log_login`; 
+
+        console.log("Fetching logs from:", url); // Debugging
 
         const res = await fetch(url);
-        if (!res.ok) throw new Error("Gagal mengambil data log");
+        if (!res.ok) throw new Error(`Gagal mengambil data log (Status: ${res.status})`);
 
         const rawData = await res.json();
-        
-        // ADAPTASI JSON BARU: Data ada di dalam property "data"
+        console.log("Raw Data Received:", rawData); // Debugging untuk melihat struktur asli
+
+        // ADAPTASI JSON: Data ada di dalam property "data"
+        // Struktur JSON Anda: { start_date: "...", end_date: "...", total: 143, data: [...] }
         if (rawData && Array.isArray(rawData.data)) {
             allLogs = rawData.data;
         } else if (Array.isArray(rawData)) {
             // Fallback jika API mengembalikan array langsung
             allLogs = rawData;
         } else {
+            console.warn("Format data tidak dikenali:", rawData);
             allLogs = [];
         }
 
@@ -113,8 +118,9 @@ function handleSearch(keyword) {
 
     // Sort Descending berdasarkan timestamp (terbaru diatas)
     filteredLogs.sort((a, b) => {
-        const dateA = new Date(a.timestamp || 0);
-        const dateB = new Date(b.timestamp || 0);
+        // Gunakan timestamp jika ada, jika tidak fallback ke field 'date'
+        const dateA = new Date(a.timestamp || a.date || 0);
+        const dateB = new Date(b.timestamp || b.date || 0);
         return dateB - dateA; 
     });
 
@@ -150,15 +156,21 @@ function renderTable() {
         
         // Format Timestamp: "YYYY-MM-DDTHH:mm:ss" -> "30 Jan 2026, 08:50"
         let formattedTime = "-";
-        if (log.timestamp) {
-            const dateObj = new Date(log.timestamp);
-            formattedTime = dateObj.toLocaleString('id-ID', {
-                day: 'numeric', month: 'short', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            });
+        const rawTime = log.timestamp || log.date; // Support fallback ke field date
+
+        if (rawTime) {
+            try {
+                const dateObj = new Date(rawTime);
+                formattedTime = dateObj.toLocaleString('id-ID', {
+                    day: 'numeric', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+            } catch (e) {
+                formattedTime = rawTime;
+            }
         }
 
-        // Generate Row tanpa tombol aksi
+        // Generate Row (No, Cabang, Email, Waktu)
         row.innerHTML = `
             <td>${startIndex + index + 1}</td>
             <td>${log.cabang || "-"}</td>
@@ -242,7 +254,7 @@ function handleExportCSV() {
 
     const headers = ['No', 'Cabang', 'Email User', 'Waktu Akses'];
     const rows = filteredLogs.map((log, i) => {
-        const time = log.timestamp || "-";
+        const time = log.timestamp || log.date || "-";
         return [
             i + 1,
             `"${(log.cabang || "").replace(/"/g, '""')}"`,
@@ -274,12 +286,12 @@ function handleExportPDF() {
 
     // Data Rows
     const tableRows = filteredLogs.map((log, i) => {
-        let formattedTime = log.timestamp;
+        let formattedTime = log.timestamp || log.date;
         try {
-             formattedTime = new Date(log.timestamp).toLocaleString('id-ID');
-        } catch(e) { formattedTime = log.timestamp; }
+             if (formattedTime) formattedTime = new Date(formattedTime).toLocaleString('id-ID');
+        } catch(e) { /* ignore error */ }
 
-        return [i + 1, log.cabang || "-", log.email || "-", formattedTime];
+        return [i + 1, log.cabang || "-", log.email || "-", formattedTime || "-"];
     });
 
     // Header Info
@@ -300,7 +312,7 @@ function handleExportPDF() {
         columnStyles: {
             0: { cellWidth: 15, halign: 'center' },
             1: { cellWidth: 40 },
-            2: { cellWidth: 80 }, // Email lebih lebar
+            2: { cellWidth: 80 }, 
             3: { cellWidth: 'auto' }
         }
     });
