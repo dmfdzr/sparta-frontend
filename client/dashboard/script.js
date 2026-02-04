@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Langkah C: TAMBAHKAN menu khusus HO ke dalam daftar menu Role yang sudah ada.
         // Dengan cara ini, batasan Role tetap berlaku, tapi mereka dapat fitur tambahan.
         allowedMenus.push('menu-userlog');
-        allowedMenus.push('menu-sp');
         
         // Catatan: Jika Anda ingin menu tertentu (misal SPK) bisa dilihat 
         // oleh SEMUA orang Head Office (meskipun role aslinya gak punya), 
