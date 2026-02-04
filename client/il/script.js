@@ -1,21 +1,13 @@
-/**
- * refactor: modularize configuration, consolidate state, and clean up dead code
- */
-
 // --- 0. Security & Auth Check (Moved from HTML to JS) ---
 (function checkAuthentication() {
     const isAuthenticated = sessionStorage.getItem('authenticated');
-    const userRole = sessionStorage.getItem('userRole');
     const REDIRECT_URL = 'https://sparta-alfamart.vercel.app';
 
+    // Cek Login saja, tanpa cek Role
     if (!isAuthenticated) {
         sessionStorage.setItem('redirectTo', window.location.pathname);
         window.location.href = REDIRECT_URL;
         throw new Error("Unauthorized access"); 
-    } else if (userRole !== 'BRANCH BUILDING SUPPORT') {
-        alert('Anda tidak memiliki izin untuk mengakses halaman ini.');
-        window.location.href = '/';
-        throw new Error("Forbidden access");
     }
 })();
 
@@ -23,6 +15,7 @@
 const CONFIG = {
     API_BASE_URL: "https://sparta-backend-5hdj.onrender.com",
     REDIRECT_ON_EXPIRY: "https://sparta-alfamart.vercel.app", 
+    OPNAME_PAGE_URL: "../opname/index.html", // Link balik ke opname
     SIPIL_CATEGORIES: [
         "PEKERJAAN PERSIAPAN", "PEKERJAAN BOBOKAN / BONGKARAN", "PEKERJAAN TANAH",
         "PEKERJAAN PONDASI & BETON", "PEKERJAAN PASANGAN", "PEKERJAAN BESI",
@@ -119,7 +112,7 @@ const Utils = {
     },
 
     toggleMessage: (text, type = 'info') => {
-        DOM.messageDiv.textContent = text;
+        DOM.messageDiv.innerHTML = text; 
         DOM.messageDiv.style.display = 'block';
         if (type === 'error') {
             DOM.messageDiv.style.backgroundColor = "#dc3545";
@@ -132,7 +125,6 @@ const Utils = {
             DOM.messageDiv.style.color = "white";
         }
         
-        // Special case for warning/yellow
         if (type === 'warning') {
             DOM.messageDiv.style.backgroundColor = "#ffc107";
             DOM.messageDiv.style.color = "#000";
@@ -148,7 +140,7 @@ const handleCurrencyInput = (event) => {
     } else {
         input.value = Utils.formatNumberWithSeparators(parseInt(numericValue, 10));
     }
-    calculateTotalPrice(input); // Recalculate totals immediately
+    calculateTotalPrice(input); 
 };
 
 // --- 5. Core Logic Functions ---
@@ -163,7 +155,6 @@ const populateJenisPekerjaanOptionsForNewRow = (rowElement) => {
     const dataSource = (scope === "Sipil") ? STATE.categorizedPrices.sipil : (scope === "ME") ? STATE.categorizedPrices.me : {};
     const itemsInCategory = dataSource ? (dataSource[category] || []) : [];
 
-    // Filter already selected items
     const selectedValues = Array.from(
         document.querySelectorAll(`.boq-table-body[data-category="${category}"] .jenis-pekerjaan`)
     ).map(sel => sel.value).filter(v => v !== "");
@@ -219,7 +210,6 @@ const autoFillPrices = (selectElement) => {
         satuan: row.querySelector(".satuan")
     };
 
-    // Reset styles
     Object.values(els).forEach(el => el.classList.remove('auto-filled', 'kondisional-input'));
 
     if (!selectedJenisPekerjaan) {
@@ -251,7 +241,6 @@ const autoFillPrices = (selectElement) => {
         const isMatKondisional = selectedItem["Harga Material"] === "Kondisional";
         const isUpahKondisional = selectedItem["Harga Upah"] === "Kondisional";
 
-        // Logic Material
         if (isMatKondisional) {
             els.material.value = "0"; els.material.readOnly = true;
             els.material.classList.add("auto-filled");
@@ -261,7 +250,6 @@ const autoFillPrices = (selectElement) => {
             els.material.classList.add("auto-filled");
         }
 
-        // Logic Upah
         if (isMatKondisional || isUpahKondisional) {
             els.upah.value = "0"; els.upah.readOnly = false;
             els.upah.classList.add("kondisional-input");
@@ -285,7 +273,6 @@ const createBoQRow = (category, scope) => {
     row.dataset.scope = scope;
     row.dataset.category = category;
 
-    // Use Template Literals for cleaner HTML structure
     row.innerHTML = `
         <td class="col-no"><span class="row-number"></span></td>
         <td class="col-jenis-pekerjaan">
@@ -304,11 +291,9 @@ const createBoQRow = (category, scope) => {
         <td class="col-aksi"><button type="button" class="delete-row-btn">Hapus</button></td>
     `;
 
-    // Attach listeners
     row.querySelector(".volume").addEventListener("input", (e) => calculateTotalPrice(e.target));
     
     row.querySelector(".delete-row-btn").addEventListener("click", () => {
-        // Correct Select2 Cleanup
         $(row.querySelector('.jenis-pekerjaan')).select2('destroy');
         row.remove();
         updateAllRowNumbersAndTotals();
@@ -367,12 +352,9 @@ function createTableStructure(categoryName, scope) {
     addRowButton.dataset.scope = scope;
     addRowButton.textContent = `Tambah Item ${categoryName}`;
 
-    // Add event listener immediately to the button
     addRowButton.addEventListener("click", async () => {
-        // Ensure table is visible
         tableContainer.style.display = 'block';
         
-        // Ensure data exists
         const dataSource = scope === "Sipil" ? STATE.categorizedPrices.sipil : STATE.categorizedPrices.me;
         if (!dataSource || Object.keys(dataSource).length === 0) {
             await fetchAndPopulatePrices();
@@ -397,7 +379,7 @@ function createTableStructure(categoryName, scope) {
 
 function buildTables(scope, data) {
     const wrapper = scope === 'Sipil' ? DOM.sipilTablesWrapper : DOM.meTablesWrapper;
-    wrapper.innerHTML = ''; // Clear previous content
+    wrapper.innerHTML = ''; 
     const categories = scope === 'Sipil' ? CONFIG.SIPIL_CATEGORIES : CONFIG.ME_CATEGORIES;
 
     categories.forEach(category => {
@@ -447,7 +429,6 @@ async function populateFormWithHistory(data) {
     const nomorUlok = data["Nomor Ulok"];
     if (nomorUlok) {
         const cleanUlok = nomorUlok.replace(/-/g, ""); 
-        // Logic for checking if Renovasi based on length (13 chars ends with R)
         const isRenov = cleanUlok.length === 13 && cleanUlok.endsWith("R");
         
         let ulokParts;
@@ -463,14 +444,12 @@ async function populateFormWithHistory(data) {
             DOM.lokasiManual.value = ulokParts[3];
             
             DOM.toggleRenovasi.checked = isRenov;
-            // Dispatch event to update UI visibility
             DOM.toggleRenovasi.dispatchEvent(new Event('change'));
             
             updateNomorUlok();
         }
     }
 
-    // Populate standard inputs
     const namaTokoVal = data["nama_toko"] || data["Nama_Toko"];
     if (namaTokoVal) document.getElementById("nama_toko").value = namaTokoVal;
 
@@ -489,7 +468,6 @@ async function populateFormWithHistory(data) {
 
     const itemDetails = data["Item_Details_JSON"] ? JSON.parse(data["Item_Details_JSON"]) : data;
 
-    // Reconstruct rows
     for (let i = 1; i <= 200; i++) {
         if (itemDetails[`Jenis_Pekerjaan_${i}`]) {
             const category = itemDetails[`Kategori_Pekerjaan_${i}`];
@@ -506,14 +484,12 @@ async function populateFormWithHistory(data) {
                 const rowSelect = newRow.querySelector(".jenis-pekerjaan");
                 rowSelect.value = itemDetails[`Jenis_Pekerjaan_${i}`];
                 
-                // Initialize Select2 val for UI
                 $(rowSelect).val(itemDetails[`Jenis_Pekerjaan_${i}`]).trigger('change.select2'); 
 
                 autoFillPrices(rowSelect);
 
                 newRow.querySelector(".volume").value = itemDetails[`Volume_Item_${i}`] || "0.00";
                 
-                // If price was edited manually in history, reflect it
                 const materialInput = newRow.querySelector(".harga-material");
                 const upahInput = newRow.querySelector(".harga-upah");
 
@@ -576,7 +552,6 @@ const calculateGrandTotal = () => {
 
     if (DOM.grandTotalAmount) DOM.grandTotalAmount.textContent = Utils.formatRupiah(total);
     
-    // Round down to nearest 10,000
     const pembulatan = Math.floor(total / 10000) * 10000;
     const ppn = pembulatan * 0.11;
     const finalTotal = pembulatan + ppn;
@@ -635,7 +610,6 @@ async function handleFormSubmit() {
         return;
     }
 
-    // Check ULOK
     const nomorUlok = (DOM.lokasi?.value || '').trim();
     if (!nomorUlok || nomorUlok.length < 12) {
         Utils.toggleMessage("Nomor Ulok belum lengkap.", 'warning');
@@ -659,7 +633,6 @@ async function handleFormSubmit() {
     const formData = new FormData(DOM.form);
     const data = Object.fromEntries(formData.entries());
 
-    // Prepare Payload
     data["nama_toko"] = data["Nama_Toko"] || document.getElementById("nama_toko")?.value?.trim() || "";
     data["Nama_Toko"] = data["nama_toko"];
     data["Cabang"] = DOM.cabangSelect.value;
@@ -708,8 +681,18 @@ async function handleFormSubmit() {
         const result = await response.json();
 
         if (response.ok && result.status === "success") {
-            Utils.toggleMessage("Data berhasil dikirim! Halaman akan dimuat ulang.", 'success');
-            setTimeout(() => window.location.reload(), 5000);
+            Utils.toggleMessage("Data berhasil dikirim! Mengalihkan kembali ke halaman Opname...", 'success');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const originUlok = urlParams.get('ulok');
+
+            setTimeout(() => {
+                if(originUlok) {
+                     window.location.href = `${CONFIG.OPNAME_PAGE_URL}?ulok=${originUlok}`; 
+                } else {
+                     window.location.href = CONFIG.OPNAME_PAGE_URL;
+                }
+            }, 2000); 
         } else {
             throw new Error(result.message || "Terjadi kesalahan di server.");
         }
@@ -762,7 +745,6 @@ async function initializePage() {
         resetButton: document.querySelector("button[type='reset']"),
     };
 
-    // Renovasi Toggle Listener
     DOM.toggleRenovasi.addEventListener('change', () => {
         const isRenov = DOM.toggleRenovasi.checked;
         DOM.separatorRenov.style.display = isRenov ? 'inline' : 'none';
@@ -782,7 +764,6 @@ async function initializePage() {
         checkAndPopulateRejectedData();
     });
 
-    // Populate Select Options (Cabang & Locations)
     const userEmail = sessionStorage.getItem('loggedInUserEmail');
     const userCabang = sessionStorage.getItem('loggedInUserCabang')?.toUpperCase();
 
@@ -823,7 +804,47 @@ async function initializePage() {
         }
     }
 
-    // Check Status API
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramUlok = urlParams.get('ulok');
+    const paramToko = urlParams.get('toko');
+
+    if (paramUlok) {
+        if (paramToko) {
+            const namaTokoEl = document.getElementById("nama_toko");
+            if (namaTokoEl) {
+                namaTokoEl.value = decodeURIComponent(paramToko);
+                namaTokoEl.readOnly = true; 
+                namaTokoEl.classList.add('auto-filled'); 
+            }
+        }
+
+        if (paramUlok.length >= 12) {
+            const kodeCabang = paramUlok.substring(0, 4);
+            const tanggal = paramUlok.substring(4, 8);
+            const isRenov = paramUlok.endsWith("R");
+            const manual = isRenov ? paramUlok.substring(8, 12) : paramUlok.substring(8, 12);
+
+            if (DOM.lokasiCabang.querySelector(`option[value="${kodeCabang}"]`)) {
+                DOM.lokasiCabang.value = kodeCabang;
+                DOM.lokasiCabang.disabled = true; 
+            }
+            
+            DOM.lokasiTanggal.value = tanggal;
+            DOM.lokasiTanggal.readOnly = true;
+
+            if (isRenov) {
+                DOM.toggleRenovasi.checked = true;
+                DOM.toggleRenovasi.dispatchEvent(new Event('change'));
+            }
+            
+            DOM.lokasiManual.value = manual;
+            DOM.lokasiManual.readOnly = true;
+            DOM.toggleRenovasi.disabled = true;
+
+            updateNomorUlok();
+        }
+    }
+
     Utils.toggleMessage('Memuat data status...', 'info');
     try {
         if (userEmail && userCabang) {
@@ -852,7 +873,6 @@ async function initializePage() {
         DOM.lingkupPekerjaanSelect.disabled = false;
     }
 
-    // Event Listeners
     DOM.lokasiCabang.addEventListener('change', () => { updateNomorUlok(); checkAndPopulateRejectedData(); });
     DOM.lokasiTanggal.addEventListener('input', () => { updateNomorUlok(); checkAndPopulateRejectedData(); });
     
