@@ -755,7 +755,7 @@ const Render = {
         if (!AppState.user) {
             // Karena tidak ada form login lokal, redirect ke dashboard utama
             alert("Sesi Anda telah berakhir atau belum login. Silakan login kembali melalui Dashboard Utama.");
-            window.location.href = "../../dashboard/index.html"; 
+            window.location.href = "../../auth/index.html"; 
             return;
         }
 
