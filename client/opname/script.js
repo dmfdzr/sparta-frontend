@@ -13,6 +13,26 @@ const formatRupiah = (number) => {
     }).format(numericValue);
 };
 
+const calculateLatePenalty = (days) => {
+    if (!days || days <= 0) return 0;
+    
+    let totalDenda = 0;
+    
+    // Tier 1: Hari 1 - 5 (1 Juta/hari)
+    const tier1Days = Math.min(days, 5);
+    totalDenda += tier1Days * 1000000;
+    
+    // Tier 2: Hari 6 - 15 (500 Ribu/hari)
+    if (days > 5) {
+        const remainingDays = days - 5;
+        const tier2Days = Math.min(remainingDays, 10); // Max 10 hari (sampai hari ke-15)
+        totalDenda += tier2Days * 500000;
+    }
+    
+    // Max denda total otomatis 10.000.000 berdasarkan logika di atas (5jt + 5jt)
+    return totalDenda;
+};
+
 // Convert string/number to clean number
 const toNumInput = (v) => {
     if (v === null || v === undefined) return 0;
@@ -1098,8 +1118,10 @@ const Render = {
             return;
         }
 
+        // ... (Kode UI Pilih Lingkup tetap sama, tidak berubah) ...
         if (!AppState.selectedLingkup) {
-            container.innerHTML = `
+            /* ... (Kode bagian Pilih Lingkup Biarkan Saja) ... */
+             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
                     <div class="card text-center" style="max-width:600px; margin:0 auto;">
                         <h2 style="color:var(--primary);">Pilih Lingkup Pekerjaan</h2>
@@ -1129,10 +1151,31 @@ const Render = {
         container.innerHTML = '<div class="loading-screen"><h3>Memuat Data...</h3></div>';
         
         try {
+            // 1. Fetch Data Opname Item
             const base = `${API_BASE_URL}/api/opname?kode_toko=${encodeURIComponent(AppState.selectedStore.kode_toko)}&no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup=${encodeURIComponent(AppState.selectedLingkup)}`;
             const res = await fetch(base);
             let data = await res.json();
             
+            // 2. [BARU] Fetch Data Keterlambatan
+            let penaltyData = { terlambat: false, hari_terlambat: 0, denda_nominal: 0 };
+            try {
+                const penaltyUrl = `${API_BASE_URL}/api/cek_keterlambatan?no_ulok=${encodeURIComponent(AppState.selectedUlok)}&lingkup_pekerjaan=${encodeURIComponent(AppState.selectedLingkup)}`;
+                const penaltyRes = await fetch(penaltyUrl);
+                const penaltyJson = await penaltyRes.json();
+                
+                if (penaltyJson.terlambat) {
+                    const nominal = calculateLatePenalty(penaltyJson.hari_terlambat);
+                    penaltyData = { 
+                        terlambat: true, 
+                        hari_terlambat: penaltyJson.hari_terlambat, 
+                        denda_nominal: nominal 
+                    };
+                }
+            } catch (err) {
+                console.warn("Gagal cek keterlambatan:", err);
+            }
+
+            // Mapping Items
             AppState.opnameItems = data.map((task, index) => {
                 const volRab = toNumInput(task.vol_rab);
                 const volAkhirNum = toNumInput(task.volume_akhir);
@@ -1158,34 +1201,25 @@ const Render = {
                 };
             });
 
-            
-
+            // Logic Cek Status Final (Sama seperti sebelumnya)
             let isFinalized = false;
             let canFinalize = false;
             let statusMessage = "Menunggu Approval Semua Item";
 
-            // 1. Cek Data Server: Apakah Opname SUDAH Final (Locked)?
             try {
                 const checkUrl = `https://sparta-backend-5hdj.onrender.com/api/check_status_item_opname?no_ulok=${AppState.selectedUlok}&lingkup_pekerjaan=${AppState.selectedLingkup}`;
                 const statusRes = await fetch(checkUrl);
                 const statusData = await statusRes.json();
-
                 if (statusData.tanggal_opname_final) {
                     isFinalized = true;
                     statusMessage = "Opname Selesai (Final)";
                 }
-            } catch (err) {
-                console.warn("Gagal cek status final:", err);
-            }
+            } catch (err) { console.warn(err); }
 
-            // 2. [LOGIKA BARU] Validasi Item di Tabel (Termasuk IL)
-            // Tombol "Opname Final" hanya aktif jika SEMUA item di tabel statusnya 'APPROVED'
             if (!isFinalized) {
                 const allItems = AppState.opnameItems;
                 const totalItems = allItems.length;
-                const approvedCount = allItems.filter(item => 
-                    String(item.approval_status || "").toUpperCase() === "APPROVED"
-                ).length;
+                const approvedCount = allItems.filter(item => String(item.approval_status || "").toUpperCase() === "APPROVED").length;
                 if (totalItems > 0 && totalItems === approvedCount) {
                     canFinalize = true;
                     statusMessage = "Opname Final";
@@ -1198,30 +1232,26 @@ const Render = {
             const renderTable = () => {
                 const items = AppState.opnameItems;
                 
-                // Hitung total awal untuk render pertama
+                // Hitung total awal
                 const totalVal = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
                 const ppn = totalVal * 0.11;
-                const grandTotal = totalVal * 1.11;
+                const denda = penaltyData.denda_nominal;
+                // Grand Total = (Total + PPN) - Denda
+                const grandTotal = (totalVal + ppn) - denda;
 
                 let btnColor = '#6c757d'; 
                 if (isFinalized) btnColor = '#28a745'; 
                 else if (canFinalize) btnColor = '#007bff';
 
-                const email = sessionStorage.getItem("loggedInUserEmail") || "";
-                const cabang = sessionStorage.getItem("loggedInUserCabang") || "";
-                
-                // [MODIFIKASI] Logic Link IL dengan Parameter Auto-Fill
+                // Link IL
                 const currentUlok = encodeURIComponent(AppState.selectedUlok || "");
                 const currentToko = encodeURIComponent(AppState.selectedStore?.nama_toko || "");
+                const email = sessionStorage.getItem("loggedInUserEmail") || "";
+                const cabang = sessionStorage.getItem("loggedInUserCabang") || "";
                 let ilParams = [`ulok=${currentUlok}`, `toko=${currentToko}`];
-
                 if(email && cabang) {
-                    try {
-                        const token = btoa(JSON.stringify({ email, cabang }));
-                        ilParams.push(`user=${token}`);
-                } catch(e) { console.error("Gagal encode user IL", e); }
+                    try { ilParams.push(`user=${btoa(JSON.stringify({ email, cabang }))}`); } catch(e){}
                 }
-
                 let ilLink = `../il/index.html?${ilParams.join('&')}`;
 
                 let html = `
@@ -1300,27 +1330,35 @@ const Render = {
 
                         ${!isFinalized ? `
                         <div style="margin-top: 20px; margin-bottom: 0px;">
-                            <a href="${ilLink}" class="btn" 
-                            style="width: 100%; background-color: #FFC107; font-weight: bold; color: #000; text-decoration: none; display: block; text-align: center; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                Instruksi Lapangan
-                            </a>
-                        </div>
-                        ` : ''}
+                            <a href="${ilLink}" class="btn" style="width: 100%; background-color: #FFC107; font-weight: bold; color: #000; text-decoration: none; display: block; text-align: center; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Instruksi Lapangan</a>
+                        </div>` : ''}
 
                         <div class="summary-box">
                             <div class="summary-row">
-                                <span class="summary-label">Total</span> 
+                                <span class="summary-label">Total Estimasi</span> 
                                 <span class="summary-value" id="summary-total" style="color:${totalVal<0?'#dc2626':'inherit'}">
                                     ${formatRupiah(totalVal)}
                                 </span>
                             </div>
+                            
                             <div class="summary-row">
                                 <span class="summary-label">PPN (11%)</span> 
                                 <span class="summary-value" id="summary-ppn" style="color:${ppn<0?'#dc2626':'inherit'}">
                                     ${formatRupiah(ppn)}
                                 </span>
                             </div>
+
+                            ${penaltyData.terlambat ? `
+                            <div class="summary-row">
+                                <span class="summary-label text-danger">Keterlambatan (${penaltyData.hari_terlambat} Hari)</span> 
+                                <span class="summary-value text-danger" id="summary-denda">
+                                    - ${formatRupiah(penaltyData.denda_nominal)}
+                                </span>
+                            </div>
+                            ` : ''}
+
                             <div class="summary-divider"></div>
+
                             <div class="summary-row grand-total">
                                 <span class="grand-total-label">Grand Total</span> 
                                 <span class="grand-total-value" id="summary-grand" style="color:${grandTotal<0?'#dc2626':'var(--primary)'}">
@@ -1335,7 +1373,6 @@ const Render = {
                                 ${(!canFinalize || isFinalized) ? 'disabled' : ''}>
                                 ${statusMessage}
                             </button>
-                            ${!canFinalize && !isFinalized ? '<p style="text-align:center; color:#dc3545; font-size:0.85rem; margin-top:8px;">*Pastikan semua pekerjaan berstatus APPROVED untuk melakukan Opname Final.</p>' : ''}
                         </div>
                     </div>
                 </div>`;
@@ -1345,41 +1382,40 @@ const Render = {
                 // --- EVENT LISTENERS ---
                 container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
 
-                // LOGIKA BARU: Update DOM secara langsung tanpa render ulang tabel
+                // [UPDATED] Recalculate Logic
                 container.querySelectorAll('.vol-input').forEach(input => {
                     input.oninput = (e) => {
                         const id = parseInt(e.target.dataset.id);
                         const item = AppState.opnameItems.find(i => i.id === id);
                         
-                        // 1. Update data di memory
+                        // Update Data
                         item.volume_akhir = e.target.value;
                         const vAkhir = toNumInput(item.volume_akhir);
                         const vRab = toNumInput(item.vol_rab);
-                        
                         const selisihNum = vAkhir - vRab;
+                        
                         item.selisih = selisihNum.toFixed(2);
                         item.total_harga = selisihNum * (item.harga_material + item.harga_upah);
 
-                        // 2. Update Cell Selisih (Tanpa Render Ulang)
+                        // DOM Update Row
                         const selisihEl = document.getElementById(`selisih-${id}`);
                         if (selisihEl) {
                             selisihEl.innerText = item.selisih;
                             selisihEl.style.color = selisihNum < 0 ? 'red' : (selisihNum > 0 ? 'green' : 'black');
                         }
-
-                        // 3. Update Cell Total Baris (Tanpa Render Ulang)
                         const totalEl = document.getElementById(`total-${id}`);
                         if (totalEl) {
                             totalEl.innerText = formatRupiah(item.total_harga);
                             totalEl.style.color = item.total_harga < 0 ? 'red' : 'black';
                         }
 
-                        // 4. Hitung Ulang Summary Bawah
+                        // Recalculate Grand Total With Penalty
                         const newTotalVal = AppState.opnameItems.reduce((sum, i) => sum + (i.total_harga || 0), 0);
                         const newPpn = newTotalVal * 0.11;
-                        const newGrandTotal = newTotalVal * 1.11;
+                        const penaltyVal = penaltyData.denda_nominal; // Ambil nilai denda statis
+                        const newGrandTotal = (newTotalVal + newPpn) - penaltyVal;
 
-                        // 5. Update DOM Summary Bawah (Tanpa Render Ulang)
+                        // Update Summary DOM
                         const elSumTotal = document.getElementById('summary-total');
                         const elSumPpn = document.getElementById('summary-ppn');
                         const elSumGrand = document.getElementById('summary-grand');
@@ -1399,23 +1435,26 @@ const Render = {
                     }
                 });
 
+                // (Kode File Upload & Save Button tidak berubah, tetap sama seperti sebelumnya...)
+                // ... Copy paste handler file upload & save btn dari script lama di sini ...
                 container.querySelectorAll('.file-input').forEach(inp => {
                     inp.onchange = async (e) => {
-                        const f = e.target.files[0];
-                        if(!f) return;
+                        /* Logic Upload Sama */
+                        const f = e.target.files[0]; if(!f) return;
                         const id = parseInt(e.target.dataset.id);
                         const fd = new FormData(); fd.append("file", f);
                         try {
                             const r = await fetch(`${API_BASE_URL}/api/upload`, { method:"POST", body:fd });
                             const d = await r.json();
                             AppState.opnameItems.find(i=>i.id===id).foto_url = d.link;
-                            renderTable(); // Untuk upload foto, render ulang tidak masalah karena jarang dilakukan
+                            renderTable(); 
                         } catch(err) { alert("Upload gagal"); }
                     }
                 });
 
                 container.querySelectorAll('.save-btn').forEach(btn => {
                     btn.onclick = async () => {
+                        /* Logic Simpan Sama */
                         const id = parseInt(btn.dataset.id);
                         const item = AppState.opnameItems.find(i=>i.id===id);
                         if(!item.volume_akhir) { alert("Isi volume akhir!"); return; }
@@ -1446,19 +1485,18 @@ const Render = {
                     }
                 });
 
+                // Perbaiki button handler
                 container.querySelectorAll('.perbaiki-btn').forEach(btn => {
                     btn.onclick = () => {
                         const id = parseInt(btn.dataset.id);
                         const item = AppState.opnameItems.find(i => i.id === id);
-                        item.isSubmitted = false;
-                        item.approval_status = "Pending";
-                        item.volume_akhir = "";
-                        item.selisih = "";
-                        item.total_harga = 0;
+                        item.isSubmitted = false; item.approval_status = "Pending";
+                        item.volume_akhir = ""; item.selisih = ""; item.total_harga = 0;
                         renderTable();
                     }
                 });
 
+                // Final Button
                 if(canFinalize && !isFinalized) {
                     const bf = container.querySelector('#btn-final');
                     bf.onclick = async () => {
