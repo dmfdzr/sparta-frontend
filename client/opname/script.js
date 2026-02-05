@@ -1050,27 +1050,35 @@ const Render = {
             let canFinalize = false;
             let statusMessage = "Menunggu Approval Semua Item";
 
+            // 1. Cek Data Server: Apakah Opname SUDAH Final (Locked)?
             try {
                 const checkUrl = `https://sparta-backend-5hdj.onrender.com/api/check_status_item_opname?no_ulok=${AppState.selectedUlok}&lingkup_pekerjaan=${AppState.selectedLingkup}`;
                 const statusRes = await fetch(checkUrl);
                 const statusData = await statusRes.json();
 
-                if (statusData.status === "approved") {
-                    if (statusData.tanggal_opname_final) {
-                        isFinalized = true;
-                        canFinalize = false;
-                        statusMessage = "Opname Selesai (Final)";
-                    } else {
-                        isFinalized = false;
-                        canFinalize = true;
-                        statusMessage = "Opname Final";
-                    }
-                } else {
-                    canFinalize = false;
-                    statusMessage = "Menunggu Approval Semua Item";
+                if (statusData.tanggal_opname_final) {
+                    isFinalized = true;
+                    statusMessage = "Opname Selesai (Final)";
                 }
             } catch (err) {
                 console.warn("Gagal cek status final:", err);
+            }
+
+            // 2. [LOGIKA BARU] Validasi Item di Tabel (Termasuk IL)
+            // Tombol "Opname Final" hanya aktif jika SEMUA item di tabel statusnya 'APPROVED'
+            if (!isFinalized) {
+                const allItems = AppState.opnameItems;
+                const totalItems = allItems.length;
+                const approvedCount = allItems.filter(item => 
+                    String(item.approval_status || "").toUpperCase() === "APPROVED"
+                ).length;
+                if (totalItems > 0 && totalItems === approvedCount) {
+                    canFinalize = true;
+                    statusMessage = "Opname Final";
+                } else {
+                    canFinalize = false;
+                    statusMessage = `Menunggu Approval (${approvedCount}/${totalItems})`;
+                }
             }
 
             const renderTable = () => {
