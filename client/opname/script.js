@@ -263,6 +263,7 @@ const PDFGenerator = {
         const doc = new jsPDF();
         const currentDate = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
 
+        // --- HELPER: Footer ---
         const addFooter = (pageNum) => {
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
@@ -273,6 +274,36 @@ const PDFGenerator = {
                 { align: "center" }
             );
             doc.setTextColor(0, 0, 0);
+        };
+
+        // --- HELPER: Print Summary Box (Total, PPN, Grand Total per Section) ---
+        const printSummaryBox = (label, totalReal, startY) => {
+            const totalPembulatan = Math.floor(totalReal / 10000) * 10000;
+            const ppn = totalPembulatan * 0.11;
+            const grandTotal = totalPembulatan + ppn;
+
+            doc.autoTable({
+                body: [
+                    [label, formatRupiah(totalReal)],
+                    ["PEMBULATAN", formatRupiah(totalPembulatan)],
+                    ["PPN 11%", formatRupiah(ppn)],
+                    [`GRAND TOTAL ${label.replace("TOTAL ", "")}`, formatRupiah(grandTotal)]
+                ],
+                startY: startY,
+                margin: { left: doc.internal.pageSize.getWidth() - 95, right: 14 },
+                tableWidth: 85,
+                theme: "grid",
+                styles: { fontSize: 9, halign: "right", cellPadding: 3 },
+                columnStyles: { 0: { fontStyle: "bold", cellWidth: 35, halign: "left" } },
+                didParseCell: (data) => {
+                    if (data.row.index === 3) {
+                        data.cell.styles.fillColor = [144, 238, 144]; // Hijau
+                        data.cell.styles.fontStyle = "bold";
+                    }
+                }
+            });
+            
+            return { finalY: doc.lastAutoTable.finalY + 15, grandTotal: grandTotal };
         };
 
         const lingkupFix = (selectedLingkup || "").toUpperCase();
@@ -299,42 +330,28 @@ const PDFGenerator = {
         const margin = 14;
         let startY = 12;
 
-        // --- HEADER LOGO ---
+        // --- HEADER (Halaman 1) ---
         let logoData = null;
-        try {
-            logoData = await toBase64(LOGO_URL_FALLBACK);
-        } catch(e) {}
+        try { logoData = await toBase64(LOGO_URL_FALLBACK); } catch(e) {}
 
         const logoW = 48; const logoH = 20;
-        if (logoData) {
-            doc.addImage(logoData, "PNG", (pageWidth - logoW) / 2, startY, logoW, logoH);
-        }
-        startY += logoH + 6;
-        startY += 6;
+        if (logoData) { doc.addImage(logoData, "PNG", (pageWidth - logoW) / 2, startY, logoW, logoH); }
+        startY += logoH + 6 + 6;
 
-        // --- HEADER TEKS ---
         doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "bold");
-        doc.text(COMPANY_NAME, margin, startY);
-        startY += 5;
+        doc.setFontSize(9).setFont("helvetica", "bold");
+        doc.text(COMPANY_NAME, margin, startY); startY += 5;
         doc.setFont("helvetica", "normal");
-        doc.text("BUILDING & MAINTENANCE DEPT", margin, startY);
-        startY += 5;
+        doc.text("BUILDING & MAINTENANCE DEPT", margin, startY); startY += 5;
 
         const cabangTxt = selectedStore.cabang || selectedStore.nama_cabang || selectedStore.kota || "";
-        if (cabangTxt) {
-            doc.text(`CABANG: ${cabangTxt}`, margin, startY);
-            startY += 6;
-        }
+        if (cabangTxt) { doc.text(`CABANG: ${cabangTxt}`, margin, startY); startY += 6; }
         startY += 6;
 
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold").setFontSize(14);
         doc.text(REPORT_TITLE, pageWidth / 2, startY, { align: "center" });
         startY += 12;
-        doc.setFont("helvetica", "normal");
-        startY += 8;
+        doc.setFont("helvetica", "normal"); startY += 8;
 
         // --- INFO PROYEK ---
         doc.setFontSize(10);
@@ -352,21 +369,26 @@ const PDFGenerator = {
         doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, startY); startY += 15;
 
         // ==========================================
-        // PERSIAPAN DATA (PISAH RAB & IL)
+        // PEMISAHAN DATA
         // ==========================================
         const rabPure = rabData.filter(item => !item.is_il);
         const rabIL = rabData.filter(item => item.is_il);
         
-        let grandTotalInitialScope = 0; // Menampung total RAB + IL
+        let totalRealRAB = 0;
+        let grandTotalRAB = 0; // Setelah PPN
+        
+        let totalRealIL = 0;
+        let grandTotalIL = 0; // Setelah PPN
+
         let lastY = startY;
 
         // ==========================================
-        // BAGIAN 1: RAB FINAL (Murni RAB)
+        // SECTION 1: RAB FINAL (Murni)
         // ==========================================
         doc.setFontSize(12).setFont("helvetica", "bold");
-        doc.text("RAB FINAL", margin, startY);
+        doc.text("RAB FINAL", margin, lastY);
         doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
-        doc.line(margin, startY + 2, pageWidth - margin, startY + 2);
+        doc.line(margin, lastY + 2, pageWidth - margin, lastY + 2);
         lastY += 10;
 
         const rabCategories = groupDataByCategory(rabPure);
@@ -392,18 +414,16 @@ const PDFGenerator = {
                     const volume = toNumberVol_PDF(item.volume);
                     const hargaMaterial = toNumberID_PDF(item.harga_material);
                     const hargaUpah = toNumberID_PDF(item.harga_upah);
-                    const totalMaterial = volume * hargaMaterial;
-                    const totalUpah = volume * hargaUpah;
-                    const totalHarga = totalMaterial + totalUpah;
+                    const totalHarga = volume * (hargaMaterial + hargaUpah);
 
-                    catMaterialTotal += totalMaterial;
-                    catUpahTotal += totalUpah;
-                    grandTotalInitialScope += totalHarga;
+                    catMaterialTotal += (volume * hargaMaterial);
+                    catUpahTotal += (volume * hargaUpah);
+                    totalRealRAB += totalHarga; // Akumulasi RAB Pure
 
                     return [
                         idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
                         formatRupiah(hargaMaterial), formatRupiah(hargaUpah),
-                        formatRupiah(totalMaterial), formatRupiah(totalUpah),
+                        formatRupiah(volume * hargaMaterial), formatRupiah(volume * hargaUpah),
                         formatRupiah(totalHarga)
                     ];
                 });
@@ -421,11 +441,7 @@ const PDFGenerator = {
                     theme: "grid",
                     styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1 },
                     headStyles: { fillColor: [205, 234, 242], textColor: [0, 0, 0], fontSize: 8, fontStyle: "bold", halign: "center" },
-                    columnStyles: { 
-                        0: { cellWidth: 8, halign: "center" }, 
-                        1: { cellWidth: 40 },
-                        8: { fontStyle: "bold", halign: "right" }
-                    },
+                    columnStyles: { 0: { cellWidth: 8, halign: "center" }, 1: { cellWidth: 40 }, 8: { fontStyle: "bold", halign: "right" } },
                     didParseCell: (data) => {
                         if(data.section === 'body') {
                             if (data.row.index === data.table.body.length - 1) {
@@ -440,16 +456,25 @@ const PDFGenerator = {
             }
         }
 
+        // Summary RAB (Independen)
+        if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+        const summaryRAB = printSummaryBox("TOTAL RAB", totalRealRAB, lastY);
+        lastY = summaryRAB.finalY;
+        grandTotalRAB = summaryRAB.grandTotal;
+
         // ==========================================
-        // BAGIAN 2: INSTRUKSI LAPANGAN (IL) - Jika Ada
+        // SECTION 2: INSTRUKSI LAPANGAN (IL)
         // ==========================================
         if (rabIL.length > 0) {
-            if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+            // -- MULAI HALAMAN BARU --
+            addFooter(doc.getNumberOfPages()); 
+            doc.addPage(); 
+            lastY = margin + 10;
             
             doc.setFontSize(12).setFont("helvetica", "bold");
             doc.text("INSTRUKSI LAPANGAN (IL)", margin, lastY);
             doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
-            doc.line(margin, lastY + 2, pageWidth - margin, startY + 2); // Garis bawah judul
+            doc.line(margin, lastY + 2, pageWidth - margin, lastY + 2);
             lastY += 10;
 
             const ilCategories = groupDataByCategory(rabIL);
@@ -470,24 +495,21 @@ const PDFGenerator = {
                     const volume = toNumberVol_PDF(item.volume);
                     const hargaMaterial = toNumberID_PDF(item.harga_material);
                     const hargaUpah = toNumberID_PDF(item.harga_upah);
-                    const totalMaterial = volume * hargaMaterial;
-                    const totalUpah = volume * hargaUpah;
-                    const totalHarga = totalMaterial + totalUpah;
+                    const totalHarga = volume * (hargaMaterial + hargaUpah);
 
-                    catMaterialTotal += totalMaterial;
-                    catUpahTotal += totalUpah;
-                    grandTotalInitialScope += totalHarga; // Tambahkan ke Grand Total Scope
+                    catMaterialTotal += (volume * hargaMaterial);
+                    catUpahTotal += (volume * hargaUpah);
+                    totalRealIL += totalHarga; // Akumulasi IL Pure
 
                     return [
                         idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
                         formatRupiah(hargaMaterial), formatRupiah(hargaUpah),
-                        formatRupiah(totalMaterial), formatRupiah(totalUpah),
+                        formatRupiah(volume * hargaMaterial), formatRupiah(volume * hargaUpah),
                         formatRupiah(totalHarga)
                     ];
                 });
 
-                // Subtotal IL Row
-                categoryTableBody.push(["", "", "", "", "", "SUB TOTAL IL", formatRupiah(catMaterialTotal), formatRupiah(catUpahTotal), formatRupiah(catMaterialTotal + catUpahTotal)]);
+                categoryTableBody.push(["", "", "", "", "", "SUB TOTAL", formatRupiah(catMaterialTotal), formatRupiah(catUpahTotal), formatRupiah(catMaterialTotal + catUpahTotal)]);
 
                 doc.autoTable({
                     head: [
@@ -499,16 +521,12 @@ const PDFGenerator = {
                     margin: { left: margin, right: margin },
                     theme: "grid",
                     styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1 },
-                    headStyles: { fillColor: [255, 245, 157], textColor: [0, 0, 0], fontSize: 8, fontStyle: "bold", halign: "center" }, // Header Kuning Pucat untuk IL
-                    columnStyles: { 
-                        0: { cellWidth: 8, halign: "center" }, 
-                        1: { cellWidth: 40 },
-                        8: { fontStyle: "bold", halign: "right" }
-                    },
+                    headStyles: { fillColor: [255, 245, 157], textColor: [0, 0, 0], fontSize: 8, fontStyle: "bold", halign: "center" },
+                    columnStyles: { 0: { cellWidth: 8, halign: "center" }, 1: { cellWidth: 40 }, 8: { fontStyle: "bold", halign: "right" } },
                     didParseCell: (data) => {
                         if(data.section === 'body') {
                             if (data.row.index === data.table.body.length - 1) {
-                                data.cell.styles.fillColor = [255, 249, 196]; // Subtotal IL agak kuning
+                                data.cell.styles.fillColor = [255, 249, 196];
                                 if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold';
                             }
                         }
@@ -517,57 +535,24 @@ const PDFGenerator = {
                 });
                 lastY = doc.lastAutoTable.finalY + 10;
             }
+
+            // Summary IL (Independen)
+            if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+            const summaryIL = printSummaryBox("TOTAL IL", totalRealIL, lastY);
+            lastY = summaryIL.finalY;
+            grandTotalIL = summaryIL.grandTotal;
         }
 
         // ==========================================
-        // SUMMARY BOX (Total RAB + Total IL)
-        // ==========================================
-        const totalRealRAB = grandTotalInitialScope;
-        const totalPembulatanRAB = Math.floor(totalRealRAB / 10000) * 10000;
-        const ppnRAB = totalPembulatanRAB * 0.11;
-        const totalSetelahPPNRAB = totalPembulatanRAB + ppnRAB;
-
-        if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
-        
-        doc.autoTable({
-            body: [
-                ["TOTAL (RAB + IL)", formatRupiah(totalRealRAB)],
-                ["PEMBULATAN", formatRupiah(totalPembulatanRAB)],
-                ["PPN 11%", formatRupiah(ppnRAB)],
-                ["GRAND TOTAL AWAL", formatRupiah(totalSetelahPPNRAB)]
-            ],
-            startY: lastY,
-            margin: { left: pageWidth - 95, right: margin },
-            tableWidth: 85,
-            theme: "grid",
-            styles: { fontSize: 9, halign: "right", cellPadding: 3 },
-            columnStyles: { 0: { fontStyle: "bold", cellWidth: 35, halign: "left" } },
-            didParseCell: (data) => {
-                if (data.row.index === 3) {
-                    data.cell.styles.fillColor = [144, 238, 144];
-                    data.cell.styles.fontStyle = "bold";
-                }
-            }
-        });
-        lastY = doc.lastAutoTable.finalY + 15;
-
-        // ==========================================
-        // BAGIAN 3: LAPORAN OPNAME FINAL (TAMBAH / KURANG)
+        // SECTION 3: LAPORAN OPNAME FINAL (TAMBAH / KURANG)
         // ==========================================
         if (submissions && submissions.length > 0) {
-            addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
             
-            doc.setFontSize(12).setFont("helvetica", "bold");
-            doc.text("LAPORAN OPNAME FINAL (APPROVED)", margin, lastY);
-            doc.line(margin, lastY + 2, pageWidth - margin, lastY + 2);
-            lastY += 10;
-
             // GROUPING: Tambah vs Kurang
             const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
             submissions.forEach(it => {
                 const sel = toNumberVol_PDF(it.selisih);
                 if (sel !== 0) {
-                    // Logic: Selisih < 0 = KURANG, Selisih > 0 = TAMBAH
                     const type = sel < 0 ? "PEKERJAAN KURANG" : "PEKERJAAN TAMBAH";
                     groupsByType[type].push(it);
                 }
@@ -576,7 +561,11 @@ const PDFGenerator = {
             for (const [sectionName, itemsArr] of Object.entries(groupsByType)) {
                 if (itemsArr.length === 0) continue;
 
-                if (lastY + 20 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
+                // -- MULAI HALAMAN BARU UNTUK TIAP SECTION TAMBAH/KURANG --
+                addFooter(doc.getNumberOfPages()); 
+                doc.addPage(); 
+                lastY = margin + 10;
+
                 doc.setFontSize(12).setFont("helvetica", "bold");
                 doc.text(sectionName, margin, lastY);
                 doc.setDrawColor(180, 180, 180); doc.line(margin, lastY+2, pageWidth-margin, lastY+2);
@@ -598,7 +587,6 @@ const PDFGenerator = {
                         const hUpah = toNumberID_PDF(item.harga_upah);
                         const deltaNominal = sel * (hMat + hUpah);
                         
-                        // Marker IL di bagian tambah/kurang tetap ada sebagai info tambahan
                         const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
 
                         return [
@@ -616,12 +604,11 @@ const PDFGenerator = {
                         styles: { fontSize: 8, cellPadding: 3, lineWidth: 0.1 },
                         headStyles: { fillColor: [205, 234, 242], textColor: [0,0,0], fontSize: 8.5, fontStyle: "bold", halign: "center" },
                         columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
-                        
                         didParseCell: (data) => {
                             if(data.section === 'body') {
                                 const originalItem = kItems[data.row.index];
                                 if (originalItem && originalItem.is_il) {
-                                    data.cell.styles.fillColor = [255, 249, 196]; // Kuning untuk IL di tabel tambah/kurang
+                                    data.cell.styles.fillColor = [255, 249, 196]; 
                                 }
                             }
                         }
@@ -633,44 +620,21 @@ const PDFGenerator = {
                     return sum + (toNumberVol_PDF(item.selisih) * (toNumberID_PDF(item.harga_material) + toNumberID_PDF(item.harga_upah)));
                 }, 0);
                 
-                const totalPembulatanBlock = totalRealBlock >= 0 
-                    ? Math.floor(totalRealBlock / 10000) * 10000 
-                    : Math.ceil(totalRealBlock / 10000) * 10000;
-                
-                const ppnBlock = totalPembulatanBlock * 0.11;
-                const grandTotalBlock = totalPembulatanBlock + ppnBlock;
-
+                // Summary per Tambah/Kurang (Independen)
                 if (lastY + 40 > pageHeight - 20) { addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10; }
-                
-                doc.autoTable({
-                    body: [
-                        ["TOTAL " + sectionName, formatRupiah(totalRealBlock)],
-                        ["PEMBULATAN", formatRupiah(totalPembulatanBlock)],
-                        ["PPN 11%", formatRupiah(ppnBlock)],
-                        ["GRAND TOTAL " + sectionName, formatRupiah(grandTotalBlock)]
-                    ],
-                    startY: lastY,
-                    margin: { left: pageWidth - 90, right: margin },
-                    tableWidth: 80,
-                    theme: "grid",
-                    styles: { fontSize: 8, halign: "right" },
-                    columnStyles: { 0: { fontStyle: "bold", halign: "left" } },
-                    didParseCell: (data) => {
-                        if (data.row.index === 3) {
-                            data.cell.styles.fillColor = [144, 238, 144];
-                            data.cell.styles.fontStyle = "bold";
-                        }
-                    }
-                });
-                lastY = doc.lastAutoTable.finalY + 15;
+                const summaryBlock = printSummaryBox("TOTAL " + sectionName, totalRealBlock, lastY);
+                lastY = summaryBlock.finalY;
             }
         }
 
         // ==========================================
         // BAGIAN 4: REKAPITULASI STATUS PEKERJAAN
         // ==========================================
-        addFooter(doc.getNumberOfPages()); doc.addPage(); lastY = margin + 10;
+        addFooter(doc.getNumberOfPages()); 
+        doc.addPage(); 
+        lastY = margin + 10;
 
+        // Hitung ulang total tambah/kurang untuk ringkasan akhir
         let totalTambah = 0; let totalKurang = 0;
         submissions.forEach(item => {
             const sel = toNumberVol_PDF(item.selisih);
@@ -686,9 +650,12 @@ const PDFGenerator = {
         const ppnKurang = totalKurangBulat * 0.11;
         const totalTambahPPN = totalTambahBulat + ppnTambah;
         const totalKurangPPN = totalKurangBulat + ppnKurang;
-        const deltaPPN = totalTambahPPN + totalKurangPPN;
         
-        // Total Akhir = Total Awal (RAB+IL) + Selisih Tambah/Kurang
+        // --- LOGIC UTAMA STATUS PEKERJAAN ---
+        // Total Awal (RAB+IL) diambil dari penjumlahan Grand Total masing-masing section sebelumnya
+        const totalSetelahPPNRAB = grandTotalRAB + grandTotalIL;
+        
+        const deltaPPN = totalTambahPPN + totalKurangPPN;
         const totalSetelahPPNOpname = totalSetelahPPNRAB + deltaPPN;
 
         doc.setFontSize(12).setFont("helvetica", "bold");
