@@ -1306,10 +1306,10 @@ const Render = {
                             </a>
                         </div>
                         ` : ''}
-                        
+
                         <div class="summary-box">
                             <div class="summary-row">
-                                <span class="summary-label">Total Estimasi</span> 
+                                <span class="summary-label">Total</span> 
                                 <span class="summary-value" id="summary-total" style="color:${totalVal<0?'#dc2626':'inherit'}">
                                     ${formatRupiah(totalVal)}
                                 </span>
