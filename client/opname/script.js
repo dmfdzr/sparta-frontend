@@ -302,7 +302,7 @@ const PDFGenerator = {
         // --- HEADER LOGO ---
         let logoData = null;
         try {
-           logoData = await toBase64(LOGO_URL_FALLBACK);
+            logoData = await toBase64(LOGO_URL_FALLBACK);
         } catch(e) {}
 
         const logoW = 48; const logoH = 20;
@@ -352,16 +352,18 @@ const PDFGenerator = {
         doc.text(`NAMA KONTRAKTOR : ${picKontraktorData.kontraktor_username || "N/A"}`, margin, startY); startY += 15;
 
         // ==========================================
-        // BAGIAN 1: RAB FINAL (DATA AWAL)
+        // BAGIAN 1: RAB FINAL (DATA AWAL + IL)
         // ==========================================
         doc.setFontSize(12).setFont("helvetica", "bold");
-        doc.text("RAB FINAL", margin, startY);
+        doc.text("RAB FINAL (TERMASUK IL)", margin, startY);
         doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
         doc.line(margin, startY + 2, pageWidth - margin, startY + 2);
         startY += 10;
 
-        // Filter IL agar tidak muncul di tabel RAB awal (biasanya RAB awal tidak ada IL)
-        const rabDataFiltered = rabData.filter((item) => !item.is_il);
+        // [MODIFIKASI] Hapus filter IL agar Instruksi Lapangan masuk ke sini
+        // Code lama: const rabDataFiltered = rabData.filter((item) => !item.is_il);
+        const rabDataFiltered = rabData; // Gunakan semua data termasuk IL
+
         const rabCategories = groupDataByCategory(rabDataFiltered);
         
         let lastY = startY;
@@ -396,8 +398,11 @@ const PDFGenerator = {
                     catUpahTotal += totalUpah;
                     grandTotalRAB += totalHarga;
 
+                    // [MODIFIKASI] Tambahkan label (IL) pada nama pekerjaan
+                    const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
+
                     return [
-                        idx + 1, item.jenis_pekerjaan, item.satuan, volume.toFixed(2),
+                        idx + 1, namaPekerjaan, item.satuan, volume.toFixed(2),
                         formatRupiah(hargaMaterial), formatRupiah(hargaUpah),
                         formatRupiah(totalMaterial), formatRupiah(totalUpah),
                         formatRupiah(totalHarga)
@@ -425,7 +430,19 @@ const PDFGenerator = {
                     },
                     didParseCell: (data) => {
                         if(data.section === 'body') {
-                            // Highlight baris Subtotal
+                            const currentDataItems = rabCategories[categoryName];
+                            
+                            // [MODIFIKASI] Cek apakah item ini adalah IL (berdasarkan index data asli)
+                            // Index tabel data berjalan dari 0 s/d (length-1). Row terakhir adalah Subtotal.
+                            if (data.row.index < currentDataItems.length) {
+                                const originalItem = currentDataItems[data.row.index];
+                                if (originalItem && originalItem.is_il) {
+                                    // Beri warna kuning jika item IL
+                                    data.cell.styles.fillColor = [255, 249, 196]; 
+                                }
+                            }
+
+                            // Highlight baris Subtotal (Baris terakhir di tabel ini)
                             if (data.row.index === data.table.body.length - 1) {
                                 data.cell.styles.fillColor = [242, 242, 242];
                                 if(data.column.index >= 5) data.cell.styles.fontStyle = 'bold';
@@ -515,7 +532,7 @@ const PDFGenerator = {
                         const hUpah = toNumberID_PDF(item.harga_upah);
                         const deltaNominal = sel * (hMat + hUpah);
                         
-                        // Menambahkan marker (IL) pada nama pekerjaan jika perlu
+                        // Menambahkan marker (IL) pada nama pekerjaan
                         const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
 
                         return [
@@ -554,7 +571,7 @@ const PDFGenerator = {
                     return sum + (toNumberVol_PDF(item.selisih) * (toNumberID_PDF(item.harga_material) + toNumberID_PDF(item.harga_upah)));
                 }, 0);
                 
-                // Pembulatan logic: jika negatif, tetap dibulatkan (ceil) atau floor tergantung aturan, di sini pakai standar matematika sederhana per 10rb
+                // Pembulatan logic
                 const totalPembulatanBlock = totalRealBlock >= 0 
                     ? Math.floor(totalRealBlock / 10000) * 10000 
                     : Math.ceil(totalRealBlock / 10000) * 10000;
@@ -687,7 +704,6 @@ const PDFGenerator = {
                     const currentX = columnIndex === 0 ? leftColumnX : rightColumnX;
                     
                     doc.setFontSize(9).setFont("helvetica", "bold");
-                    // Tambah penanda (IL) di judul foto juga
                     const judulFoto = `${index+1}. ${item.jenis_pekerjaan}` + (item.is_il ? " (IL)" : "");
                     const titleLines = wrapText(doc, judulFoto, maxWidth);
                     let titleY = photoY;
