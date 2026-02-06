@@ -349,6 +349,7 @@ function renderViewResults(container) {
 
         <div class="actions">
             <button id="btnApply" class="primary">Terapkan Filter</button>
+            <button id="btnReset" class="ghost">Reset</button>
         </div>
 
         <div id="resultsWrapper" style="display:none; position: relative; min-height: 100px;">
