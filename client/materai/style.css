@@ -49,11 +49,12 @@ body {
 }
 
 .header-logo {
-    height: 40px;
-    width: auto;
-    background: white;
-    padding: 2px;
-    border-radius: 6px;
+    width: 140px;
+    height: auto;
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .header-title {
