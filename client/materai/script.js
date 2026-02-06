@@ -330,6 +330,7 @@ function renderViewResults(container) {
     container.innerHTML = `
     <div class="card">
         <h1 class="page-title">Hasil Dokumen Termaterai</h1>
+        <button class="btn-secondary" onclick="navigate('/dashboard')">Kembali</button>
         <p class="page-subtitle">Gunakan filter di bawah untuk mencari dokumen.</p>
 
         <div class="filters-grid">
