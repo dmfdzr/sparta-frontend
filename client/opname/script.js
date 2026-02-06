@@ -656,7 +656,7 @@ const PDFGenerator = {
         if (penaltyData.isLate && penaltyData.amount > 0) {
             statusTableBody.push(
                 [{ content: `Denda Keterlambatan (${penaltyData.days} Hari)`, styles: { textColor: [220, 38, 38], fontStyle: "bold" } }, 
-                 { content: `- ${formatRupiah(penaltyData.amount)}`, styles: { textColor: [220, 38, 38], fontStyle: "bold" } }]
+                { content: `- ${formatRupiah(penaltyData.amount)}`, styles: { textColor: [220, 38, 38], fontStyle: "bold" } }]
             );
             // Baris Akhir: Total Dibayarkan
             statusTableBody.push(
