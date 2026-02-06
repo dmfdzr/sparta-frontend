@@ -1,144 +1,240 @@
 /* =========================================
-   VARIABLES & RESET (SUMBER: OPNAME)
+   VARIABLES & RESET (STYLE OPNAME)
    ========================================= */
 :root {
-    --primary: #d62828;
+    --primary: #d62828;      /* Merah Alfamart */
     --primary-dark: #b91c1c;
-    --primary-blue: #005a9e;
-    --secondary-yellow: #facc15;
-    
-    --accent: #ffffff;
-    --neutral-100: #f7f7f7;
-    --neutral-200: #e5e5e5;
-    --neutral-700: #333333;
-    --text-muted: #64748b;
+    --accent: #facc15;       /* Kuning */
+    --bg-body: #f8fafc;      /* Slate Background */
+    --text-main: #334155;    /* Slate-700 */
+    --text-muted: #64748b;   /* Slate-500 */
+    --border: #e2e8f0;       /* Slate-200 */
     
     --radius: 12px;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: #f8fafc;
-    color: var(--neutral-700);
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
     line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
+    padding-bottom: 40px;
 }
 
 /* =========================================
-   HEADER (GRADIENT MERAH)
+   HEADER (ADAPTASI STRUKTUR JS ANDA)
    ========================================= */
 .app-header {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
-    text-align: center;
     padding: 0 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    height: 80px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    position: relative;
+    justify-content: space-between; /* Kiri Logo, Kanan Tombol */
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
-    height: 80px;
+    position: sticky;
+    top: 0;
     z-index: 50;
 }
 
-.header-logo {
-    width: 120px;
-    height: auto;
-    position: absolute;
-    left: 25px;
-    top: 50%;
-    transform: translateY(-50%);
+/* Memperbaiki alignment Logo & Judul (Class .header-left ada di JS Anda) */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.app-header h3, .app-header h1 {
-    margin: 0;
-    font-size: 1.5rem;
+.header-logo {
+    height: 40px;
+    width: auto;
+    background: white;
+    padding: 2px;
+    border-radius: 6px;
+}
+
+.header-title {
+    font-size: 1.25rem;
     font-weight: 700;
+    margin: 0;
     letter-spacing: 0.5px;
 }
 
-.header-logout {
-    position: absolute;
-    right: 25px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
+/* Tombol Back di Header */
+.btn-header-back {
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
     color: white;
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
-    transition: all 0.3s ease;
+    transition: all 0.2s;
     backdrop-filter: blur(4px);
 }
 
-.header-logout:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-50%) scale(1.02);
+.btn-header-back:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
 }
 
 /* =========================================
-   USER INFO PILL
+   USER PILL (GREETING)
    ========================================= */
 .user-greeting-wrapper {
     text-align: center;
-    margin-top: 30px;
-    margin-bottom: -20px;
+    margin-top: 24px;
+    margin-bottom: 0px;
     position: relative;
     z-index: 10;
+    padding: 0 20px;
 }
 
-.user-info {
+/* Class .user-pill ada di JS Anda */
+.user-pill {
     display: inline-block;
+    background: white;
     padding: 8px 24px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--neutral-700);
-    background: #ffffff;
-    border: 1px solid #e0e0e0;
     border-radius: 50px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
 }
+
+.user-pill strong { color: var(--primary); }
 
 /* =========================================
-   CONTAINER & CARDS
+   LAYOUT & DASHBOARD MENU (YANG HILANG)
    ========================================= */
 .container {
-    max-width: 1200px;
-    margin: 2rem auto;
+    max-width: 1000px;
+    margin: 1.5rem auto;
     padding: 0 20px;
     animation: fadeIn 0.4s ease-out;
 }
 
+/* Grid Menu Dashboard */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.menu-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.menu-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+}
+
+.menu-icon { font-size: 3rem; margin-bottom: 16px; }
+.menu-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
+.menu-desc { font-size: 0.9rem; color: var(--text-muted); }
+
+/* =========================================
+   CARDS & FORMS
+   ========================================= */
 .card {
     background: white;
     border-radius: var(--radius);
-    padding: 2.5rem;
+    padding: 24px;
     box-shadow: var(--shadow);
-    border: 1px solid var(--neutral-200);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.page-title { font-size: 1.25rem; font-weight: 700; color: var(--text-main); }
+
+/* Form Layout (Row & Col untuk input sejajar) */
+.row {
+    display: flex;
+    gap: 20px;
     margin-bottom: 20px;
 }
+.col { flex: 1; }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-main);
 }
 
-/* =========================================
-   FILTERS GRID (KHUSUS MATERAI)
-   Agar filter Cabang/ULOK/Lingkup rapi 3 kolom
-   ========================================= */
+select, input[type="text"], input[type="file"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: white;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+select:focus, input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.1);
+}
+
+/* Buttons */
+button { font-family: inherit; }
+.btn-secondary {
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.btn-secondary:hover { background: var(--border); color: var(--text-main); }
+
+button[type="submit"], button.primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 1rem;
+}
+button[type="submit"]:hover, button.primary:hover { background: var(--primary-dark); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Filter Grid (Khusus Halaman Hasil) */
 .filters-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -147,196 +243,89 @@ body {
     align-items: end;
 }
 
-.filters-grid label {
-    display: block;
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: var(--text-muted);
-}
-
-.filter-actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 24px;
-}
-
 /* =========================================
-   BUTTONS & INPUTS
+   TABLE STYLES (OPNAME STYLE)
    ========================================= */
-.btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.btn:active { transform: scale(0.98); }
-
-.btn-primary {
-    background-color: var(--primary);
-    color: white;
-}
-.btn-primary:hover {
-    background-color: var(--primary-dark);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-}
-
-.btn-secondary {
-    background-color: white;
-    color: var(--neutral-700);
-    border: 1px solid var(--neutral-200);
-}
-.btn-secondary:hover {
-    background-color: var(--neutral-100);
-}
-
-.btn-back {
-    background-color: transparent;
-    color: var(--text-muted);
-    border: 1px solid var(--neutral-200);
-    padding: 8px 16px;
-    font-size: 0.9rem;
-}
-.btn-back:hover {
-    color: var(--primary);
-    border-color: var(--primary);
-    background-color: #fff1f2;
-}
-
-.form-input, .input-custom, select {
-    width: 100%;
-    padding: 0.85rem 1rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: all 0.2s;
-    background-color: #fff;
-    font-family: inherit;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-}
-
-/* =========================================
-   TABLE & SCROLL HINT (CORE OPNAME STYLE)
-   ========================================= */
-.table-container {
+.table-responsive {
     overflow-x: auto;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border);
     margin-top: 1rem;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.95rem;
-    min-width: 800px; /* Paksa scroll horizontal di layar kecil */
+    min-width: 800px;
 }
 
 th {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    color: #e2e8f0;
+    color: white;
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.8rem;
-    letter-spacing: 0.05em;
-    padding: 16px;
-    border-bottom: 2px solid #e2e8f0;
+    padding: 14px 16px;
+    letter-spacing: 0.5px;
 }
 
 td {
-    padding: 16px;
-    border-bottom: 1px solid #f1f5f9;
-    color: #334155;
-    vertical-align: middle;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-main);
+    font-size: 0.95rem;
 }
 
 tr:last-child td { border-bottom: none; }
-tr:hover td { background-color: #f8fafc; }
-
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.font-bold { font-weight: 700; }
-
-.badge { padding: 4px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
-.badge-success { background: #dcfce7; color: #166534; }
-.badge-warning { background: #fffbeb; color: #b45309; }
+tr:hover td { background-color: #fef2f2; }
 
 /* =========================================
-   LOADING SCREEN
+   MOBILE RESPONSIVE
    ========================================= */
-.loading-screen {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: white;
-}
-.spinner {
-    width: 50px; height: 50px;
-    border: 5px solid #e5e5e5;
-    border-top: 5px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 16px;
-}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.mobile-cards { display: none; }
 
-/* =========================================
-   MOBILE RESPONSIVE (THE MAGIC PART)
-   ========================================= */
 @media (max-width: 768px) {
-    /* 1. Header Stack Vertical */
+    /* Header Stack */
     .app-header {
         flex-direction: column;
         height: auto;
-        padding: 1.5rem 1rem;
+        padding: 1rem;
         gap: 1rem;
+        align-items: stretch; /* Agar lebar penuh */
     }
-    .header-logo { position: static; transform: none; width: 100px; margin-bottom: 5px; }
-    .header-logout { position: static; transform: none; width: 100%; justify-content: center; margin-top: 5px; }
-    
-    /* 2. Layout Adjustment */
-    .card { padding: 1.5rem; }
-    
-    /* 3. Filters Stack */
-    .filters-grid { grid-template-columns: 1fr; gap: 12px; }
-    .filter-actions { flex-direction: column; }
-    
-    /* 4. Table Scroll Hint (Bayangan Kanan-Kiri) */
-    .table-container {
-        margin: 0 -1.5rem; /* Lebarkan mentok layar */
-        border-left: 0; border-right: 0; border-radius: 0;
-        
-        background: 
-            linear-gradient(to right, white 30%, rgba(255,255,255,0)),
-            linear-gradient(to right, rgba(255,255,255,0), white 70%) 0 100%,
-            radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.2), transparent),
-            radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.2), transparent) 0 100%;
-        background-repeat: no-repeat;
-        background-attachment: local, local, scroll, scroll;
-        background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
-        background-position: 0 0, 100% 0, 0 0, 100% 0;
-    }
+    .header-left { justify-content: center; }
+    .btn-header-back { justify-content: center; width: 100%; }
 
-    .table-container td { white-space: nowrap; } /* Mencegah teks turun baris */
+    /* Form Stack */
+    .row { flex-direction: column; gap: 16px; }
+    
+    /* Input Size (Jari Friendly) */
+    select, input, button { height: 48px; font-size: 16px; }
 
-    /* 5. Mobile Inputs Friendly */
-    .form-input, select {
-        height: 45px; /* Lebih tinggi untuk jari */
-        font-size: 16px; /* Cegah zoom iOS */
+    /* Table Mobile Card View */
+    .desktop-table { display: none; }
+    .mobile-cards { display: flex; flex-direction: column; gap: 12px; }
+    
+    .m-card { 
+        background: white; 
+        border: 1px solid var(--border); 
+        border-radius: 12px; 
+        padding: 16px; 
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
+    .m-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+    .m-label { color: var(--text-muted); font-weight: 500; }
 }
+
+/* Utils */
+.error-box { background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px; margin-top: 10px; display: none; }
+.loading-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999;
+}
+.spinner {
+    width: 40px; height: 40px; border: 4px solid #e5e5e5; border-top-color: var(--primary);
+    border-radius: 50%; animation: spin 1s linear infinite;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
