@@ -142,12 +142,17 @@ function getHeaderHTML(user) {
     return `
     <header class="app-header">
         <div class="header-left">
-            <img src="../../assets/logoalfamart.png" alt="Logo" class="header-logo">
-            <h1 class="header-title">Dokumen Materai</h1>
+            <img src="../../assets/Alfamart-Emblem.png" alt="Logo" class="header-logo">
+            <h1 class="header-title">Dokumen Termaterai</h1>
         </div>
         <div>
             <a href="../dashboard/index.html" class="btn-header-back">
-                <span>🏠 App Dashboard</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Dashboard</span>
             </a>
         </div>
     </header>
