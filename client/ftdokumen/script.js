@@ -1,7 +1,7 @@
 /* =================================================================
    GLOBAL CONFIGURATION & STATE
    ================================================================= */
-   const API_BASE_URL = "https://dokumentasi-bangunan.onrender.com";
+   const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com";
 
    let state = {
        user: null,
