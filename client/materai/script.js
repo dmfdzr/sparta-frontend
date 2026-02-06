@@ -2,7 +2,7 @@
    CONSTANTS & CONFIG
    ========================================= */
 // Masukkan URL Google Apps Script Anda di sini
-const SHEETS_WEB_APP_URL = ""; 
+const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUpg_II5NKNw1YFSyWiTiVBLKuNdnawunFRJJCJeCs4sWwjX3fB7sKi-tefj8-lSn8mQ/exec"; 
 
 const LOCAL_KEY_DOCS = "materai_docs";
 const SESSION_KEY = "MATERAI_USER";
