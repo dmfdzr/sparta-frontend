@@ -277,10 +277,8 @@ td {
     border-bottom: 1px solid var(--border);
     color: var(--text-main);
     font-size: 0.95rem;
-}
-
-.table tbody tr:hover {
-    background-color: #f8fafc;
+    text-align: center;    /* Isi Rata Tengah */
+    vertical-align: middle;
 }
 
 tr:last-child td { border-bottom: none; }
@@ -313,17 +311,17 @@ tr:hover td { background-color: #fef2f2; }
 
 /* Tombol Terapkan (Primary - Merah) */
 button.primary {
-    background-color: var(--alfa-red);
+    background-color: #dc2626;
     color: #fff;
 }
 button.primary:hover {
-    background-color: var(--alfa-red-dark);
+    background-color: #b91c1c;
 }
 
 /* Tombol Reset (Warning - Kuning) */
 button.btn-warning {
-    background-color: var(--alfa-yellow);
-    color: #7A4A00; /* Warna teks kontras */
+    background-color: #ffcc32;
+    color: #ffffff; /* Warna teks kontras */
 }
 button.btn-warning:hover {
     background-color: #eab308; /* Kuning lebih gelap */
