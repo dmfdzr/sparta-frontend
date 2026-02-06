@@ -30,22 +30,22 @@ body {
 .app-header {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     color: white;
-    padding: 0 1.5rem;
-    height: 80px;
+    text-align: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Kiri Logo, Kanan Tombol */
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
-    position: sticky;
-    top: 0;
-    z-index: 50;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 100;
 }
 
-/* Memperbaiki alignment Logo & Judul (Class .header-left ada di JS Anda) */
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+header.app-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    line-height: 1.2;
+    font-weight: 700;
 }
 
 .header-logo {
@@ -57,14 +57,6 @@ body {
     transform: translateY(-50%);
 }
 
-.header-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: 0.5px;
-}
-
-/* Tombol Back di Header */
 .btn-header-back {
     display: inline-flex;
     align-items: center;

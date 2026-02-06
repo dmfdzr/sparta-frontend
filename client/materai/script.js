@@ -141,10 +141,8 @@ function getHeaderHTML(user) {
     // Tombol di header mengarah ke Dashboard Utama aplikasi (luar fitur materai)
     return `
     <header class="app-header">
-        <div class="header-left">
-            <img src="../../assets/Alfamart-Emblem.png" alt="Logo" class="header-logo">
-            <h1 class="header-title">Dokumen Termaterai</h1>
-        </div>
+        <img src="../../assets/Alfamart-Emblem.png" alt="Logo" class="header-logo">
+        <h1>Dokumen Termaterai</h1>
         <div>
             <a href="../dashboard/index.html" class="btn-header-back">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
