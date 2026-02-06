@@ -349,7 +349,6 @@ function renderViewResults(container) {
 
         <div class="actions">
             <button id="btnApply" class="primary">Terapkan Filter</button>
-            <button id="btnReset" class="ghost">Reset</button>
         </div>
 
         <div id="resultsWrapper" style="display:none; position: relative; min-height: 100px;">
@@ -443,9 +442,9 @@ function renderViewResults(container) {
             if (!viewUrl) return '-';
 
             return `
-                <a href="${viewUrl}" target="_blank" style="font-weight:600;">Preview</a>
+                <a href="${viewUrl}" target="_blank" style="font-weight:600;">Lihat</a>
                 <span style="color:#ccc; margin:0 4px;">|</span>
-                <a href="${downloadUrl}" target="_blank" style="font-weight:600;">Download</a>
+                <a href="${downloadUrl}" target="_blank" style="font-weight:600;">Unduh</a>
             `;
         };
 
@@ -454,9 +453,9 @@ function renderViewResults(container) {
         <table class="table desktop-table">
             <thead>
                 <tr>
-                    <th style="width: 40%;">Nomor Ulok</th>
-                    <th style="width: 40%;">Lingkup Kerja</th>
-                    <th style="width: 20%;">Aksi</th>
+                    <th style="width: 30%;">Nomor Ulok</th>
+                    <th style="width: 30%;">Lingkup Kerja</th>
+                    <th style="width: 40%;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
