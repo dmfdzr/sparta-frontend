@@ -118,18 +118,87 @@ function preloadImage(src) {
 // 3. AUTH & INIT
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-    checkSession();
-    checkTimeLimit();
-    setInterval(checkTimeLimit, 60000);
+    // 1. Setup UI Awal
+    const urlParams = new URLSearchParams(window.location.search);
+    const ulok = urlParams.get("ulok");
+    const manual = urlParams.get("manual");
 
-    const dateEl = getEl("current-date-display");
-    if (dateEl) {
-        const d = new Date();
-        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        dateEl.textContent = d.toLocaleDateString('id-ID', opts);
+    if (ulok) {
+        STATE.formData.nomorUlok = ulok;
+        loadTempData(ulok, manual === "1");
     }
 
-    initEventListeners();
+    // 2. Event Listener Tombol Kamera (DENGAN PENGECEKAN SAFE)
+    
+    // Tombol Shutter (Ambil Foto)
+    const btnSnap = getEl("btn-snap");
+    if (btnSnap) {
+        btnSnap.addEventListener("click", (e) => {
+            e.preventDefault();
+            capturePhoto();
+        });
+    }
+
+    // Tombol Retake (Ulangi Foto)
+    const btnRetake = getEl("btn-retake");
+    if (btnRetake) {
+        btnRetake.addEventListener("click", (e) => {
+            e.preventDefault();
+            resetCameraUI();
+        });
+    }
+
+    // Tombol Close Camera (X)
+    const btnCloseCam = getEl("btn-close-cam");
+    if (btnCloseCam) {
+        btnCloseCam.addEventListener("click", (e) => {
+            e.preventDefault();
+            closeCamera();
+        });
+    }
+
+    // Tombol Upload File
+    const fileInput = getEl("inp-file-upload");
+    if (fileInput) {
+        fileInput.addEventListener("change", (e) => {
+            handleFileUpload(e.target.files[0]);
+        });
+    }
+
+    const btnCantSnap = getEl("btn-cant-snap");
+    if (btnCantSnap) {
+        btnCantSnap.addEventListener("click", (e) => {
+            e.preventDefault();
+            markAsCantSnap();
+        });
+    }
+    
+    // 3. Tombol Utama Lainnya
+    const btnSavePdf = getEl("btn-save-pdf");
+    if (btnSavePdf) {
+        btnSavePdf.addEventListener("click", generateAndSendPDF);
+    }
+
+    const btnWarningOk = getEl("btn-warning-ok");
+    if (btnWarningOk) {
+        btnWarningOk.addEventListener("click", () => {
+            hide(getEl("warning-modal"));
+        });
+    }
+
+    // 4. Setup Tab Navigasi (Lantai 1, 2, 3)
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            // Update UI Active State
+            document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            
+            // Pindah Halaman
+            const page = parseInt(btn.dataset.page);
+            STATE.currentPage = page;
+            renderFloorPlan();
+        });
+    });
 });
 
 function checkSession() {
@@ -864,37 +933,40 @@ function closeCamera() {
 }
 
 function capturePhoto() {
-    if (!STATE.isCameraReady) return;
-    const vid = getEl("cam-video");
-    const cvs = getEl("cam-canvas");
-    const ctx = cvs.getContext("2d");
+    if (!STATE.stream) return;
 
-    const MAX = 1280;
-    let w = vid.videoWidth,
-        h = vid.videoHeight;
-    if (w > MAX || h > MAX) {
-        if (w > h) {
-            h = (h / w) * MAX;
-            w = MAX;
-        } else {
-            w = (w / h) * MAX;
-            h = MAX;
-        }
-    }
-    cvs.width = w;
-    cvs.height = h;
-    ctx.drawImage(vid, 0, 0, w, h);
+    // 1. Ambil elemen (Gunakan ID yang sesuai dengan index.html baru)
+    const video = getEl("cam-video");
+    const canvas = getEl("cam-canvas");
+    const imgResult = getEl("captured-img");
+    
+    if (!video || !canvas || !imgResult) return;
 
-    cvs.toBlob(blob => {
-        STATE.capturedBlob = blob;
-        STATE.currentPhotoNote = null;
-        const url = URL.createObjectURL(blob);
-        getEl("captured-img").src = url;
-        hide(getEl("cam-preview-container"));
-        show(getEl("photo-result-container"));
-        hide(getEl("actions-pre-capture"));
-        show(getEl("actions-post-capture"));
-    }, "image/jpeg", 0.7);
+    // 2. Setup Canvas
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    canvas.width = w;
+    canvas.height = h;
+    
+    // 3. Draw ke Canvas (Mirroring jika kamera depan)
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, w, h);
+
+    // 4. Convert ke Blob/DataURL
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+    STATE.capturedBlob = dataUrl;
+    imgResult.src = dataUrl;
+
+    // 5. Ubah Tampilan UI
+    hide(getEl("cam-preview-container"));
+    show(getEl("photo-result-container"));
+    hide(getEl("actions-pre-capture"));
+    show(getEl("actions-post-capture"));
+    
+    const btnConfirm = getEl("btn-confirm-snap");
+    const btnRetake = getEl("btn-retake");
+    if (btnConfirm) btnConfirm.onclick = saveCapturedPhoto;
+    if (btnRetake) btnRetake.onclick = resetCameraUI;
 }
 
 function resetCameraUI() {
