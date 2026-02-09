@@ -163,44 +163,52 @@
 
         <div id="camera-modal" class="modal-overlay hidden" style="z-index: 2000;">
             <div class="camera-container">
-                <div id="cam-preview-container" style="position: relative; width: 100%; height: 100%;">
-                    <video id="cam-video" autoplay playsinline style="width:100%; height:100%; object-fit: cover;"></video>
-                    <div class="camera-grid-overlay"></div>
+                
+                <div class="camera-header" style="position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);">
+                    <span id="cam-title" style="color:white; font-weight:bold; text-shadow: 0 1px 2px black;">Titik Foto</span>
+                    <button id="btn-close-cam" style="background:none; border:none; color:white; font-size: 2rem; cursor:pointer;">&times;</button>
                 </div>
 
-                <div id="photo-result-container" class="hidden" style="width: 100%; height: 100%; background: black; display: flex; align-items: center; justify-content: center;">
-                    <img id="captured-img" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                <div id="cam-preview-container" style="position: relative; width: 100%; height: 100%; background: #000;">
+                    <video id="cam-video" autoplay playsinline style="width:100%; height:100%; object-fit: cover;"></video>
+                    <div class="camera-grid-overlay" style="position: absolute; inset: 0; pointer-events: none; border: 2px solid rgba(255,255,255,0.3); display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;">
+                        <div style="border: 1px solid rgba(255,255,255,0.1);"></div>
+                        <div style="border: 1px solid rgba(255,255,255,0.1);"></div>
+                        <div style="border: 1px solid rgba(255,255,255,0.1);"></div>
+                        <div style="border: 1px solid rgba(255,255,255,0.1);"></div>
+                    </div>
+                </div>
+
+                <div id="photo-result-container" class="hidden" style="width: 100%; height: 100%; background: #000; position: absolute; top: 0; left: 0; display: flex; align-items: center; justify-content: center;">
+                    <img id="captured-img" style="width: 100%; height: 100%; object-fit: contain;" />
                 </div>
                 
                 <canvas id="cam-canvas" style="display:none;"></canvas>
 
-                <div class="camera-ui">
-                    <div class="camera-header">
-                        <span id="cam-title" style="color:white; font-weight:bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">Titik Foto</span>
-                        <button id="btn-close-cam" class="btn-close-camera">&times;</button>
-                    </div>
-
-                    <div id="actions-pre-capture" class="camera-controls">
-                        <label class="btn-file-upload" title="Upload Foto">
-                            <i class="fa-solid fa-upload"></i>
+                <div class="camera-controls-wrapper" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 1.5rem; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); display: flex; flex-direction: column; gap: 1rem;">
+                    
+                    <div id="actions-pre-capture" style="display: flex; justify-content: center; align-items: center; gap: 2rem;">
+                        <label class="btn-icon-circle" style="width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid white;">
+                            <i class="fa-solid fa-upload" style="color: white;"></i>
                             <input type="file" id="inp-file-upload" accept="image/*" style="display:none;">
                         </label>
 
-                        <button id="btn-snap" class="btn-capture" title="Ambil Foto"></button>
+                        <button id="btn-snap" style="width: 70px; height: 70px; border-radius: 50%; background: white; border: 4px solid rgba(200,200,200,0.5); cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);"></button>
 
-                        <button id="btn-cant-snap" class="btn-cant-take-photo" title="Tidak Bisa Difoto">
+                        <button id="btn-cant-snap" style="width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                             <i class="fa-solid fa-ban"></i>
                         </button>
                     </div>
 
-                    <div id="actions-post-capture" class="capture-actions hidden">
-                        <button id="btn-retake" class="btn-secondary">
+                    <div id="actions-post-capture" class="hidden" style="display: flex; justify-content: space-between; gap: 1rem;">
+                        <button id="btn-retake" class="btn-secondary" style="flex: 1; border: 1px solid white; color: white; background: rgba(255,255,255,0.1);">
                             <i class="fa-solid fa-rotate-left"></i> Ulangi
                         </button>
-                        <button id="btn-confirm-snap" class="btn-primary">
+                        <button id="btn-confirm-snap" class="btn-primary" style="flex: 1;">
                             <i class="fa-solid fa-check"></i> Gunakan
                         </button>
                     </div>
+                    
                 </div>
             </div>
         </div>

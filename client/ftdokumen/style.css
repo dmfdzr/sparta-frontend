@@ -790,6 +790,15 @@ header.app-header h1 {
     background: var(--primary);
 }
 
+.btn-icon-circle:hover, #btn-cant-snap:hover {
+    background: rgba(255,255,255,0.4) !important;
+    transform: scale(1.05);
+}
+#btn-snap:active {
+    transform: scale(0.95);
+    background: #eee;
+}
+
 .btn-file-upload,
 .btn-cant-take-photo {
     width: 50px;
