@@ -414,7 +414,7 @@ header.app-header h1 {
 }
 
 .floor-plan-wrapper {
-    background: #1e293b;
+    background: #f8f9fa; /* Warna background wrapper repo */
     padding: 1rem;
     border-radius: var(--radius);
     display: flex;
@@ -424,18 +424,22 @@ header.app-header h1 {
 
 .floor-plan-image-container {
     position: relative;
-    display: inline-block;
     width: 100%;
+    padding-top: 75%; /* KUNCI: Memaksa rasio 4:3 agar koordinat akurat */
+    background: white;
     border-radius: 4px;
     overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
 }
 
 .floor-plan-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 4px;
-    opacity: 0.9;
+    height: 100%;
+    object-fit: contain; /* Gambar akan pas di tengah tanpa terpotong */
+    opacity: 1; /* Repo menggunakan opacity 1 */
 }
 
 .camera-grid-overlay {
@@ -611,72 +615,74 @@ header.app-header h1 {
 
 .photo-point {
     position: absolute;
-    width: 40px;
-    height: 40px;
+    width: 16px; /* Ukuran lebih kecil sesuai repo (sebelumnya 40px) */
+    height: 16px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.5rem; /* Font lebih kecil */
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     border: 2px solid white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transform: translate(-50%, -50%); /* Menengahkan titik akurat */
+    z-index: 10;
 }
 
 .photo-point.pending {
-    background: #e5e7eb;
-    color: #666;
-    opacity: 0.6;
+    background: #9ca3af;
+    color: white;
+    opacity: 1;
 }
 
 .photo-point.active {
-    background: var(--primary);
+    background: #22c55e; /* Hijau menyala */
     color: white;
-    animation: pulse 2s ease-in-out infinite;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3); /* Efek pulse */
+    animation: pulse 2s infinite;
 }
 
 .photo-point.completed {
-    background: var(--color-success);
+    background: #059669; /* Hijau tua */
     color: white;
 }
 
 .photo-point.missed {
-    background: #999;
-    color: white;
-    opacity: 0.5;
-}
-
-.photo-point:hover:not(:disabled) {
-    transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.photo-point:disabled {
+    background: #9ca3af;
+    opacity: 0.6;
     cursor: not-allowed;
 }
 
+/* Hover effect */
+.photo-point:hover:not(:disabled) {
+    transform: translate(-50%, -50%) scale(1.3);
+    z-index: 20;
+}
+
+/* Tanda Centang Kecil */
 .check-mark {
     position: absolute;
-    top: -5px;
-    right: -5px;
-    background: var(--color-success);
-    color: white;
-    width: 20px;
-    height: 20px;
+    top: -4px;
+    right: -4px;
+    background: white;
+    color: #059669;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
-    border: 2px solid white;
+    font-size: 7px;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 @keyframes pulse {
-    0%, 100% { transform: translate(-50%, -50%) scale(1); }
-    50% { transform: translate(-50%, -50%) scale(1.1); }
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
 }
 
 /* =========================================
