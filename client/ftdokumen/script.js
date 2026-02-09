@@ -571,16 +571,11 @@ function formatDateInput(dateStr) {
 
 async function loadTempData(ulok, isManualOverride = false) {
     if (!ulok) return;
-    
-    // Set loading state
     STATE.isLoadingData = true;
-    showLoading("Sinkronisasi data foto..."); // Text disesuaikan
-
+    showLoading("Sinkronisasi data...");
     try {
         const res = await getTempByUlok(ulok);
-        
         if (res.ok && res.data) {
-            // Populate form data
             if (isManualOverride) {
                 const { isManualUlok: _ignored, ...rest } = res.data;
                 populateForm(rest);
@@ -589,49 +584,31 @@ async function loadTempData(ulok, isManualOverride = false) {
                 populateForm(res.data);
             }
 
-            // --- LOGIKA BARU SESUAI REPO ---
             if (Array.isArray(res.data.photos)) {
-                STATE.photos = {}; // Reset photos
+                STATE.photos = {};
                 const preloadPromises = [];
-                console.log("Memulai preloading gambar...");
-
-                // 1. Loop semua foto dari database
+                console.log("Preloading images...");
                 res.data.photos.forEach((pid, idx) => {
-                    if (!pid) return; // Skip jika null
-                    
+                    if (!pid) return;
                     const id = idx + 1;
                     const url = `${API_BASE_URL}/doc/view-photo/${pid}`;
-
-                    // Masukkan ke antrian preload
                     preloadPromises.push(preloadImage(url));
-
-                    // Masukkan ke state lokal
                     STATE.photos[id] = {
                         url: url,
                         point: ALL_POINTS.find(p => p.id === id),
                         timestamp: new Date().toISOString(),
-                        // Note: Backend temp mungkin belum simpan note, 
-                        // tapi jika ada struktur baru sesuaikan disini
                     };
                 });
+                if (preloadPromises.length > 0) await Promise.all(preloadPromises);
 
-                // 2. Tunggu SEMUA gambar selesai dimuat sebelum lanjut
-                if (preloadPromises.length > 0) {
-                    await Promise.all(preloadPromises);
-                    console.log("Semua gambar selesai dimuat.");
-                }
-
-                // 3. Tentukan current photo number terakhir
                 const taken = Object.keys(STATE.photos).map(Number);
                 const next = taken.length > 0 ? Math.max(...taken) + 1 : 1;
                 STATE.currentPhotoNumber = next > 38 ? 38 : next;
             }
         }
     } catch (e) {
-        console.error("Error loadTempData:", e);
-        showToast("Gagal memuat data: " + e.message, "error");
+        console.error(e);
     } finally {
-        // Matikan loading state hanya setelah semua selesai
         STATE.isLoadingData = false;
         hideLoading();
         renderFloorPlan();
@@ -654,17 +631,13 @@ async function saveFormDataBackground() {
 // 7. FLOOR PLAN & CAMERA
 // ==========================================
 function renderFloorPlan() {
-    // Render Header Info
     const tStore = getEl("fp-store-name");
     if (tStore) tStore.textContent = `${STATE.formData.namaToko || "-"} (${STATE.formData.kodeToko || "-"})`;
 
     const tDate = getEl("fp-date");
     if (tDate) tDate.textContent = STATE.formData.tanggalAmbilFoto || "-";
 
-    // Hitung Progress
     const completed = Object.keys(STATE.photos).length;
-    
-    // Render Progress Text & Bar
     const photoCount = getEl("photo-count");
     if (photoCount) photoCount.textContent = completed;
 
@@ -674,14 +647,12 @@ function renderFloorPlan() {
     const fillProg = getEl("progress-fill");
     if (fillProg) fillProg.style.width = `${(completed / 38) * 100}%`;
 
-    // Tampilkan tombol "Selesai" jika sudah 38 foto
     const compSec = getEl("completion-section");
     if (compSec) {
         if (completed === 38) show(compSec);
         else hide(compSec);
     }
 
-    // Render Gambar Denah
     const imgMap = {
         1: "../../assets/floor.png",
         2: "../../assets/floor3.jpeg",
@@ -690,17 +661,13 @@ function renderFloorPlan() {
     const floorImg = getEl("floor-img");
     if (floorImg) floorImg.src = imgMap[STATE.currentPage] || "../../assets/floor.png";
 
-    // --- RENDER TITIK FOTO (LOGIKA BARU) ---
     const container = getEl("points-container");
     if (container) {
         container.innerHTML = "";
         const pagePoints = PHOTO_POINTS[STATE.currentPage] || [];
-        
         pagePoints.forEach(p => {
             const btn = document.createElement("button");
             let status = "pending";
-            
-            // Tentukan status visual
             if (STATE.photos[p.id]) status = "completed";
             else if (p.id === STATE.currentPhotoNumber) status = "active";
             else if (p.id < STATE.currentPhotoNumber) status = "missed";
@@ -708,29 +675,19 @@ function renderFloorPlan() {
             btn.className = `photo-point ${status}`;
             btn.style.left = `${p.x}%`;
             btn.style.top = `${p.y}%`;
-            // Transform translate sudah dihandle di CSS
             btn.textContent = p.id;
 
-            // Logic Disabled (Sesuai Repo React)
-            // Disabled jika: Sedang loading ATAU (Foto belum diambil DAN bukan giliran nomornya)
-            const isLocked = !STATE.photos[p.id] && p.id > STATE.currentPhotoNumber;
-            
             if (STATE.isLoadingData) {
                 btn.disabled = true;
                 btn.style.cursor = "wait";
-            } else if (isLocked) {
+            } else if (!STATE.photos[p.id] && p.id > STATE.currentPhotoNumber) {
                 btn.disabled = true;
                 btn.style.opacity = 0.6;
                 btn.style.cursor = "not-allowed";
-                // Tambahkan title agar user tahu kenapa tidak bisa diklik
-                btn.title = "Harap ambil foto berurutan"; 
             } else {
-                btn.disabled = false;
                 btn.onclick = () => openCamera(p);
-                btn.title = p.label;
             }
 
-            // Tambahkan Centang jika selesai
             if (STATE.photos[p.id]) {
                 const check = document.createElement("span");
                 check.className = "check-mark";
@@ -943,31 +900,21 @@ function showWarningModal(msg, onOk) {
 async function generateAndSendPDF() {
     const ulok = STATE.formData.nomorUlok;
 
-    // --- VALIDASI STATUS (SESUAI REPO) ---
     if (ulok) {
         showLoading("Mengecek status dokumen...");
         try {
             const statusRes = await cekStatus(ulok);
-            
-            // Logika blokir jika status sudah final/waiting
-            if (statusRes?.status === "DISETUJUI") {
+            if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
                 hideLoading();
-                showToast("Dokumen sudah DISETUJUI, tidak bisa disimpan ulang!", "error");
-                return;
-            }
-
-            if (statusRes?.status === "MENUNGGU VALIDASI") {
-                hideLoading();
-                showToast("Dokumen sedang MENUNGGU VALIDASI, tidak bisa disimpan ulang!", "error");
+                showToast(`Dokumen status ${statusRes.status}, tidak bisa disimpan!`, "error");
+                showWarningModal(`Gagal Simpan!\nDokumen ini sudah berstatus: ${statusRes.status}.\nAnda tidak diperbolehkan mengubah data lagi.`);
                 return;
             }
         } catch (e) {
-            console.warn("Gagal cek status, mencoba melanjutkan...", e);
-            // Opsional: return jika ingin strict harus connect internet
+            console.warn("Gagal cek status, melanjutkan...", e);
         }
     }
 
-    // Jika lolos validasi, lanjut proses PDF
     showLoading("Membuat PDF...");
 
     const worker = new Worker("pdf.worker.js");
@@ -992,7 +939,6 @@ async function generateAndSendPDF() {
         try {
             showLoading("Mengirim PDF & Email...");
             const user = STATE.user;
-            // Gunakan helper formatDateInput agar aman
             const safeDate = formatDateInput(STATE.formData.tanggalAmbilFoto) || "unknown";
             const filename = `Dokumentasi_${STATE.formData.kodeToko || "TOKO"}_${safeDate}.pdf`;
 
@@ -1002,10 +948,10 @@ async function generateAndSendPDF() {
                 emailPengirim: user.email || ""
             };
 
-            // 1. Simpan Temp Dulu (Backup)
+            // Simpan Temp Dulu
             await saveTemp(payload);
 
-            // 2. Simpan ke Toko (Spreadsheet/Drive)
+            // Simpan ke Toko
             const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1015,7 +961,7 @@ async function generateAndSendPDF() {
 
             if (!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan ke Spreadsheet");
 
-            // 3. Kirim Email
+            // Kirim Email
             await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1028,7 +974,7 @@ async function generateAndSendPDF() {
                 })
             });
 
-            // 4. Download Lokal
+            // Download Lokal
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url;
@@ -1037,7 +983,7 @@ async function generateAndSendPDF() {
             a.click();
             a.remove();
 
-            // Set flag sukses untuk notifikasi saat reload
+            // Reload
             localStorage.setItem("saved_ok", "1");
             location.reload();
 
