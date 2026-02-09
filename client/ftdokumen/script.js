@@ -257,11 +257,20 @@ async function getTempByUlok(nomorUlok) {
 }
 
 async function saveTemp(payload) {
-    return fetch(`${API_BASE_URL}/doc/save-temp`, {
+    const res = await fetch(`${API_BASE_URL}/doc/save-temp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-    }).then(r => r.json());
+    });
+
+    // Cek jika server error (500, 404, dll)
+    if (!res.ok) {
+        // Ambil pesan error text (bukan json) agar tidak syntax error
+        const errorText = await res.text();
+        throw new Error(`Server Error ${res.status}: ${errorText.substring(0, 50)}...`);
+    }
+
+    return res.json();
 }
 
 async function cekStatus(nomorUlok) {
@@ -881,9 +890,17 @@ function capturePhoto() {
     
     if (!video || !canvas || !imgResult) return;
 
-    // 2. Setup Canvas
-    const w = video.videoWidth;
-    const h = video.videoHeight;
+    // 2. Setup Canvas dengan RESIZING (Agar tidak kegedean)
+    let w = video.videoWidth;
+    let h = video.videoHeight;
+    
+    // Batasi lebar maksimal 1000px (Cukup HD untuk laporan)
+    const MAX_WIDTH = 1000;
+    if (w > MAX_WIDTH) {
+        h = Math.round(h * (MAX_WIDTH / w));
+        w = MAX_WIDTH;
+    }
+
     canvas.width = w;
     canvas.height = h;
     
@@ -891,8 +908,10 @@ function capturePhoto() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
 
-    // 4. Convert ke Blob/DataURL
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+    // 4. Convert ke Blob/DataURL dengan KOMPRESI (Quality 0.6)
+    // Ini solusi utama untuk error 500 Payload Too Large
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+    
     STATE.capturedBlob = dataUrl;
     imgResult.src = dataUrl;
 
