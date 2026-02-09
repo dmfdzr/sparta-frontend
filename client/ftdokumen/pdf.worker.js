@@ -1,18 +1,22 @@
 // pdf.worker.js
+// Import library jsPDF dari CDN
 importScripts("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
 
 self.onmessage = async (e) => {
     try {
         const { formData, capturedPhotos, allPhotoPoints } = e.data;
 
+        // Init jsPDF
         const { jsPDF } = self.jspdf;
-        const doc = new jsPDF();
+        if (!jsPDF) throw new Error("Library jsPDF gagal dimuat");
 
+        const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 15;
         let yPos = 20;
 
+        // Helper: Header Halaman
         const addHeader = (title) => {
             doc.setFontSize(16);
             doc.setFont("helvetica", "bold");
@@ -29,102 +33,101 @@ self.onmessage = async (e) => {
             yPos = 35;
         };
 
-        addHeader("DATA PROYEK");
+        // Halaman 1: Informasi Toko
+        addHeader("DATA TOKO");
+        doc.setFontSize(11);
+        
+        const info = [
+            `Nomor ULOK: ${formData.nomorUlok || "-"}`,
+            `Nama Toko: ${formData.namaToko || "-"}`,
+            `Kode Toko: ${formData.kodeToko || "-"}`,
+            `Tgl Ambil Foto: ${formData.tanggalAmbilFoto || "-"}`,
+            `Alamat: ${formData.alamatToko || "-"}`
+            // Tambahkan field lain sesuai kebutuhan
+        ];
 
-        const addRow = (label, value) => {
-            doc.setFont("helvetica", "bold");
-            doc.text(label, margin, yPos);
-            doc.setFont("helvetica", "normal");
-            doc.text(": " + (value || "-"), margin + 50, yPos);
-            yPos += 8;
-        };
+        info.forEach(line => {
+            doc.text(line, margin, yPos);
+            yPos += 7;
+        });
 
-        addRow("Cabang", formData.cabang);
-        addRow("Kode Toko", formData.kodeToko);
-        addRow("Nama Toko", formData.namaToko);
-        addRow("Kontraktor Sipil", formData.kontraktorSipil);
-        addRow("Kontraktor ME", formData.kontraktorMe);
-        yPos += 5;
-        addRow("SPK Awal", formData.spkAwal);
-        addRow("SPK Akhir", formData.spkAkhir);
-        addRow("Tanggal GO", formData.tanggalGo);
-        addRow("Tanggal ST", formData.tanggalSt);
-        addRow("Tgl Ambil Foto", formData.tanggalAmbilFoto);
-
-        const sortedIds = Object.keys(capturedPhotos).map(Number).sort((a, b) => a - b);
-
-        const photoWidth = 80;
-        const photoHeight = 60;
-        const gapX = 10;
-        const gapY = 25;
-
+        // Loop Foto
         let count = 0;
+        
+        // Urutkan titik foto berdasarkan ID
+        const sortedPoints = allPhotoPoints.sort((a, b) => a.id - b.id);
 
-        if (sortedIds.length > 0) {
-            doc.addPage();
-            addHeader("DOKUMENTASI FOTO");
-        }
-
-        for (let i = 0; i < sortedIds.length; i++) {
-            const id = sortedIds[i];
-            const photo = capturedPhotos[id];
-
-            if (count > 0 && count % 4 === 0) {
+        for (const p of sortedPoints) {
+            // Cek apakah halaman penuh
+            if (count > 0 && count % 2 === 0) {
                 doc.addPage();
-                addHeader("DOKUMENTASI FOTO");
-                yPos = 35;
+                addHeader(`FOTO DOKUMENTASI (Hal. ${Math.floor(count/2) + 2})`);
             }
 
-            const col = count % 2;
-            const row = Math.floor((count % 4) / 2);
-
-            const x = margin + (col * (photoWidth + gapX));
-            const y = yPos + (row * (photoHeight + gapY));
-
-            doc.setFontSize(9);
+            // Tentukan posisi Y (2 foto per halaman)
+            // Foto 1: y=35, Foto 2: y=150 (estimasi)
+            const isTop = count % 2 === 0;
+            const currentY = isTop ? 35 : 150; 
+            
+            // Judul Foto
             doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(`${p.id}. ${p.label}`, margin, currentY);
 
-            const pointInfo = allPhotoPoints.find(p => p.id === id);
-            const label = pointInfo ? pointInfo.label : `Foto #${id}`;
+            // Kotak Foto
+            const photoHeight = 90; // Tinggi foto
+            const photoWidth = 120; // Lebar foto (4:3 ratio approx)
+            
+            const photoData = capturedPhotos[p.id];
 
-            const splitTitle = doc.splitTextToSize(`${id}. ${label}`, photoWidth);
-            doc.text(splitTitle, x, y - 2);
-
-            try {
-                if (photo.url && photo.url.startsWith("data:image")) {
-                    doc.addImage(photo.url, "JPEG", x, y, photoWidth, photoHeight);
-                } else {
-                    doc.setDrawColor(200);
-                    doc.setFillColor(240);
-                    doc.rect(x, y, photoWidth, photoHeight, "FD");
-
-                    let statusText = "FOTO TERSIMPAN";
-                    if (photo.url.includes("fototidakbisadiambil")) statusText = "TIDAK BISA DIFOTO";
-                    else if (!photo.url.startsWith("http") && !photo.url.startsWith("data:")) statusText = "GAMBAR LOCAL";
-
-                    doc.setFontSize(8);
-                    doc.text(statusText, x + photoWidth / 2, y + photoHeight / 2, { align: "center" });
+            if (photoData && photoData.url) {
+                try {
+                    // Validasi string gambar
+                    if (photoData.url.startsWith("data:image")) {
+                        doc.addImage(photoData.url, "JPEG", margin, currentY + 5, photoWidth, photoHeight);
+                    } else {
+                        // Placeholder jika format salah
+                        doc.setDrawColor(200);
+                        doc.rect(margin, currentY + 5, photoWidth, photoHeight);
+                        doc.text("Format Gambar Invalid", margin + 10, currentY + 45);
+                    }
+                } catch (err) {
+                    console.error("Gagal render foto " + p.id, err);
+                    doc.rect(margin, currentY + 5, photoWidth, photoHeight);
+                    doc.text("Error Render Foto", margin + 10, currentY + 45);
                 }
-            } catch (err) {
-                console.error("Error add image PDF", err);
-            }
 
-            if (photo.note) {
-                doc.setFontSize(8);
-                doc.setTextColor(220, 38, 38);
-                doc.text(`Note: ${photo.note}`, x, y + photoHeight + 5);
+                // Catatan Foto (jika ada)
+                if (photoData.note) {
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(9);
+                    doc.setTextColor(100);
+                    // Wrap text agar tidak keluar batas
+                    const splitNote = doc.splitTextToSize(`Note: ${photoData.note}`, pageWidth - (margin * 2));
+                    doc.text(splitNote, margin, currentY + photoHeight + 10);
+                    doc.setTextColor(0);
+                }
+
+            } else {
+                // Foto Kosong / Belum Diambil
+                doc.setDrawColor(200);
+                doc.setFillColor(245);
+                doc.rect(margin, currentY + 5, photoWidth, photoHeight, "FD");
+                doc.setTextColor(150);
+                doc.text("FOTO BELUM DIAMBIL", margin + 30, currentY + 45);
                 doc.setTextColor(0);
             }
 
             count++;
         }
 
-        const pdfBase64 = doc.output('datauristring');
-        const pdfBlob = doc.output('blob');
+        // Output
+        const pdfBase64 = doc.output("datauristring").split(",")[1]; // Ambil base64 murni
+        const pdfBlob = doc.output("blob");
 
         self.postMessage({ ok: true, pdfBase64, pdfBlob });
 
     } catch (error) {
-        self.postMessage({ ok: false, error: error.message, stack: error.stack });
+        self.postMessage({ ok: false, error: error.message });
     }
 };

@@ -555,18 +555,11 @@ function populateForm(data) {
     safeSet("inp-tgl-foto", formatDateInput(data.tanggalAmbilFoto));
 }
 
-function formatDateInput(dateStr) {
-    if (!dateStr) return "";
-    try {
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return "";
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    } catch {
-        return "";
-    }
+function formatDateInput(dateString) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date)) return dateString;
+    return date.toISOString().split('T')[0];
 }
 
 async function loadTempData(ulok, isManualOverride = false) {
@@ -970,48 +963,52 @@ function showWarningModal(msg, onOk) {
 }
 
 async function generateAndSendPDF() {
+    console.log("Memulai proses PDF...");
     const ulok = STATE.formData.nomorUlok;
 
+    // --- Validasi Status Dokumen ---
     if (ulok) {
-        showLoading("Mengecek status dokumen...");
+        showLoading("Mengecek status...");
         try {
             const statusRes = await cekStatus(ulok);
             if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
                 hideLoading();
-                showToast(`Dokumen status ${statusRes.status}, tidak bisa disimpan!`, "error");
-                showWarningModal(`Gagal Simpan!\nDokumen ini sudah berstatus: ${statusRes.status}.\nAnda tidak diperbolehkan mengubah data lagi.`);
+                showWarningModal(`Gagal Simpan!\nDokumen status: ${statusRes.status}.`);
                 return;
             }
         } catch (e) {
-            console.warn("Gagal cek status, melanjutkan...", e);
+            console.warn("Skip cek status (offline/error):", e);
         }
     }
 
     showLoading("Membuat PDF...");
 
-    // --- PERBAIKAN: Pengecekan Worker ---
+    // --- Init Worker ---
     let worker;
     try {
         worker = new Worker("pdf.worker.js");
     } catch (e) {
         hideLoading();
-        showToast("Gagal memuat sistem PDF (pdf.worker.js hilang).", "error");
+        showToast("Gagal memuat sistem PDF (pdf.worker.js tidak ditemukan)", "error");
         console.error("Worker Init Error:", e);
         return;
     }
 
+    // --- Kirim Data ke Worker ---
+    // Pastikan ALL_POINTS dikirim!
     worker.postMessage({
         formData: STATE.formData,
         capturedPhotos: STATE.photos,
-        allPhotoPoints: ALL_POINTS
+        allPhotoPoints: ALL_POINTS // <--- PENTING: Variabel ini harus ada
     });
 
+    // --- Handle Response dari Worker ---
     worker.onmessage = async (e) => {
         const { ok, pdfBase64, pdfBlob, error } = e.data;
 
         if (!ok) {
-            console.error("Worker Error:", error);
-            showToast("Gagal membuat PDF: " + error, "error");
+            console.error("PDF Worker Error:", error);
+            showToast("Gagal generate PDF: " + error, "error");
             hideLoading();
             worker.terminate();
             return;
@@ -1019,43 +1016,42 @@ async function generateAndSendPDF() {
 
         try {
             showLoading("Mengirim PDF & Email...");
-            const user = STATE.user || { email: "unknown" }; // Safety check
+            const user = STATE.user || { email: "unknown" };
             const safeDate = formatDateInput(STATE.formData.tanggalAmbilFoto) || "unknown";
             const filename = `Dokumentasi_${STATE.formData.kodeToko || "TOKO"}_${safeDate}.pdf`;
 
             const payload = {
                 ...STATE.formData,
-                pdfBase64,
+                pdfBase64, // Base64 string dari worker
                 emailPengirim: user.email || ""
             };
 
-            // Simpan Temp Dulu
-            await saveTemp(payload);
-
-            // Simpan ke Toko
+            // 1. Simpan ke Backend (Spreadsheet/Drive)
+            // (Disini kita pakai endpoint 'save-toko' yang mengembalikan pdfUrl)
             const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
+            
             const jsonSave = await resSave.json();
+            if (!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan data");
 
-            if (!jsonSave.ok) throw new Error(jsonSave.error || "Gagal simpan ke Spreadsheet");
-
-            // Kirim Email
+            // 2. Kirim Email (dengan lampiran PDF)
             await fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email: user.email,
-                    pdfBase64,
-                    filename,
-                    pdfUrl: jsonSave.pdfUrl,
-                    ...STATE.formData
+                    pdfBase64: pdfBase64,
+                    filename: filename,
+                    pdfUrl: jsonSave.pdfUrl, // Link drive dari response sebelumnya
+                    namaToko: STATE.formData.namaToko,
+                    kodeToko: STATE.formData.kodeToko
                 })
             });
 
-            // Download Lokal
+            // 3. Download Lokal untuk User
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
             a.href = url;
@@ -1064,13 +1060,13 @@ async function generateAndSendPDF() {
             a.click();
             a.remove();
 
-            // Reload
+            // 4. Sukses
             localStorage.setItem("saved_ok", "1");
             location.reload();
 
         } catch (err) {
-            console.error(err);
-            showToast("Error upload: " + err.message, "error");
+            console.error("Upload/Email Error:", err);
+            showToast("Gagal kirim data: " + err.message, "error");
             hideLoading();
         } finally {
             worker.terminate();
@@ -1078,9 +1074,8 @@ async function generateAndSendPDF() {
     };
 
     worker.onerror = (e) => {
-        console.error("Worker Error Event", e);
-        // Error detail biasanya ada di e.message
-        showToast("Error pada Worker PDF: " + (e.message || "Unknown"), "error");
+        console.error("Worker Crash:", e);
+        showToast("Terjadi kesalahan pada sistem PDF", "error");
         hideLoading();
         worker.terminate();
     };
