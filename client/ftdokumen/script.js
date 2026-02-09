@@ -118,87 +118,18 @@ function preloadImage(src) {
 // 3. AUTH & INIT
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Setup UI Awal
-    const urlParams = new URLSearchParams(window.location.search);
-    const ulok = urlParams.get("ulok");
-    const manual = urlParams.get("manual");
+    checkSession();
+    checkTimeLimit();
+    setInterval(checkTimeLimit, 60000);
 
-    if (ulok) {
-        STATE.formData.nomorUlok = ulok;
-        loadTempData(ulok, manual === "1");
+    const dateEl = getEl("current-date-display");
+    if (dateEl) {
+        const d = new Date();
+        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateEl.textContent = d.toLocaleDateString('id-ID', opts);
     }
 
-    // 2. Event Listener Tombol Kamera (DENGAN PENGECEKAN SAFE)
-    
-    // Tombol Shutter (Ambil Foto)
-    const btnSnap = getEl("btn-snap");
-    if (btnSnap) {
-        btnSnap.addEventListener("click", (e) => {
-            e.preventDefault();
-            capturePhoto();
-        });
-    }
-
-    // Tombol Retake (Ulangi Foto)
-    const btnRetake = getEl("btn-retake");
-    if (btnRetake) {
-        btnRetake.addEventListener("click", (e) => {
-            e.preventDefault();
-            resetCameraUI();
-        });
-    }
-
-    // Tombol Close Camera (X)
-    const btnCloseCam = getEl("btn-close-cam");
-    if (btnCloseCam) {
-        btnCloseCam.addEventListener("click", (e) => {
-            e.preventDefault();
-            closeCamera();
-        });
-    }
-
-    // Tombol Upload File
-    const fileInput = getEl("inp-file-upload");
-    if (fileInput) {
-        fileInput.addEventListener("change", (e) => {
-            handleFileUpload(e.target.files[0]);
-        });
-    }
-
-    const btnCantSnap = getEl("btn-cant-snap");
-    if (btnCantSnap) {
-        btnCantSnap.addEventListener("click", (e) => {
-            e.preventDefault();
-            markAsCantSnap();
-        });
-    }
-    
-    // 3. Tombol Utama Lainnya
-    const btnSavePdf = getEl("btn-save-pdf");
-    if (btnSavePdf) {
-        btnSavePdf.addEventListener("click", generateAndSendPDF);
-    }
-
-    const btnWarningOk = getEl("btn-warning-ok");
-    if (btnWarningOk) {
-        btnWarningOk.addEventListener("click", () => {
-            hide(getEl("warning-modal"));
-        });
-    }
-
-    // 4. Setup Tab Navigasi (Lantai 1, 2, 3)
-    document.querySelectorAll(".nav-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            // Update UI Active State
-            document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            
-            // Pindah Halaman
-            const page = parseInt(btn.dataset.page);
-            STATE.currentPage = page;
-            renderFloorPlan();
-        });
-    });
+    initEventListeners();
 });
 
 function checkSession() {
