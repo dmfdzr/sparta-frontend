@@ -431,7 +431,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadDefaultTasks(selectedValue) {
         let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
         
-        // Cek apakah ada data kategori dari RAB (API)
         if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
             console.log("📋 Menggunakan Filter Kategori dari RAB:", filteredCategories);
             
@@ -448,16 +447,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: finalName, 
                     start: 0,
                     duration: 0,
-                    dependencies: [],
-                    dependency: null,
+                    dependencies: [], // UBAH KE ARRAY
+                    // dependency: null, // HAPUS INI
                     keterlambatan: 0,
                     inputData: { ranges: [] }
                 };
             });
         } else {
-            // --- PERBAIKAN LOGIC DISINI ---
-            // Jika RAB kosong, MAKA currentTasks KOSONG.
-            // Jangan memuat template default jika data RAB memang tidak ada.
             console.warn("⚠️ Data RAB kosong. Tidak menampilkan tahapan pekerjaan.");
             currentTasks = []; 
         }
@@ -465,8 +461,6 @@ document.addEventListener('DOMContentLoaded', () => {
         projectTasks[selectedValue] = currentTasks;
         hasUserInput = false;
         isProjectLocked = false;
-        
-        // Render ulang agar perubahan terlihat
         renderApiData();
     }
 
@@ -478,9 +472,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let earliestDate = null;
         let tempTaskList = [];
         
+        // --- (Bagian logika RAB / Save Data lama tetap sama) ---
         if (filteredCategories && Array.isArray(filteredCategories) && filteredCategories.length > 0) {
             let template = currentProject.work === 'ME' ? taskTemplateME : taskTemplateSipil;
-            
             tempTaskList = filteredCategories.map((catNameFromRab, index) => {
                 const rabNameClean = catNameFromRab.toLowerCase().trim();
                 const templateItem = template.find(t => {
@@ -488,7 +482,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return tName === rabNameClean || tName.includes(rabNameClean) || rabNameClean.includes(tName);
                 });
                 const officialName = templateItem ? templateItem.name : catNameFromRab; 
-
                 let savedKeterlambatan = 0;
                 if (ganttData) {
                     let i = 1;
@@ -507,7 +500,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return { id: index + 1, name: officialName, keterlambatan: savedKeterlambatan };
             });
         } else {
-            // Jika tidak ada RAB, tapi ada save data lama -> Ambil dari save data
             let i = 1;
             while (ganttData) {
                 const kategoriKey = `Kategori_${i}`;
@@ -522,6 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // --- (Bagian mapping tanggal tetap sama) ---
         const categoryRangesMap = {};
         if (dayGanttDataArray && Array.isArray(dayGanttDataArray) && dayGanttDataArray.length > 0) {
             dayGanttDataArray.forEach(entry => {
@@ -529,9 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (hAwalStr) {
                     const parsedDate = parseDateDDMMYYYY(hAwalStr);
                     if (parsedDate && !isNaN(parsedDate.getTime())) {
-                        if (!earliestDate || parsedDate < earliestDate) {
-                            earliestDate = parsedDate;
-                        }
+                        if (!earliestDate || parsedDate < earliestDate) earliestDate = parsedDate;
                     }
                 }
             });
@@ -567,6 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentProject.startDate = earliestDate.toISOString().split('T')[0];
         }
 
+        // --- UPDATE LOGIC MAPPING DEPENDENCY ---
         tempTaskList.forEach(item => {
             const normalizedName = item.name.toLowerCase().trim();
             let ranges = [];
@@ -582,28 +574,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalDuration = ranges.reduce((sum, r) => sum + r.duration, 0);
                 minStart = Math.min(...ranges.map(r => r.start));
             }
-            let dependencyTaskId = null;
+
+            // [FIX] Mengambil SEMUA parent ID, bukan cuma satu
+            let dependencyTaskIds = [];
             if (dependencyData && dependencyData.length > 0) {
-                const depAsChild = dependencyData.find(d =>
+                // Cari semua entri di dependencyData dimana 'Kategori_Terikat' (Anak) == Task ini
+                const parents = dependencyData.filter(d =>
                     d.Kategori_Terikat && 
                     (String(d.Kategori_Terikat).toLowerCase().trim() === normalizedName || normalizedName.includes(String(d.Kategori_Terikat).toLowerCase().trim()))
                 );
-                if (depAsChild && depAsChild.Kategori) {
-                    const parentNameNorm = String(depAsChild.Kategori).toLowerCase().trim();
-                    const parentTask = tempTaskList.find(t => {
-                        const tName = t.name.toLowerCase().trim();
-                        return tName === parentNameNorm || tName.includes(parentNameNorm) || parentNameNorm.includes(tName);
-                    });
-                    if (parentTask) dependencyTaskId = parentTask.id;
-                }
+
+                parents.forEach(p => {
+                    if (p.Kategori) {
+                        const parentNameNorm = String(p.Kategori).toLowerCase().trim();
+                        const parentTask = tempTaskList.find(t => {
+                            const tName = t.name.toLowerCase().trim();
+                            return tName === parentNameNorm || tName.includes(parentNameNorm) || parentNameNorm.includes(tName);
+                        });
+                        if (parentTask) dependencyTaskIds.push(parentTask.id);
+                    }
+                });
             }
+
             dynamicTasks.push({
                 id: item.id,
                 name: item.name,
                 start: minStart,
                 duration: totalDuration,
-                dependencies: [],
-                dependency: dependencyTaskId,
+                dependencies: dependencyTaskIds, // ARRAY
+                // dependency: dependencyTaskId, // HAPUS
                 keterlambatan: item.keterlambatan || 0,
                 inputData: { ranges: ranges }
             });
@@ -695,7 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FORM KONTRAKTOR ---
     window.renderContractorInputForm = function (container) {
-        // PERBAIKAN: Jika tasks kosong, tampilkan pesan peringatan ramah
         if (!currentTasks || currentTasks.length === 0) {
             container.innerHTML = `
                 <div class="api-card warning">
@@ -707,14 +705,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let html = `<div class="api-card"><div class="api-card-title">Input Jadwal & Keterikatan</div><div class="task-input-container">`;
 
-        const isAllTasksFilled = currentTasks.every(t =>
-            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
-        );
-
-        currentTasks.forEach((task, index) => {
+        currentTasks.forEach((task) => {
             const ranges = task.inputData.ranges || [];
-            const childTask = currentTasks.find(t => t.dependency === task.id);
+            
+            // [FIX] Cari Task Mana yang menjadikan 'task' ini sebagai parent-nya (dependencies contains task.id)
+            const childTask = currentTasks.find(t => t.dependencies && t.dependencies.includes(task.id));
             const selectedChildId = childTask ? childTask.id : "";
+
             let dependencyOptions = `<option value="">- Tidak Ada -</option>`;
 
             currentTasks.forEach(candidate => {
@@ -745,7 +742,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="task-ranges-container" id="ranges-${task.id}">`;
 
             const rangesToRender = ranges.length > 0 ? ranges : [{ start: 0, end: 0 }];
-
             rangesToRender.forEach((r, idx) => {
                 const isSaved = ranges.length > 0;
                 html += createRangeHTML(task.id, idx, r.start, r.end, isSaved);
@@ -935,19 +931,27 @@ document.addEventListener('DOMContentLoaded', () => {
         let error = false;
         const maxAllowedDay = currentProject && currentProject.duration ? parseInt(currentProject.duration) : 999;
 
-        tempTasks.forEach(t => t.dependency = null);
+        // [FIX] Reset array dependencies
+        tempTasks.forEach(t => t.dependencies = []); 
         let newDependencyList = [];
 
+        // Loop setiap input dropdown
         currentTasks.forEach(realTask => {
             const container = document.getElementById(`ranges-${realTask.id}`);
             const depSelect = document.querySelector(`.dep-select[data-task-id="${realTask.id}"]`);
             const selectedChildId = depSelect ? parseInt(depSelect.value) : null;
 
+            // [FIX] Logic Push ke Array Dependencies
             if (selectedChildId) {
                 const childTaskInTemp = tempTasks.find(t => t.id === selectedChildId);
                 const parentTaskInTemp = tempTasks.find(t => t.id === realTask.id);
+                
                 if (childTaskInTemp && parentTaskInTemp) {
-                    childTaskInTemp.dependency = realTask.id; 
+                    // Masukkan ID Parent ke dalam list dependencies Anak
+                    if(!childTaskInTemp.dependencies.includes(realTask.id)){
+                        childTaskInTemp.dependencies.push(realTask.id);
+                    }
+                    
                     newDependencyList.push({
                         parentName: parentTaskInTemp.name,
                         childName: childTaskInTemp.name
@@ -999,6 +1003,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const removePayload = {
                     "nomor_ulok": currentProject.ulokClean,
                     "lingkup_pekerjaan": currentProject.work.toUpperCase(),
+                    // Hapus semua dependensi lama (karena API backend mungkin perlu clear all first)
                     "remove_dependency_data": dependencyData.map(d => ({
                         "Kategori": d.Kategori,
                         "Kategori_Terikat": d.Kategori_Terikat 
@@ -1211,7 +1216,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const chart = document.getElementById('ganttChart');
         if (!chart) return;
 
-        // Jika tidak ada tasks (RAB kosong), jangan render chart
         if (!currentTasks || currentTasks.length === 0) {
             chart.innerHTML = '';
             return;
@@ -1223,25 +1227,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentTasks.forEach(t => t.computed = { shift: 0 });
 
+        // [FIX] Kalkulasi Ripple Effect dengan Multiple Dependencies
         currentTasks.forEach(task => {
             const ranges = task.inputData?.ranges || [];
-            let shift = 0;
-            if (task.dependency) {
-                const parentTask = currentTasks.find(t => t.id === task.dependency);
-                if (parentTask) {
-                    const parentExistingShift = parentTask.computed.shift || 0;
-                    let parentInputDelay = 0;
-                    const pRanges = parentTask.inputData?.ranges || [];
-                    if (pRanges.length > 0) {
-                        parentInputDelay = parseInt(pRanges[pRanges.length - 1].keterlambatan || 0);
+            let maxShift = 0;
+
+            if (task.dependencies && task.dependencies.length > 0) {
+                // Cek semua parent, ambil shift terbesar
+                task.dependencies.forEach(parentId => {
+                    const parentTask = currentTasks.find(t => t.id === parentId);
+                    if (parentTask) {
+                        const parentExistingShift = parentTask.computed.shift || 0;
+                        let parentInputDelay = 0;
+                        const pRanges = parentTask.inputData?.ranges || [];
+                        if (pRanges.length > 0) {
+                            parentInputDelay = parseInt(pRanges[pRanges.length - 1].keterlambatan || 0);
+                        }
+                        
+                        // Shift = (End Parent + Shift Parent) - Start Task + 1
+                        // Namun kode asli hanya menambahkan shift akumulatif. 
+                        // Kita ikuti logic asli: Shift += Parent Shift + Delay Parent
+                        
+                        const potentialShift = parentExistingShift + parentInputDelay;
+                        if (potentialShift > maxShift) {
+                            maxShift = potentialShift;
+                        }
                     }
-                    shift = parentExistingShift + parentInputDelay;
-                }
+                });
             }
-            task.computed.shift = shift;
+            
+            task.computed.shift = maxShift;
+            
             if (ranges.length > 0) {
                 const lastRange = ranges[ranges.length - 1];
-                const actualEnd = lastRange.end + shift;
+                const actualEnd = lastRange.end + maxShift;
                 const ownDelay = parseInt(lastRange.keterlambatan || 0);
                 effectiveEndDates[task.id] = actualEnd + ownDelay;
             } else {
@@ -1339,30 +1358,34 @@ document.addEventListener('DOMContentLoaded', () => {
             </defs>`;
 
         let svgLines = '';
+        
+        // [FIX] Loop Multiple Dependencies untuk menggambar garis
         currentTasks.forEach(task => {
-            if (task.dependency) {
-                const parent = taskCoordinates[task.dependency];
-                const me = taskCoordinates[task.id];
-                if (parent && me && parent.endX !== undefined && me.startX !== undefined) {
-                    const startX = parent.endX;
-                    const startY = parent.centerY;
-                    const endX = me.startX;
-                    const endY = me.centerY;
-                    const deltaX = endX - startX;
-                    let tension = 40;
-                    if (deltaX < 40) tension = 60;
-                    if (deltaX < 0) tension = 100;
-                    const cp1x = startX + tension;
-                    const cp1y = startY;
-                    const cp2x = endX - tension;
-                    const cp2y = endY;
-                    const path = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
-                    const parentTask = currentTasks.find(t => t.id === task.dependency);
-                    const tooltipText = parentTask ? `${task.name} menunggu ${parentTask.name}` : '';
-                    svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95"><title>${tooltipText}</title></path>`;
-                    svgLines += `<circle class="dependency-node" cx="${startX}" cy="${startY}" r="4" />`;
-                    svgLines += `<circle class="dependency-node" cx="${endX}" cy="${endY}" r="4" />`;
-                }
+            if (task.dependencies && task.dependencies.length > 0) {
+                task.dependencies.forEach(parentId => {
+                    const parent = taskCoordinates[parentId];
+                    const me = taskCoordinates[task.id];
+                    if (parent && me && parent.endX !== undefined && me.startX !== undefined) {
+                        const startX = parent.endX;
+                        const startY = parent.centerY;
+                        const endX = me.startX;
+                        const endY = me.centerY;
+                        const deltaX = endX - startX;
+                        let tension = 40;
+                        if (deltaX < 40) tension = 60;
+                        if (deltaX < 0) tension = 100;
+                        const cp1x = startX + tension;
+                        const cp1y = startY;
+                        const cp2x = endX - tension;
+                        const cp2y = endY;
+                        const path = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
+                        const parentTask = currentTasks.find(t => t.id === parentId);
+                        const tooltipText = parentTask ? `${task.name} menunggu ${parentTask.name}` : '';
+                        svgLines += `<path d="${path}" class="dependency-line" marker-end="url(#depArrow)" opacity="0.95"><title>${tooltipText}</title></path>`;
+                        svgLines += `<circle class="dependency-node" cx="${startX}" cy="${startY}" r="4" />`;
+                        svgLines += `<circle class="dependency-node" cx="${endX}" cy="${endY}" r="4" />`;
+                    }
+                });
             }
         });
 
@@ -1376,6 +1399,99 @@ document.addEventListener('DOMContentLoaded', () => {
 
         html += `</div>`;
         chart.innerHTML = html;
+    }
+
+    // Update juga fungsi renderBottomActionBar karena logika cek 'isAllConnected' berubah
+    window.renderBottomActionBar = function () {
+        const container = document.getElementById('bottom-action-container');
+        if (!container) return;
+        container.innerHTML = '';
+        if (APP_MODE !== 'kontraktor') return;
+
+        if (!currentTasks || currentTasks.length === 0) return;
+
+        if (isProjectLocked) {
+            container.innerHTML = `
+                <div class="bottom-info-text">
+                    ✅ <strong>Status: Terkunci.</strong> Jadwal telah diterbitkan ke PIC.
+                </div>`;
+            return;
+        }
+
+        const isAllDatesFilled = currentTasks.length > 0 && currentTasks.every(t =>
+            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
+        );
+
+        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
+        const lastTaskId = sortedTasks.length > 0 ? sortedTasks[sortedTasks.length - 1].id : 0;
+
+        // [FIX] Cek apakah ada yang menunjuk task ini sebagai parent (Child depends on Parent)
+        // Task dianggap "tersambung" jika dia adalah Parent dari task lain, KECUALI dia adalah task terakhir.
+        const isAllConnected = sortedTasks.every(task => {
+            if (task.id === lastTaskId) return true; 
+            // Cek apakah ada task lain yg punya 'task.id' di dalam array dependencies-nya
+            return currentTasks.some(child => child.dependencies && child.dependencies.includes(task.id));
+        });
+
+        const isReadyToLock = isAllDatesFilled && isAllConnected;
+        let btnText = isReadyToLock ? "Kunci & Terbitkan Jadwal" : "Lengkapi Jadwal Dahulu";
+        let btnAttr = isReadyToLock ? "" : "disabled";
+        let infoText = isReadyToLock
+            ? "Pastikan grafik di atas sudah sesuai sebelum mengunci."
+            : "Harap lengkapi <strong>Durasi</strong> dan <strong>Keterikatan</strong> pada semua tahapan.";
+
+        container.innerHTML = `
+            <div class="bottom-info-text">
+                ℹ️ ${infoText}
+            </div>
+            <button class="btn-publish-bottom" onclick="confirmAndPublish()" ${btnAttr}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                ${btnText}
+            </button>
+        `;
+    }
+
+    // Update juga confirmAndPublish agar validasinya benar
+    window.confirmAndPublish = function () {
+        if (isInitializing) return;
+
+        const isAllDatesFilled = currentTasks.every(t =>
+            t.inputData && t.inputData.ranges && t.inputData.ranges.length > 0
+        );
+
+        if (!isAllDatesFilled) {
+            alert("Gagal Kunci Jadwal:\nHarap lengkapi durasi/tanggal pada SEMUA tahapan pekerjaan terlebih dahulu.");
+            return;
+        }
+
+        const sortedTasks = [...currentTasks].sort((a, b) => a.id - b.id);
+        const lastTaskId = sortedTasks[sortedTasks.length - 1].id;
+        
+        // [FIX] Validasi Broken Chains dengan Array
+        const brokenChains = sortedTasks.filter(task => {
+            if (task.id === lastTaskId) return false;
+            // Harus ada task lain yang dependencies-nya mengandung task.id ini
+            const hasNextStep = currentTasks.some(child => child.dependencies && child.dependencies.includes(task.id));
+            return !hasNextStep;
+        });
+
+        if (brokenChains.length > 0) {
+            const listNames = brokenChains.map(t => `- ${t.name}`).join("\n");
+            alert(
+                `❌ GAGAL KUNCI JADWAL\n\n` +
+                `Agar alur pekerjaan tersambung, Anda wajib memilih "Tahapan Selanjutnya" pada setiap baris.\n` +
+                `(Kecuali tahapan paling akhir).\n\n` +
+                `Tahapan berikut belum memiliki kelanjutan (belum dipilih sebagai parent oleh tahapan lain):\n` +
+                `${listNames}\n\n` +
+                `Solusi: Pilih tahapan selanjutnya pada dropdown baris tersebut.`
+            );
+            return; 
+        }
+
+        if (!confirm("Yakin kunci jadwal? Data tidak bisa diubah lagi.")) return;
+        saveProjectSchedule("Terkunci");
     }
 
     window.renderBottomActionBar = function () {
