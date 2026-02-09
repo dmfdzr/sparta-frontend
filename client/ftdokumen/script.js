@@ -572,9 +572,18 @@ function formatDateInput(dateStr) {
 async function loadTempData(ulok, isManualOverride = false) {
     if (!ulok) return;
     STATE.isLoadingData = true;
-    showLoading("Sinkronisasi data...");
+    showLoading("Sinkronisasi data..."); 
+    
     try {
-        const res = await getTempByUlok(ulok);
+        // Update: Ambil data temp DAN status dokumen secara bersamaan
+        const [res, statusRes] = await Promise.all([
+            getTempByUlok(ulok),
+            cekStatus(ulok).catch(() => null) // Ignore error cek status jika offline
+        ]);
+
+        // Simpan status dokumen ke STATE global agar bisa dipakai di renderFloorPlan
+        STATE.documentStatus = statusRes ? statusRes.status : null;
+
         if (res.ok && res.data) {
             if (isManualOverride) {
                 const { isManualUlok: _ignored, ...rest } = res.data;
@@ -608,6 +617,7 @@ async function loadTempData(ulok, isManualOverride = false) {
         }
     } catch (e) {
         console.error(e);
+        showToast("Gagal memuat data: " + e.message, "error");
     } finally {
         STATE.isLoadingData = false;
         hideLoading();
@@ -647,19 +657,49 @@ function renderFloorPlan() {
     const fillProg = getEl("progress-fill");
     if (fillProg) fillProg.style.width = `${(completed / 38) * 100}%`;
 
+    const floorImg = getEl("floor-img");
+    const imgMap = { 1: "../../assets/floor.png", 2: "../../assets/floor3.jpeg", 3: "../../assets/floor2.jpeg" };
+    if (floorImg) floorImg.src = imgMap[STATE.currentPage] || "../../assets/floor.png";
+
+    const btnSave = getEl("btn-save-pdf");
     const compSec = getEl("completion-section");
-    if (compSec) {
-        if (completed === 38) show(compSec);
-        else hide(compSec);
+    const isApproved = STATE.documentStatus === "DISETUJUI";
+
+    // 1. Handle Tombol Simpan
+    if (btnSave) {
+        if (isApproved) {
+            hide(btnSave); // Hilangkan tombol jika sudah disetujui
+        } else {
+            show(btnSave); // Tampilkan kembali jika belum
+        }
     }
 
-    const imgMap = {
-        1: "../../assets/floor.png",
-        2: "../../assets/floor3.jpeg",
-        3: "../../assets/floor2.jpeg"
-    };
-    const floorImg = getEl("floor-img");
-    if (floorImg) floorImg.src = imgMap[STATE.currentPage] || "../../assets/floor.png";
+    // 2. Handle Pesan di Bawah
+    if (compSec) {
+        if (isApproved) {
+            show(compSec);
+            compSec.className = "alert alert-success"; // Pakai style hijau/sukses
+            compSec.innerHTML = `
+                <h3 style="margin: 0 0 0.5rem 0;">
+                    <i class="fa-solid fa-clipboard-check"></i> Dokumen Sudah Disetujui
+                </h3>
+                <p style="margin: 0; font-size: 0.95rem;">
+                    Dokumen ini telah berstatus <b>DISETUJUI</b>. Data dikunci dan tidak dapat diubah lagi.
+                </p>
+            `;
+        } else {
+            compSec.className = "alert alert-success"; 
+            compSec.innerHTML = `
+                <h3 style="margin: 0 0 0.5rem 0;">
+                    <i class="fa-solid fa-circle-check"></i> Semua Foto Lengkap! 🎉
+                </h3>
+                <p style="margin: 0; font-size: 0.95rem;">Silakan tekan tombol "Simpan & Kirim PDF" di atas.</p>
+            `;
+            
+            if (completed === 38) show(compSec);
+            else hide(compSec);
+        }
+    }
 
     const container = getEl("points-container");
     if (container) {
@@ -677,15 +717,32 @@ function renderFloorPlan() {
             btn.style.top = `${p.y}%`;
             btn.textContent = p.id;
 
+            const isLocked = !STATE.photos[p.id] && p.id > STATE.currentPhotoNumber;
+            
             if (STATE.isLoadingData) {
                 btn.disabled = true;
                 btn.style.cursor = "wait";
-            } else if (!STATE.photos[p.id] && p.id > STATE.currentPhotoNumber) {
+            } else if (isApproved) {
+                // Jika disetujui, kunci semua titik
+                btn.disabled = false; // Tetap bisa diklik untuk LIHAT foto
+                btn.style.cursor = "pointer";
+                if (!STATE.photos[p.id]) {
+                    btn.disabled = true; // Tapi yg kosong gak bisa diklik
+                    btn.style.opacity = 0.5;
+                }
+            } else if (isLocked) {
                 btn.disabled = true;
                 btn.style.opacity = 0.6;
                 btn.style.cursor = "not-allowed";
+                btn.title = "Harap ambil foto berurutan"; 
             } else {
+                btn.disabled = false;
                 btn.onclick = () => openCamera(p);
+                btn.title = p.label;
+            }
+
+            if (isApproved && STATE.photos[p.id]) {
+                btn.onclick = () => viewLargePhoto(STATE.photos[p.id].url);
             }
 
             if (STATE.photos[p.id]) {
