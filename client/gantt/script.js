@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const childTask = currentTasks.find(t => t.dependencies && t.dependencies.includes(task.id));
             const selectedChildId = childTask ? childTask.id : "";
 
-            let dependencyOptions = `<option value="" class="text-gray-400">- Tidak Ada (Mulai Awal) -</option>`;
+            let dependencyOptions = `<option value="" class="text-gray-400">- Tidak Ada -</option>`;
 
             // Filter: Hanya tampilkan task yang ID-nya lebih besar (logic sederhana waterfall)
             // Atau tampilkan semua kecuali diri sendiri untuk fleksibilitas
@@ -962,6 +962,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.applyTaskSchedule = async function () { 
         if (isInitializing) return;
+        
+        // UI Feedback
         document.body.style.cursor = 'wait';
         const btnApply = document.querySelector('.btn-apply-schedule');
         if (btnApply) btnApply.textContent = "Menyimpan...";
@@ -970,27 +972,32 @@ document.addEventListener('DOMContentLoaded', () => {
         let error = false;
         const maxAllowedDay = currentProject && currentProject.duration ? parseInt(currentProject.duration) : 999;
 
-        // [FIX] Reset array dependencies
+        // Reset dependencies array untuk dihitung ulang
         tempTasks.forEach(t => t.dependencies = []); 
         let newDependencyList = [];
 
-        // Loop setiap input dropdown
+        // Loop setiap task untuk mengambil data dari Input Form Tabel
         currentTasks.forEach(realTask => {
+            // 1. Ambil Container Range (Start/End)
             const container = document.getElementById(`ranges-${realTask.id}`);
-            const depSelect = document.querySelector(`.dep-select[data-task-id="${realTask.id}"]`);
+            
+            // 2. [PERBAIKAN DISINI] Ambil Dropdown Keterikatan menggunakan class baru (.dep-select-table)
+            const depSelect = document.querySelector(`.dep-select-table[data-task-id="${realTask.id}"]`);
             const selectedChildId = depSelect ? parseInt(depSelect.value) : null;
 
-            // [FIX] Logic Push ke Array Dependencies
+            // Logic Mapping Dependency (Parent -> Child)
+            // Jika Task A memilih Task B di dropdown, artinya Task B bergantung pada Task A
             if (selectedChildId) {
                 const childTaskInTemp = tempTasks.find(t => t.id === selectedChildId);
                 const parentTaskInTemp = tempTasks.find(t => t.id === realTask.id);
                 
                 if (childTaskInTemp && parentTaskInTemp) {
-                    // Masukkan ID Parent ke dalam list dependencies Anak
+                    // Masukkan ID Parent (Task A) ke dalam list dependencies Anak (Task B)
                     if(!childTaskInTemp.dependencies.includes(realTask.id)){
                         childTaskInTemp.dependencies.push(realTask.id);
                     }
                     
+                    // Siapkan data untuk dikirim ke API Dependency
                     newDependencyList.push({
                         parentName: parentTaskInTemp.name,
                         childName: childTaskInTemp.name
@@ -998,11 +1005,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // 3. Ambil Data Durasi (Ranges)
             if (container) {
                 let newRanges = [];
+                // Loop setiap baris input (range-row-table)
                 Array.from(container.children).forEach(row => {
+                    // Selector ini tetap aman karena atribut data-type masih sama
                     const s = parseInt(row.querySelector('[data-type="start"]').value) || 0;
                     const e = parseInt(row.querySelector('[data-type="end"]').value) || 0;
+                    
                     if (s !== 0 && e !== 0) {
                         if (e < s) error = true;
                         if (e > maxAllowedDay) error = true;
@@ -1014,6 +1025,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Validasi Error Input Tanggal
         if (error) {
             alert("Terdapat kesalahan pada input tanggal (Cek durasi max / start > end).");
             document.body.style.cursor = 'default';
@@ -1023,6 +1035,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("⚠️ Validasi strict mode dinonaktifkan: Overlap jadwal diperbolehkan.");
 
+        // Hitung ulang Start/Duration untuk keperluan render Chart
         tempTasks.forEach(task => {
             const ranges = task.inputData.ranges;
             const totalDur = ranges.reduce((sum, r) => sum + r.duration, 0);
@@ -1036,13 +1049,15 @@ document.addEventListener('DOMContentLoaded', () => {
         hasUserInput = true;
 
         try {
+            // 1. Simpan Data Utama (Jadwal/Hari)
             await saveProjectSchedule("Active");
 
+            // 2. Simpan Data Keterikatan (Dependency)
+            // Hapus dulu dependensi lama
             if (dependencyData.length > 0) {
                 const removePayload = {
                     "nomor_ulok": currentProject.ulokClean,
                     "lingkup_pekerjaan": currentProject.work.toUpperCase(),
-                    // Hapus semua dependensi lama (karena API backend mungkin perlu clear all first)
                     "remove_dependency_data": dependencyData.map(d => ({
                         "Kategori": d.Kategori,
                         "Kategori_Terikat": d.Kategori_Terikat 
@@ -1055,6 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
+            // Insert dependensi baru
             if (newDependencyList.length > 0) {
                 const insertPayload = {
                     "nomor_ulok": currentProject.ulokClean,
@@ -1071,6 +1087,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
+            // Update state lokal
             dependencyData = newDependencyList.map(item => ({
                 "Nomor Ulok": currentProject.ulokClean,
                 "Lingkup_Pekerjaan": currentProject.work.toUpperCase(),
