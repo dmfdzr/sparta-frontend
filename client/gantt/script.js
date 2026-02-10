@@ -715,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <tr>
                             <th style="width: 5%;">No</th>
                             <th style="width: 30%;">Tahapan Pekerjaan</th>
-                            <th style="width: 25%;">Keterikatan (Syarat Mulai)</th>
+                            <th style="width: 25%;">Keterikatan</th>
                             <th style="width: 40%;">Durasi (Hari Ke-)</th>
                         </tr>
                     </thead>
