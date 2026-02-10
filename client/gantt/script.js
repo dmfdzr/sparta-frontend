@@ -206,53 +206,113 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadDataAndInit() {
         try {
             showLoadingMessage();
+            
+            // Debugging: Cek email user
+            if (APP_MODE === 'kontraktor' && !loggedInUserEmail) {
+                console.error("❌ Email kontraktor tidak ditemukan di SessionStorage.");
+                alert("Sesi login bermasalah (Email tidak ditemukan). Silakan login ulang.");
+                return;
+            }
+
             console.log(`🔗 Fetching Projects from: ${ENDPOINTS.ulokList}`);
 
             const response = await fetch(ENDPOINTS.ulokList);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
             const apiData = await response.json();
-            if (!Array.isArray(apiData)) throw new Error("Format data API tidak valid");
+            
+            // Debugging: Lihat apa isi data asli dari API di Console
+            console.log("📥 Raw API Data:", apiData);
 
+            if (!Array.isArray(apiData)) throw new Error("Format data API tidak valid (Bukan Array)");
+
+            // MAPPING YANG LEBIH KUAT (ROBUST)
             projects = apiData.map(item => {
-                const label = item.label;
-                const value = item.value;
-                const { ulok, lingkup } = extractUlokAndLingkup(value);
+                let ulokCode = "";
+                let storeName = "Tanpa Nama Toko";
+                let scopeWork = "Sipil"; // Default
+                let projectType = "Reguler";
 
-                let projectName = "Reguler";
-                let storeName = "Tidak Diketahui";
-
-                const parts = label.split(" - ");
-                if (parts.length >= 2) {
-                    storeName = parts[parts.length - 1].replace(/\(ME\)|\(Sipil\)/gi, '').trim();
-                    if (parts.length >= 3) projectName = parts[1].replace(/$$ME$$|$$Sipil$$/gi, "").trim();
+                // SKENARIO 1: Data sudah terformat (Label/Value)
+                if (item.label && item.value) {
+                    ulokCode = item.value; // Contoh: "Z001-ME"
+                    
+                    // Coba parsing dari label: "KODE - PROYEK - TOKO (LINGKUP)"
+                    const parts = item.label.split(" - ");
+                    if (parts.length >= 2) {
+                        storeName = parts[parts.length - 1].replace(/\(ME\)|\(Sipil\)/gi, '').trim();
+                        if (parts.length >= 3) projectType = parts[1].replace(/$$ME$$|$$Sipil$$/gi, "").trim();
+                    }
+                    
+                    // Ambil lingkup dari value atau label
+                    if (item.label.toLowerCase().includes("(me)") || ulokCode.includes("-ME")) scopeWork = "ME";
+                } 
+                // SKENARIO 2: Data Mentah Database (Raw DB Columns)
+                // Menangani variasi nama kolom (Snake case, Spasi, CamelCase)
+                else {
+                    // Cari Nomor Ulok
+                    ulokCode = item.Nomor_Ulok || item.nomor_ulok || item["Nomor Ulok"] || item.ulok || "";
+                    
+                    // Cari Nama Toko
+                    storeName = item.Nama_Toko || item.nama_toko || item["Nama Toko"] || item.store || "Toko Unknown";
+                    
+                    // Cari Lingkup
+                    const rawLingkup = item.Lingkup_Pekerjaan || item.lingkup_pekerjaan || item["Lingkup Pekerjaan"] || item.lingkup || "";
+                    if (rawLingkup && rawLingkup.toUpperCase().includes("ME")) scopeWork = "ME";
+                    
+                    // Cari Tipe Proyek
+                    projectType = item.Proyek || item.proyek || "Reguler";
                 }
 
-                if (label.toUpperCase().includes("RENOVASI") || ulok.includes("-R")) projectName = "Renovasi";
+                // Jika kode ulok kosong, skip data ini
+                if (!ulokCode) return null;
+
+                // Bersihkan format kode ulok
+                // Jika format di DB: "Z001" tapi butuh unik, kita bisa gabung lingkup
+                // Tapi untuk dropdown value, pastikan unik.
+                const cleanUlok = String(ulokCode).trim(); 
+                
+                // Tentukan value unik untuk dropdown (Ulok + Lingkup) agar tidak bentrok
+                // Jika ulokCode belum mengandung ME/Sipil, kita tambahkan untuk ID unik
+                let dropdownValue = cleanUlok;
+                if (!cleanUlok.includes("-")) {
+                    dropdownValue = `${cleanUlok}-${scopeWork}`;
+                }
+
+                // Deteksi Renovasi
+                if (String(projectType).toUpperCase().includes("RENOVASI") || cleanUlok.includes("-R")) {
+                    projectType = "Renovasi";
+                }
 
                 return {
-                    ulok: value,
-                    ulokClean: ulok,
+                    ulok: dropdownValue,        // Value unik untuk dropdown
+                    ulokClean: cleanUlok,       // Kode murni untuk query database
                     store: storeName,
-                    work: lingkup || 'Sipil',
-                    projectType: projectName,
+                    work: scopeWork,
+                    projectType: projectType,
                     startDate: new Date().toISOString().split("T")[0],
-                    alamat: "",
-                    cabang: "",
-                    kategoriLokasi: ""
+                    alamat: item.Alamat || item.alamat || "",
+                    cabang: item.Cabang || item.cabang || "",
+                    kategoriLokasi: item.Kategori_Lokasi || item.kategori_lokasi || ""
                 };
-            });
+            }).filter(p => p !== null); // Hapus data yang null/gagal parsing
+
+            console.log("✅ Parsed Projects:", projects);
 
             if (projects.length === 0) {
-                document.getElementById("ganttChart").innerHTML = `<div style="text-align:center; padding:40px;">Tidak ada data proyek ditemukan untuk akun ini.</div>`;
+                document.getElementById("ganttChart").innerHTML = `<div style="text-align:center; padding:40px;">Tidak ada data proyek ditemukan untuk email: ${loggedInUserEmail}</div>`;
+                
+                // Tambahkan opsi kosong agar user sadar
+                const ulokSelect = document.getElementById("ulokSelect");
+                ulokSelect.innerHTML = '<option value="">-- Tidak Ada Data Proyek --</option>';
                 return;
             }
 
             initUI();
 
         } catch (error) {
-            console.error(error);
-            document.getElementById("ganttChart").innerHTML = `<div style="text-align:center; color:red; padding:40px;">Gagal memuat list proyek: ${error.message}</div>`;
+            console.error("Critical Error Load Data:", error);
+            document.getElementById("ganttChart").innerHTML = `<div style="text-align:center; color:red; padding:40px;">Gagal memuat list proyek.<br><small>${error.message}</small></div>`;
         }
     }
 
