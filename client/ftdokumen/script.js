@@ -906,7 +906,8 @@ function capturePhoto() {
     let w = video.videoWidth;
     let h = video.videoHeight;
     
-    const MAX_WIDTH = 1000;
+    // [OPTIMASI] Turunkan Max Width dari 1000 ke 800 agar file lebih kecil
+    const MAX_WIDTH = 800; 
     if (w > MAX_WIDTH) {
         h = Math.round(h * (MAX_WIDTH / w));
         w = MAX_WIDTH;
@@ -918,7 +919,8 @@ function capturePhoto() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
 
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.65); // Kualitas 0.65
+    // [OPTIMASI] Turunkan kualitas JPEG dari 0.65 ke 0.5 (Masih cukup jelas untuk laporan)
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.5); 
     
     STATE.capturedBlob = dataUrl;
     imgResult.src = dataUrl;
@@ -990,7 +992,7 @@ function showWarningModal(msg, onOk) {
     show(getEl("warning-modal"));
 }
 
-// [FIXED] GENERATE PDF YANG DEFENSIVE (Anti Gagal)
+// GENERATE PDF
 async function generateAndSendPDF() {
     console.log("Memulai proses PDF...");
 
@@ -1003,37 +1005,38 @@ async function generateAndSendPDF() {
 
     if (ulok) {
         showLoading("Mengecek status...");
-        const statusRes = await cekStatus(ulok);
-        // Jika statusRes null (error), kita lanjut saja agar tidak blocking
-        if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
-            hideLoading();
-            showWarningModal(`Gagal Simpan!\nDokumen status: ${statusRes.status}.`);
-            return;
+        try {
+            const statusRes = await cekStatus(ulok);
+            if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
+                hideLoading();
+                showWarningModal(`Gagal Simpan!\nDokumen status: ${statusRes.status}.`);
+                return;
+            }
+        } catch (e) {
+            console.warn("Cek status skip karena server error:", e);
         }
     }
 
-    showLoading("Menyiapkan data gambar (Mungkin agak lama)...");
+    showLoading("Menyiapkan data gambar...");
 
     const photosForPdf = {};
     const photoKeys = Object.keys(STATE.photos);
 
-    // Proses konversi async parallel
     const conversionPromises = photoKeys.map(async (key) => {
         const original = STATE.photos[key];
         const newItem = { ...original };
         
         if (newItem.url && !newItem.url.startsWith("data:")) {
             try {
-                // Gunakan fungsi robust baru
                 const base64 = await urlToBase64(newItem.url);
                 if (base64) {
                     newItem.url = base64; 
                 } else {
-                    console.warn(`Foto #${key} gagal di-load untuk PDF, akan dikosongkan.`);
-                    newItem.url = null; // Set null agar worker tidak error render
+                    console.warn(`Foto #${key} gagal di-load (Server Error), dikosongkan di PDF.`);
+                    newItem.url = null; 
                 }
             } catch (e) {
-                console.error(`Error convert foto #${key} for PDF:`, e);
+                console.error(`Error convert foto #${key}:`, e);
                 newItem.url = null;
             }
         }
@@ -1042,7 +1045,7 @@ async function generateAndSendPDF() {
 
     await Promise.all(conversionPromises);
 
-    showLoading("Membuat PDF...");
+    showLoading("Merender PDF...");
 
     let worker;
     try {
@@ -1073,24 +1076,23 @@ async function generateAndSendPDF() {
         const user = STATE.user || { email: "unknown" };
         const safeDate = formatDateInput(STATE.formData.tanggalAmbilFoto) || "unknown";
         const filename = `Dokumentasi_${STATE.formData.kodeToko || "TOKO"}_${safeDate}.pdf`;
-        
-        // Helper untuk download lokal (Backup jika server gagal)
+
         const downloadLocal = () => {
-             const url = URL.createObjectURL(pdfBlob);
-             const a = document.createElement("a");
-             a.href = url;
-             a.download = filename;
-             document.body.appendChild(a);
-             a.click();
-             a.remove();
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
         };
 
         try {
-            showLoading("Mengupload Data ke Server...");
+            showLoading("Mengupload ke Server...");
 
             const payload = {
                 ...STATE.formData,
-                pdfBase64,
+                pdfBase64, //
                 emailPengirim: user.email || ""
             };
 
@@ -1101,13 +1103,14 @@ async function generateAndSendPDF() {
             });
             
             if (!resSave.ok) {
-                // JIKA SERVER ERROR 500, KITA TETAP DOWNLOAD PDF
-                throw new Error(`Server menolak data (${resSave.status}). Ukuran PDF mungkin terlalu besar.`);
+                const errText = await resSave.text();
+                throw new Error(`Server Error (${resSave.status}). Kemungkinan ukuran file terlalu besar.`);
             }
             
             const jsonSave = await resSave.json();
 
-            // Kirim Email (Optional, non-blocking)
+            showToast("Berhasil disimpan ke server!", "success");
+
             fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1119,22 +1122,22 @@ async function generateAndSendPDF() {
                     namaToko: STATE.formData.namaToko,
                     kodeToko: STATE.formData.kodeToko
                 })
-            }).catch(err => console.warn("Email gagal kirim:", err));
-
-            // Download setelah sukses upload
+            }).catch(console.warn);
             downloadLocal();
 
             localStorage.setItem("saved_ok", "1");
-            location.reload();
+            setTimeout(() => location.reload(), 2000);
 
         } catch (err) {
-            console.error("Upload Error:", err);
+            console.error("Upload Gagal:", err);
             hideLoading();
-            
-            // FALLBACK PENTING: Force download agar user tidak kehilangan data
             downloadLocal();
             
-            showWarningModal(`Gagal Simpan ke Server: ${err.message}\n\nPDF telah didownload ke HP Anda sebagai backup. Harap kirim file tersebut manual ke Admin.`);
+            showWarningModal(
+                `Gagal Simpan ke Server: ${err.message}\n\n` +
+                `TAPI JANGAN KHAWATIR!\nPDF sudah didownload otomatis ke HP Anda.\n` +
+                `Silakan kirim file PDF tersebut secara manual ke Admin.`
+            );
         } finally {
             worker.terminate();
         }
