@@ -1,9 +1,9 @@
-SPARTA Frontend (System Documentation)
+## SPARTA Frontend
 
-**Project:** SPARTA (Sistem Dokumentasi Bangunan Toko Baru - Alfamart)
-**Stack:** Vanilla JavaScript (ES6+), CSS3, HTML5
-**Backend Integration:** Python (Render) & Google Apps Script
-**Platform:** Web (PWA Supported)
+**Project :** SPARTA (Sistem Dokumentasi Bangunan Toko Baru - Alfamart).
+**Stack :** Vanilla JavaScript (ES6+), CSS3, HTML5.
+**Backend Integration :** Python (Render) & Google Apps Script.
+**Platform :** Web.
 
 ---
 
