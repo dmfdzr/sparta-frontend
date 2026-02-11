@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update UI Header (Info User Tamu)
     const roleBadge = document.getElementById('roleBadge');
-    if (roleBadge) roleBadge.textContent = "GUEST / VIEWER";
+    if (roleBadge) roleBadge.textContent = "VIEWER";
 
     const nameDisplay = document.getElementById('userNameDisplay');
     if (nameDisplay) nameDisplay.textContent = "Mode Tampilan";
@@ -25,16 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentProject = null;
     let projectTasks = {};
     let currentTasks = [];
-    let ganttApiData = null;
     let rawGanttData = null;
     let dayGanttData = null;
     let dependencyData = [];
     let filteredCategories = null;
-    let isLoadingGanttData = false;
     let hasUserInput = false;
-    let isProjectLocked = true; // Selalu anggap terkunci (Read Only)
     let supervisionDays = {};
-    let isInitializing = true;
 
     // ==================== 4. RULES (PENGAWASAN) ====================
     const SUPERVISION_RULES = {
@@ -46,10 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
         40: [2, 7, 17, 25, 33, 40],
         48: [2, 10, 25, 32, 41, 48]
     };
-
-    // Template dihapus/tidak digunakan sebagai fallback otomatis lagi
-    const taskTemplateME = []; 
-    const taskTemplateSipil = [];
 
     // ==================== 5. HELPER FUNCTIONS ====================
     function formatDateID(date) {
@@ -133,9 +125,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const tempProject = {
                 ulok: dummyValue,         
                 ulokClean: autoUlok,      
-                store: "Memuat...",       
+                store: currentProject.store,       
                 work: autoLingkup,
-                projectType: "Reguler",
+                projectType: currentProject.projectType,
                 startDate: new Date().toISOString().split("T")[0],
                 duration: 0,
                 alamat: "",
