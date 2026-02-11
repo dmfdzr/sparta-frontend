@@ -401,3 +401,287 @@ tr:hover td { background-color: #f8fafc; }
     height: 100vh; display: flex; flex-direction: column; 
     align-items: center; justify-content: center; background: white;
 }
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #e5e5e5; /* Warna abu-abu muda untuk background lingkaran */
+    border-top: 5px solid var(--primary); /* Warna Merah Alfamart untuk indikator putaran */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ======================== SUMMARY BOX STYLING ======================== */
+.summary-box {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 24px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    border: 1px solid #f1f5f9;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+
+.summary-box::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: linear-gradient(to bottom, var(--primary), var(--primary-dark));
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 1rem;
+    color: #64748b; /* Slate 500 */
+}
+
+.summary-label {
+    font-weight: 500;
+}
+
+.summary-value {
+    font-weight: 600;
+    color: var(--neutral-700);
+    font-feature-settings: "tnum"; /* Agar angka rata (tabular nums) */
+}
+
+/* Garis pemisah putus-putus seperti struk */
+.summary-divider {
+    border-top: 2px dashed #e2e8f0;
+    margin: 16px 0;
+}
+
+.summary-row.grand-total {
+    margin-bottom: 0;
+    align-items: flex-end;
+}
+
+.grand-total-label {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--neutral-700);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.grand-total-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--primary); /* Merah Alfamart */
+    line-height: 1.2;
+}
+
+.text-danger {
+    color: #dc2626 !important;
+}
+
+/* =========================================
+   MOBILE RESPONSIVE OVERRIDES (OPNAME FORM)
+   ========================================= */
+
+@media (max-width: 768px) {
+
+    /* === GLOBAL APP HEADER (NAVBAR) FIX === */
+    .app-header {
+        flex-direction: column; /* Ubah orientasi jadi vertikal (atas-bawah) */
+        height: auto; /* Tinggi otomatis menyesuaikan isi */
+        padding: 1.5rem 1rem;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    /* Reset posisi Logo */
+    .header-logo {
+        position: static; /* Matikan posisi absolute */
+        transform: none; /* Matikan centering transform */
+        width: 100px; /* Ukuran logo di HP */
+        margin-bottom: 5px;
+        left: auto;
+        top: auto;
+    }
+
+    /* Judul di tengah */
+    .app-header div {
+        width: 100%;
+        text-align: center;
+    }
+
+    .app-header h1 {
+        font-size: 1.5rem; /* Ukuran font judul sedikit lebih kecil */
+        margin: 0;
+    }
+
+    /* Reset Tombol Logout/Dashboard */
+    .header-logout {
+        position: static; /* Matikan posisi absolute */
+        transform: none;
+        right: auto;
+        top: auto;
+        width: 100%; /* Tombol selebar layar */
+        display: flex;
+        justify-content: center;
+        margin-top: 5px;
+        padding: 10px;
+    }
+
+    /* === 1. OPNAME HEADER & NAVIGATION === */
+    /* Target div header di dalam card Opname */
+    .card .d-flex.align-center.gap-2 {
+        flex-direction: column;
+        align-items: flex-start !important; /* Rata kiri */
+        gap: 15px !important;
+    }
+
+    /* Tombol Kembali menjadi Full Width */
+    #btn-back-main {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 5px;
+    }
+
+    /* Judul Halaman Opname */
+    .card h2 {
+        font-size: 1.3rem;
+        line-height: 1.3;
+    }
+
+    /* Sub-judul (Nama Toko & Ulok) */
+    .card h2 + span {
+        display: block;
+        font-size: 0.9rem;
+        margin-top: 5px;
+    }
+
+    /* === 2. TABLE DATA ENTRY OPTIMIZATION === */
+    .table-container {
+        margin: 0 -1rem; /* Melebarkan container sampai mentok tepi layar */
+        border-left: 0;
+        border-right: 0;
+        border-radius: 0;
+        
+        /* Scroll Hint (Bayangan halus di kanan agar user tahu bisa discroll) */
+        background: 
+            linear-gradient(to right, white 30%, rgba(255,255,255,0)),
+            linear-gradient(to right, rgba(255,255,255,0), white 70%) 0 100%,
+            radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.2), transparent),
+            radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.2), transparent) 0 100%;
+        background-repeat: no-repeat;
+        background-attachment: local, local, scroll, scroll;
+        background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+        background-position: 0 0, 100% 0, 0 0, 100% 0;
+    }
+
+    /* Memperbesar Input Volume agar mudah ditap */
+    .vol-input {
+        width: 100px !important; /* Sedikit lebih lebar */
+        padding: 12px 5px !important;
+        font-size: 16px !important; /* Mencegah auto-zoom di iPhone */
+        height: 45px;
+    }
+
+    /* Tombol Upload & Simpan di dalam tabel */
+    .table-container .btn-sm {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+    
+    /* Tombol Upload Label */
+    .table-container label.btn-outline {
+        display: inline-block;
+        padding: 8px 10px;
+        min-width: 70px;
+        text-align: center;
+    }
+
+    /* Baris Tabel agar lebih renggang (tidak sempit) */
+    .table-container td {
+        padding: 12px 8px;
+        vertical-align: middle;
+        white-space: nowrap; /* Mencegah teks turun ke bawah agar baris rapi */
+    }
+
+    /* === 3. TOTAL & SUMMARY SECTION === */
+    /* Target div abu-abu summary di bawah tabel */
+    .card > div[style*="background:#f8f9fa"] {
+        padding: 1.25rem !important;
+        margin-top: 1.5rem !important;
+    }
+
+    /* Baris per baris summary (Total, PPN, Grand Total) */
+    .card > div[style*="background:#f8f9fa"] .d-flex {
+        align-items: center; /* Luruskan vertikal */
+        margin-bottom: 8px;
+    }
+
+    /* Teks Label (Total, PPN) */
+    .card > div[style*="background:#f8f9fa"] span {
+        font-size: 0.95rem;
+        color: #64748b;
+    }
+
+    /* Angka Nominal */
+    .card > div[style*="background:#f8f9fa"] b {
+        font-size: 1.1rem;
+    }
+
+    /* Khusus Grand Total */
+    .card > div[style*="background:#f8f9fa"] .d-flex:last-child {
+        margin-top: 15px !important;
+        border-top: 1px dashed #cbd5e1;
+        padding-top: 10px;
+        flex-direction: column; /* Stack vertikal */
+        align-items: flex-end; /* Rata kanan */
+    }
+
+    .card > div[style*="background:#f8f9fa"] .d-flex:last-child span {
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+
+    .card > div[style*="background:#f8f9fa"] .d-flex:last-child b {
+        font-size: 1.8rem; /* Nominal Grand Total Besar */
+    }
+
+    /* === 4. ACTION BUTTONS (BOTTOM) === */
+    /* Tombol Instruksi Lapangan (IL) */
+    .card a[href*="il/index.html"] {
+        padding: 15px !important;
+        font-size: 1rem !important;
+    }
+
+    /* Tombol Opname Final / Menunggu Approval */
+    #btn-final {
+        padding: 16px !important;
+        font-size: 1.1rem !important;
+        margin-bottom: 20px;
+        white-space: normal; /* Izinkan teks panjang turun baris */
+        line-height: 1.4;
+    }
+    
+    /* Pesan Error/Warning di bawah tombol */
+    #btn-final + p {
+        font-size: 0.9rem !important;
+        padding: 0 10px;
+    }
+
+    .summary-box {
+        padding: 20px 16px;
+    }
+    .grand-total-value {
+        font-size: 1.5rem;
+    }
+}

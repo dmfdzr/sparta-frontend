@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,10 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="../assets/favicon.ico" type="image/x-icon">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
+
 <body>
     <header class="app-header">
         <a href="/">
@@ -35,10 +39,18 @@
                 <select id="filter-cabang" class="filter-select" style="display: none;">
                     <option value="">Semua Cabang</option>
                 </select>
+                <select id="filter-status" class="filter-select" style="display: none;">
+                    <option value="">Semua Status</option>
+                    <option value="incomplete">Belum Lengkap</option>
+                    <option value="complete">Sudah Lengkap</option>
+                </select>
                 <div id="total-records" class="total-badge" style="display: none;">
                     Total: <span id="total-count-val">0</span> Toko
                 </div>
                 <button id="btn-add-new" class="btn-primary" style="display: none;">+ Tambah Data</button>
+                <button id="exportBtn" class="btn-primary" style="margin-left: 1rem;">Export CSV</button>
+                <button id="btn-export-pdf" class="btn-primary"
+                    style="margin-left: 0.5rem; background-color: #dc3545;">Export PDF</button>
             </div>
             <div class="table-container">
                 <table class="table">
@@ -62,12 +74,18 @@
                 <span id="page-info" class="pagination-info">Halaman 1 dari 1</span>
                 <div class="pagination-buttons">
                     <button id="btn-prev" class="btn-pagination">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
                         Sebelumnya
                     </button>
                     <button id="btn-next" class="btn-pagination">
                         Selanjutnya
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -112,7 +130,8 @@
                     </div>
                     <div class="form-group">
                         <label>Total Luas Bangunan (m²)</label>
-                        <input type="text" id="totalLuasBangunan" class="input-decimal" placeholder="0,00" readonly style="background-color: #f1f5f9; cursor: not-allowed; color: #64748b; font-weight: bold;">
+                        <input type="text" id="totalLuasBangunan" class="input-decimal" placeholder="0,00" readonly
+                            style="background-color: #f1f5f9; cursor: not-allowed; color: #64748b; font-weight: bold;">
                     </div>
                     <div class="form-group">
                         <label>Luas Area Terbuka (m²)</label>
@@ -161,4 +180,5 @@
     <div id="toast" class="toast">Pesan Notifikasi</div>
     <script src="script.js"></script>
 </body>
+
 </html>

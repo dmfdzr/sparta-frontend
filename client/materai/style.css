@@ -1,0 +1,429 @@
+/* =========================================
+   VARIABLES & RESET (STYLE OPNAME)
+   ========================================= */
+:root {
+    --primary: #d62828;      /* Merah Alfamart */
+    --primary-dark: #b91c1c;
+    --accent: #facc15;       /* Kuning */
+    --bg-body: #f8fafc;      /* Slate Background */
+    --text-main: #334155;    /* Slate-700 */
+    --text-muted: #64748b;   /* Slate-500 */
+    --border: #e2e8f0;       /* Slate-200 */
+    
+    --radius: 12px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    line-height: 1.6;
+    padding-bottom: 40px;
+}
+
+/* =========================================
+   HEADER (ADAPTASI STRUKTUR JS ANDA)
+   ========================================= */
+.app-header {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    text-align: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+header.app-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+.header-logo {
+    width: 140px;
+    height: auto;
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.btn-header-back {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+.btn-header-back:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.02);
+}
+
+/* =========================================
+    USER PILL (GREETING)
+   ========================================= */
+.user-greeting-wrapper {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 10;
+}
+
+/* Class .user-pill ada di JS Anda */
+.user-pill {
+    display: inline-block;
+    padding: 8px 24px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--neutral-700);
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.user-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* =========================================
+   LAYOUT & DASHBOARD MENU (YANG HILANG)
+   ========================================= */
+.container {
+    max-width: 1000px;
+    margin: 1.5rem auto;
+    padding: 0 20px;
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* Grid Menu Dashboard */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.menu-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.menu-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+}
+
+.menu-icon { font-size: 3rem; margin-bottom: 16px; }
+.menu-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
+.menu-desc { font-size: 0.9rem; color: var(--text-muted); }
+
+/* =========================================
+   CARDS & FORMS
+   ========================================= */
+.card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.page-title { font-size: 1.25rem; font-weight: 700; color: var(--text-main); }
+
+/* Form Layout (Row & Col untuk input sejajar) */
+.row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.col { flex: 1; }
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-main);
+}
+
+select, input[type="text"], input[type="file"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: white;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+select:focus, input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.1);
+}
+
+/* Buttons */
+button { font-family: inherit; }
+.btn-secondary {
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.btn-secondary:hover { background: var(--border); color: var(--text-main); }
+
+button[type="submit"], button.primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 1rem;
+}
+button[type="submit"]:hover, button.primary:hover { background: var(--primary-dark); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Filter Grid (Khusus Halaman Hasil) */
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+    align-items: end;
+}
+
+/* =========================================
+   TABLE STYLES (OPNAME STYLE)
+   ========================================= */
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-top: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+th {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    padding: 14px 16px;
+    letter-spacing: 0.5px;
+}
+
+td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-main);
+    font-size: 0.95rem;
+    text-align: center;    /* Isi Rata Tengah */
+    vertical-align: middle;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background-color: #fef2f2; }
+
+.actions {
+    display: flex;           /* Menggunakan Flexbox */
+    flex-direction: row;     /* Menata elemen ke samping (horizontal) */
+    align-items: center;     /* Menyejajarkan vertikal di tengah */
+    gap: 12px;               /* Jarak antar tombol */
+    margin-bottom: 24px;
+    flex-wrap: wrap;         /* Agar responsif di layar kecil */
+}
+
+/* Style dasar untuk semua tombol di dalam .actions */
+.actions button {
+    height: 44px;            /* Tinggi dipaksa sama */
+    min-width: 140px;        /* Lebar minimal agar seragam */
+    padding: 0 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* Tombol Terapkan (Primary - Merah) */
+button.primary {
+    background-color: #dc2626;
+    color: #fff;
+}
+button.primary:hover {
+    background-color: #b91c1c;
+}
+
+/* Tombol Reset (Warning - Kuning) */
+button.btn-warning {
+    background-color: #ffcc32;
+    color: #ffffff; /* Warna teks kontras */
+}
+button.btn-warning:hover {
+    background-color: #eab308; /* Kuning lebih gelap */
+}
+
+.action-buttons-wrapper {
+    display: flex;
+    gap: 8px;
+    justify-content: center; /* Posisi di tengah */
+    align-items: center;
+}
+
+/* Style Dasar Tombol Aksi (Kecil) */
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    min-width: 70px; /* Lebar minimal agar seragam */
+    cursor: pointer;
+}
+
+.btn-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* 1. Tombol Lihat (Warna Biru Langit) */
+.btn-action.view {
+    background-color: #e0f2fe; /* Background Biru Muda */
+    color: #0284c7;        /* Teks Biru Tua */
+    border-color: #bae6fd; /* Border Biru */
+}
+.btn-action.view:hover {
+    background-color: #bae6fd;
+    color: #0369a1;
+}
+
+/* 2. Tombol Unduh (Warna Hijau Segar) */
+.btn-action.download {
+    background-color: #dcfce7; /* Background Hijau Muda */
+    color: #16a34a;        /* Teks Hijau Tua */
+    border-color: #bbf7d0; /* Border Hijau */
+}
+.btn-action.download:hover {
+    background-color: #bbf7d0;
+    color: #15803d;
+}
+
+/* =========================================
+   MOBILE RESPONSIVE
+   ========================================= */
+.mobile-cards { display: none; }
+
+@media (max-width: 768px) {
+    /* Header Stack */
+    .app-header {
+        flex-direction: column;
+        height: auto;
+        padding: 1rem;
+        gap: 1rem;
+        align-items: stretch; /* Agar lebar penuh */
+    }
+    .header-left { justify-content: center; }
+    .btn-header-back { justify-content: center; width: 100%; }
+
+    /* Form Stack */
+    .row { flex-direction: column; gap: 16px; }
+    
+    /* Input Size (Jari Friendly) */
+    select, input, button { height: 48px; font-size: 16px; }
+
+    /* Table Mobile Card View */
+    .desktop-table { display: none; }
+    .mobile-cards { display: flex; flex-direction: column; gap: 12px; }
+    
+    .m-card { 
+        background: white; 
+        border: 1px solid var(--border); 
+        border-radius: 12px; 
+        padding: 16px; 
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .m-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+    .m-label { color: var(--text-muted); font-weight: 500; }
+}
+
+/* Utils */
+.error-box { background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px; margin-top: 10px; display: none; }
+.loading-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999;
+}
+.spinner {
+    width: 40px; height: 40px; border: 4px solid #e5e5e5; border-top-color: var(--primary);
+    border-radius: 50%; animation: spin 1s linear infinite;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }

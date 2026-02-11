@@ -1,8 +1,10 @@
 /* ================= GLOBAL VARIABLES & RESET ================= */
 :root {
-    --primary: #d62828;      /* Merah Alfamart */
+    --primary: #d62828;
+    /* Merah Alfamart */
     --primary-dark: #b91c1c;
-    --secondary-color: #1976d2; /* Blue for accents */
+    --secondary-color: #1976d2;
+    /* Blue for accents */
     --bg-color: #f5f5f5;
     --text-color: #333;
     --border-color: #ddd;
@@ -214,10 +216,21 @@ select:focus {
     border-left: 5px solid transparent;
 }
 
-.api-card.error { border-left-color: #e53e3e; }
-.api-card.warning { border-left-color: #ed8936; }
-.api-card.locked { border-left-color: #48bb78; }
-.api-card.info { border-left-color: #3182ce; }
+.api-card.error {
+    border-left-color: #e53e3e;
+}
+
+.api-card.warning {
+    border-left-color: #ed8936;
+}
+
+.api-card.locked {
+    border-left-color: #48bb78;
+}
+
+.api-card.info {
+    border-left-color: #3182ce;
+}
 
 .api-card-title {
     font-weight: 600;
@@ -231,11 +244,25 @@ select:focus {
 /* --- CONTRACTOR INPUT STYLES --- */
 .task-input-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 15px;
-    max-height: 500px;
+    grid-template-columns: repeat(auto-fill, minmax(650px, 1fr));
+    gap: 25px;
+    max-height: 650px;
     overflow-y: auto;
-    padding-right: 5px;
+    padding: 10px;
+}
+
+.dep-select {
+    width: 100%;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.dep-select:focus {
+    border-color: #3182ce;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
 }
 
 .task-input-row-multi {
@@ -255,8 +282,10 @@ select:focus {
 .range-input-group {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
     margin-bottom: 8px;
+    background: #fff;
+    padding: 2px;
 }
 
 .input-group {
@@ -288,7 +317,8 @@ select:focus {
     font-size: 12px;
 }
 
-.btn-remove-range, .btn-add-range {
+.btn-remove-range,
+.btn-add-range {
     cursor: pointer;
     border: none;
     border-radius: 4px;
@@ -305,7 +335,10 @@ select:focus {
     color: #c53030;
     font-weight: bold;
 }
-.btn-remove-range:hover { background: #feb2b2; }
+
+.btn-remove-range:hover {
+    background: #feb2b2;
+}
 
 .btn-add-range {
     width: 100%;
@@ -315,7 +348,239 @@ select:focus {
     font-size: 12px;
     margin-top: 5px;
 }
-.btn-add-range:hover { background: #90cdf4; }
+
+.btn-add-range:hover {
+    background: #90cdf4;
+}
+
+/* ================= TABLE STYLE INPUT FORM (NEW) ================= */
+
+/* Wrapper agar table bisa discroll horizontal di mobile */
+.table-responsive-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.schedule-input-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    min-width: 800px; /* Minimum width agar tidak gepeng di mobile */
+}
+
+/* Header Table */
+.schedule-input-table thead th {
+    background: #f8fafc;
+    color: #4a5568;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Body Table */
+.schedule-input-table tbody tr {
+    border-bottom: 1px solid #edf2f7;
+    transition: background 0.15s;
+}
+
+.schedule-input-table tbody tr:hover {
+    background-color: #f7fafc;
+}
+
+.schedule-input-table td {
+    padding: 12px 16px;
+    vertical-align: top; /* Agar input sejajar atas jika multi-range */
+    color: #2d3748;
+    font-size: 14px;
+}
+
+/* Kolom Nama Task */
+.task-name-cell {
+    font-weight: 600;
+    line-height: 1.4;
+    color: #2d3748;
+}
+
+/* Kolom Dependensi */
+.dep-select-table {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 13px;
+    background-color: #fff;
+    color: #2d3748;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dep-select-table:focus {
+    border-color: #3182ce;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.input-hint {
+    font-size: 11px;
+    color: #a0aec0;
+    margin-top: 4px;
+}
+
+/* Kolom Durasi / Ranges */
+.ranges-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.range-row-table {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Pill Input Style (Mirip Badge tapi Input) */
+.input-pill {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 34px;
+    transition: border 0.2s;
+}
+
+.input-pill:focus-within {
+    border-color: #3182ce;
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.15);
+}
+
+.pill-label {
+    background: #edf2f7;
+    color: #718096;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 8px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #cbd5e0;
+}
+
+.pill-input {
+    width: 50px;
+    border: none;
+    padding: 0 5px;
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+    font-weight: 500;
+    color: #2d3748;
+}
+
+/* Style saat data sudah tersimpan */
+.pill-input.input-saved {
+    background-color: #f0fff4; /* Hijau muda */
+    color: #22543d;
+}
+
+.input-pill:has(.input-saved) {
+    border-color: #9ae6b4;
+}
+
+.input-pill:has(.input-saved) .pill-label {
+    background-color: #c6f6d5;
+    color: #22543d;
+    border-right-color: #9ae6b4;
+}
+
+.range-arrow {
+    color: #cbd5e0;
+    font-size: 12px;
+}
+
+/* Tombol Delete Kecil */
+.btn-icon-delete {
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #a0aec0;
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon-delete:hover {
+    background: #fff5f5;
+    color: #e53e3e;
+    border-color: #feb2b2;
+}
+
+.btn-icon-delete.saved {
+    background: #fff5f5;
+    color: #c53030;
+    border-color: #feb2b2;
+}
+
+.btn-icon-delete.saved:hover {
+    background: #fed7d7;
+}
+
+/* Tombol Tambah Periode */
+.btn-add-range-table {
+    background: transparent;
+    border: 1px dashed #cbd5e0;
+    color: #3182ce;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-add-range-table:hover {
+    background: #ebf8ff;
+    border-color: #bee3f8;
+    color: #2b6cb0;
+}
+
+/* Subtitle Card */
+.api-card-header {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 15px;
+}
+
+.api-card-subtitle {
+    font-size: 13px;
+    color: #718096;
+    margin-top: 4px;
+}
 
 /* --- PIC DELAY INPUT STYLES --- */
 .delay-control-card {
@@ -372,7 +637,10 @@ select:focus {
     gap: 10px;
 }
 
-.btn-apply-schedule, .btn-reset-schedule, .btn-publish, .btn-terapkan-delay {
+.btn-apply-schedule,
+.btn-reset-schedule,
+.btn-publish,
+.btn-terapkan-delay {
     padding: 10px 20px;
     border: none;
     border-radius: 6px;
@@ -381,13 +649,39 @@ select:focus {
     transition: transform 0.1s, opacity 0.2s;
 }
 
-.btn-apply-schedule { background: var(--secondary-color); color: white; }
-.btn-reset-schedule { background: #718096; color: white; }
-.btn-publish { background: #2f855a; color: white; width: 100%; margin-top: 10px; }
-.btn-terapkan-delay { background: #dd6b20; color: white; height: 42px; padding: 0 25px; }
+.btn-apply-schedule {
+    background: var(--secondary-color);
+    color: white;
+}
 
-button:hover { opacity: 0.9; transform: translateY(-1px); }
-button:disabled { background: #cbd5e0; cursor: not-allowed; }
+.btn-reset-schedule {
+    background: #718096;
+    color: white;
+}
+
+.btn-publish {
+    background: #2f855a;
+    color: white;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-terapkan-delay {
+    background: #dd6b20;
+    color: white;
+    height: 42px;
+    padding: 0 25px;
+}
+
+button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+button:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+}
 
 /* ================= CHART & TIMELINE ================= */
 .chart-wrapper {
@@ -400,7 +694,9 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
 }
 
 .gantt-chart {
-    min-width: 1000px;
+    min-width: 100%;
+    width: max-content;
+    display: block;
 }
 
 .chart-header {
@@ -409,7 +705,7 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     position: sticky;
     top: 0;
     background: #fff;
-    z-index: 20;
+    z-index: 40;
 }
 
 .task-column {
@@ -421,8 +717,9 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     background: #fff;
     position: sticky;
     left: 0;
-    z-index: 30;
+    z-index: 50;
     border-right: 1px solid #eee;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
 }
 
 .timeline-column {
@@ -440,9 +737,19 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     color: #666;
     user-select: none;
 }
+
 /* Style for supervision clickable header */
-.day-header:hover { background: #e2e8f0; cursor: pointer; }
-.day-header.supervision-active { background: #fbd38d !important; color: #744210; font-weight: bold; }
+.day-header:hover {
+    background: #e2e8f0;
+    cursor: pointer;
+}
+
+.day-header.supervision-active {
+    background: #bae6fd !important;
+    color: #0c4a6e;
+    font-weight: bold;
+    border-bottom: 2px solid #0ea5e9;
+}
 
 .task-row {
     display: flex;
@@ -450,9 +757,16 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     height: 50px;
     align-items: center;
     position: relative;
+    background-color: #fff;
 }
 
-.task-row:hover { background-color: #fafafa; }
+.task-row:hover {
+    background-color: #fafafa;
+}
+
+.task-row:hover .task-name {
+    background-color: #fafafa;
+}
 
 .task-name {
     width: 250px;
@@ -465,10 +779,14 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     flex-direction: column;
     justify-content: center;
     border-right: 1px solid #eee;
-    background: inherit;
     position: sticky;
     left: 0;
-    z-index: 10;
+    z-index: 20;
+    background-color: #fff !important;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
 }
 
 .task-duration {
@@ -492,15 +810,39 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 5;
     transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.bar.on-time { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
-.bar.on-time.has-delay { background: #fff; color: #333; }
-.bar.delayed { z-index: 6; }
-.bar:hover { transform: scaleY(1.1); z-index: 8; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+.bar.on-time {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+}
+
+.bar.on-time.has-delay {
+    background: #fff;
+    color: #333;
+}
+
+.bar.delayed {
+    z-index: 6;
+}
+
+.bar:hover {
+    transform: scaleY(1.1);
+    z-index: 8;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.bar.shifted {
+    background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+    /* Oranye */
+    color: #fff;
+    border: 1px solid #c05621;
+}
 
 /* Supervision Markers */
 .supervision-marker {
@@ -508,25 +850,10 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     top: 40px;
     width: 30px;
     height: 4px;
-    background: #d69e2e;
+    background: #0ea5e9;
     border-radius: 2px;
     z-index: 15;
-    margin-left: 5px; /* Centering helper based on day width */
-}
-
-/* Dependencies Lines SVG */
-.dependency-svg {
-    position: absolute;
-    top: 0;
-    left: 250px;
-    pointer-events: none;
-    z-index: 1;
-}
-.dependency-line {
-    fill: none;
-    stroke: #cbd5e0;
-    stroke-width: 2px;
-    stroke-dasharray: 4;
+    margin-left: 5px;
 }
 
 .legend {
@@ -535,5 +862,459 @@ button:disabled { background: #cbd5e0; cursor: not-allowed; }
     justify-content: center;
     margin-top: 20px;
 }
-.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; }
-.legend-color { width: 16px; height: 16px; border-radius: 4px; }
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #555;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+/* ================= DEPENDENCY LINES (SVG) ================= */
+.chart-lines-svg {
+    position: absolute;
+    top: 0;
+    left: 250px;
+    /* Offset selebar kolom Task Name */
+    height: 100%;
+    pointer-events: none;
+    /* Agar klik tembus ke bar/row di bawahnya */
+    z-index: 10;
+    /* Di atas background row, tapi di bawah bar (bar z-index 5-8) */
+}
+
+.dependency-line {
+    fill: none;
+    stroke: #4299e1;
+    /* blue */
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 4 3;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+    /* enable hover */
+    cursor: pointer;
+    filter: drop-shadow(0 0 1px rgba(66, 153, 225, 0.28));
+}
+
+.dependency-line:hover {
+    stroke: #3182ce;
+    stroke-width: 2.8px;
+    stroke-dasharray: none;
+}
+
+.dependency-arrow {
+    fill: #4299e1;
+}
+
+.dependency-node {
+    fill: #fff;
+    stroke: #4299e1;
+    stroke-width: 1.5px;
+    filter: drop-shadow(0 1px 1px rgba(66, 153, 225, 0.35));
+}
+
+/* Dependency indicator badge on task bar */
+.dependency-badge {
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    background: #667eea;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 15;
+}
+
+/* ================= LOADING OVERLAY ================= */
+.hidden-overlay {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: -1;
+}
+
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+#loading-overlay.active {
+    visibility: visible;
+    opacity: 1;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid var(--primary);
+    /* Menggunakan variabel merah alfamart */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text h3 {
+    color: var(--primary);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+}
+
+.loading-text p {
+    color: #4a5568;
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==========================================================================
+   10. FINAL ACTION BUTTONS STYLING (NEW)
+   ========================================================================== */
+
+/* Container untuk memberikan ruang napas pada tombol final */
+.action-buttons {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    /* Garis pemisah halus di atasnya */
+    display: flex;
+    gap: 15px;
+    /* Jarak antar tombol */
+    justify-content: flex-end;
+    /* Posisi di kanan */
+}
+
+/* Gaya Dasar Shared untuk Kedua Tombol */
+.action-buttons .btn-apply,
+.action-buttons .btn-publish {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 12px 24px;
+    /* Ukuran lebih besar agar mudah diklik */
+    border-radius: 8px;
+    /* Sudut lebih membulat modern */
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Transisi smooth */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    /* Shadow dasar */
+    color: white;
+    letter-spacing: 0.5px;
+}
+
+/* Memberi jarak pada icon di dalam tombol */
+.action-buttons button i {
+    margin-right: 10px;
+    font-size: 1.1rem;
+}
+
+/* Efek Hover Shared: Tombol sedikit terangkat */
+.action-buttons .btn-apply:hover,
+.action-buttons .btn-publish:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Efek Klik Shared: Tombol sedikit tertekan */
+.action-buttons .btn-apply:active,
+.action-buttons .btn-publish:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+
+/* --- 1. Styling Khusus Tombol "Terapkan" (Biru Segar) --- */
+.btn-apply {
+    /* Gradien biru modern */
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.btn-apply:hover {
+    /* Gradien sedikit lebih terang saat hover */
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    /* Shadow berwarna biru tipis */
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4), 0 4px 6px -2px rgba(59, 130, 246, 0.2);
+}
+
+
+/* --- 2. Styling Khusus Tombol "Kunci Jadwal (Final)" (Merah Tegas/Penting) --- */
+.btn-publish {
+    /* Gradien merah (menggunakan warna brand Alfamart sebagai basis) */
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    font-weight: 700;
+    /* Lebih tebal untuk menandakan "Final" */
+}
+
+.btn-publish:hover {
+    /* Gradien merah sedikit lebih menyala */
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    /* Shadow berwarna merah agar terlihat 'urgen' atau penting */
+    box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.4), 0 4px 6px -2px rgba(220, 38, 38, 0.2);
+}
+
+/* ================= BOTTOM ACTION BAR ================= */
+#bottom-action-container {
+    margin-top: 20px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.05);
+    /* Shadow ke atas */
+    display: flex;
+    justify-content: space-between;
+    /* Kiri: Info, Kanan: Tombol */
+    align-items: center;
+    border: 1px solid #e2e8f0;
+}
+
+.bottom-info-text {
+    font-size: 14px;
+    color: #4a5568;
+}
+
+.bottom-info-text strong {
+    color: #2d3748;
+}
+
+/* Style khusus tombol publish di bawah agar besar dan jelas */
+.btn-publish-bottom {
+    background: linear-gradient(135deg, #2f855a 0%, #276749 100%);
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 12px 30px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(47, 133, 90, 0.3);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-publish-bottom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(47, 133, 90, 0.4);
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+}
+
+.btn-publish-bottom:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+    color: #718096;
+}
+
+.btn-publish-bottom svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* =========================================
+   MOBILE RESPONSIVE OVERRIDES (GANTT CHART)
+   ========================================= */
+
+@media (max-width: 768px) {
+
+    /* === 1. HEADER FIX (Sama seperti halaman lain) === */
+    header.app-header {
+        flex-direction: column;
+        height: auto;
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .header-logo {
+        position: static;
+        transform: none;
+        width: 100px;
+        margin-bottom: 5px;
+    }
+
+    header.app-header h1 {
+        font-size: 1.5rem;
+        width: 100%;
+    }
+
+    .btn-back-header {
+        position: static;
+        transform: none;
+        width: 100%;
+        justify-content: center;
+        margin-top: 5px;
+    }
+
+    /* === 2. CONTROLS & INFO === */
+    .controls {
+        flex-direction: column;
+        align-items: stretch; /* Full width */
+        padding: 15px;
+    }
+
+    .controls select {
+        width: 100%; /* Dropdown Ulok full width */
+    }
+
+    .project-info {
+        grid-template-columns: 1fr; /* Info proyek 1 kolom ke bawah */
+        gap: 10px;
+    }
+
+    /* === 3. CONTRACTOR INPUT FORM (Complex Part) === */
+    /* Ubah Grid utama menjadi 1 kolom */
+    .task-input-container {
+        grid-template-columns: 1fr; 
+        padding: 0;
+        max-height: none; /* Biarkan scroll page, bukan scroll div */
+    }
+
+    /* Target div flexbox di dalam row (yg membungkus dropdown & ranges) */
+    .task-input-row-multi > div {
+        flex-direction: column; /* Ubah orientasi jadi atas-bawah */
+        gap: 15px !important;
+    }
+
+    /* Bagian Kiri (Dropdown Dependency) */
+    .task-input-row-multi > div > div:first-child {
+        width: 100% !important; /* Paksa lebar 100% */
+    }
+
+    /* Bagian Kanan (Input Tanggal) */
+    .task-input-row-multi > div > div:last-child {
+        width: 100% !important;
+    }
+
+    /* Input Tanggal & Tombol Hapus */
+    .range-input-group {
+        display: flex;
+        justify-content: space-between; /* Input di kiri kanan, tombol di ujung */
+    }
+    
+    .task-day-input {
+        width: 100%; /* Input angka sedikit lebih lebar */
+        min-width: 60px;
+        padding: 8px; /* Area tap lebih besar */
+        font-size: 16px; /* Cegah zoom iOS */
+    }
+
+    .btn-remove-range {
+        width: 35px; /* Tombol X lebih besar */
+        height: 35px;
+    }
+
+    .btn-add-range {
+        padding: 10px; /* Tombol Tambah Periode lebih mudah ditekan */
+    }
+
+    /* === 4. PIC DELAY FORM === */
+    .delay-form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .delay-form-row .form-group {
+        width: 100%;
+    }
+    
+    .btn-terapkan-delay {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    /* === 5. GANTT CHART VISUALS (CRITICAL) === */
+    /* Perkecil kolom 'Nama Tahapan' (Sticky) agar grafik tidak tertutup */
+    .task-column, 
+    .task-name {
+        width: 140px !important; /* Desktop: 250px -> Mobile: 140px */
+        font-size: 11px; /* Font lebih kecil */
+        padding: 0 5px;
+        white-space: normal; /* Biarkan teks membungkus (wrap) jika panjang */
+        line-height: 1.2;
+    }
+
+    /* Geser posisi SVG Garis Panah agar pas dengan kolom baru */
+    .chart-lines-svg {
+        left: 140px !important; /* Sesuaikan dengan width .task-name di atas */
+    }
+
+    .bar {
+        font-size: 10px; /* Teks di dalam bar (Durasi) diperkecil */
+    }
+
+    /* === 6. BOTTOM ACTION BAR === */
+    #bottom-action-container {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .btn-publish-bottom {
+        width: 100%; /* Tombol Kunci Jadwal Full Width */
+        justify-content: center;
+        padding: 15px;
+    }
+
+    .task-input-actions {
+        flex-direction: column; /* Tombol Reset & Terapkan jadi tumpuk */
+    }
+    
+    .task-input-actions button {
+        width: 100%;
+    }
+
+    /* === 7. LEGEND === */
+    .legend {
+        flex-wrap: wrap; /* Legend turun ke bawah jika layar sempit */
+        gap: 10px;
+    }
+    
+    .legend-item {
+        font-size: 11px;
+    }
+}

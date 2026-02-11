@@ -1,16 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Ambil Role dari Session
+    // 1. Ambil Role DAN Cabang dari Session
     const userRole = sessionStorage.getItem('userRole'); 
+    const userCabang = sessionStorage.getItem('loggedInUserCabang'); 
     
-    // 2. Security Check: Jika tidak ada role, tendang ke login
+    // 2. Security Check
     if (!userRole) {
         alert("Sesi Anda telah habis. Silakan login kembali.");
-        // Pastikan URL ini benar mengarah ke halaman login Anda
         window.location.href = 'https://sparta-alfamart.vercel.app';
         return;
     }
 
-    // 3. Konfigurasi Role (Sesuai 4 Role Anda)
+    // 3. Konfigurasi Role (HANYA MENU STANDAR/UMUM)
     const roleConfig = {
         'BRANCH BUILDING & MAINTENANCE MANAGER': [
             'menu-spk', 'menu-pengawasan', 'menu-opname', 
@@ -18,10 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
             'menu-svdokumen', 'menu-sp'
         ],
         'BRANCH BUILDING COORDINATOR': [
-            'menu-dokumentasi', 'menu-svdokumen','menu-gantt', 'menu-opname'
+            'menu-dokumentasi', 'menu-svdokumen','menu-gantt', 'menu-opname', 'menu-sp'
         ],
         'BRANCH BUILDING SUPPORT': [
-            'menu-dokumentasi', 'menu-opname', 'menu-gantt', 'menu-svdokumen'
+            'menu-dokumentasi', 'menu-opname', 'menu-gantt', 'menu-svdokumen', 'menu-sp'
         ],
         'KONTRAKTOR': [
             'menu-rab', 'menu-materai', 'menu-opname', 'menu-gantt'
@@ -29,16 +29,32 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // 4. Logika Filter Menu
-    // Kita pastikan role yang diambil di-uppercase agar cocok dengan Key di atas
     const currentRole = userRole.toUpperCase(); 
-    const allowedMenus = roleConfig[currentRole] || [];
+    
+    // Langkah A: Ambil menu dasar sesuai Role pengguna
+    let allowedMenus = roleConfig[currentRole] ? [...roleConfig[currentRole]] : [];
 
-    // Jika role tidak dikenali
+    // Langkah B: Logika Khusus HEAD OFFICE (Dengan Pengecualian Kontraktor)
+    const isHeadOffice = userCabang && userCabang.toUpperCase() === 'HEAD OFFICE';
+    const isContractor = currentRole === 'KONTRAKTOR';
+
+    // ATURAN: Hanya Staff Internal HO yang dapat menu tambahan. 
+    // Kontraktor (meskipun HO) TIDAK boleh melihat User Log / SP.
+    if (isHeadOffice && !isContractor) {
+        console.log("User HEAD OFFICE (Internal) terdeteksi. Menambahkan menu khusus.");
+        
+        allowedMenus.push('menu-userlog');
+    } 
+
+    // Debugging
+    console.log(`Role: ${currentRole}, Cabang: ${userCabang}`);
+    console.log(`Menu yang ditampilkan:`, allowedMenus);
+
     if (allowedMenus.length === 0) {
-        console.warn(`Role "${currentRole}" tidak memiliki akses menu atau tidak dikenali.`);
+        console.warn(`User Role "${currentRole}" tidak dikenali atau tidak memiliki akses menu.`);
     }
 
-    // Loop semua item menu
+    // 5. Render Tampilan Menu
     const allMenuItems = document.querySelectorAll('.menu-item');
     allMenuItems.forEach(item => {
         if (allowedMenus.includes(item.id)) {
@@ -48,13 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 5. Fitur Logout
+    // 6. Fitur Logout
     const logoutBtn = document.getElementById('logout-button-form');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Mencegah reload default jika ada
+            e.preventDefault(); 
             if(confirm("Apakah Anda yakin ingin keluar?")) {
-                sessionStorage.clear();
+                sessionStorage.clear(); 
                 window.location.href = 'https://sparta-alfamart.vercel.app';
             }
         });

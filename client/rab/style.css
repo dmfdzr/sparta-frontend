@@ -1,170 +1,172 @@
-/* General Body and Header Styles */
-    body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f4f7f6;
-        margin: 0;
-        padding: 0;
-        color: #2d3748;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-    }
+/* ==========================================================================
+   1. GLOBAL & RESET
+   ========================================================================== */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f4f7f6;
+    margin: 0;
+    padding: 0;
+    color: #2d3748;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
 
-    header {
-        /* MENGUBAH BACKGROUND MENJADI GRADASI MERAH ALFAMART */
-        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-        color: white;
-        text-align: center;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
+/* ==========================================================================
+   2. HEADER
+   ========================================================================== */
+header {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    text-align: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
 
-    .header-logo {
-        width: 140px;
-        height: auto;
-        position: absolute;
-        left: 25px;
-        top: 50%;
-        transform: translateY(-50%);
-        /* Menambahkan filter agar logo terlihat jelas jika perlu, atau biarkan original */
-    }
+.header-logo {
+    width: 140px;
+    height: auto;
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+}
 
-    header h1 {
-        margin: 0;
-        font-size: 1.75rem;
-        font-weight: 700; /* Menebalkan font sesuai style Gantt */
-        letter-spacing: -0.5px;
-        color: white;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-    /* STYLE BARU UNTUK TOMBOL KEMBALI DI HEADER */
-    .btn-back-header {
-        position: absolute;
-        right: 25px;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-        color: white;
-        text-decoration: none;
-        font-size: 0.9rem;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(4px);
-    }
+.btn-back-header {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
 
-    .btn-back-header:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: translateY(-50%) scale(1.02);
-    }
+.btn-back-header:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.02);
+}
 
-    /* Main Container Styles */
-    .container {
-        max-width: 1200px;
-        margin: 2.5rem auto;
-        background-color: #ffffff;
-        padding: 2.5rem;
-        /* MENGUBAH SHADOW MENJADI LEBIH TEBAL (GAYA GANTT CHART) */
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        border-radius: 12px;
-    }
+/* ==========================================================================
+   3. LAYOUT & CONTAINER
+   ========================================================================== */
+.container {
+    max-width: 1200px;
+    margin: 2.5rem auto;
+    background-color: #ffffff;
+    padding: 2.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+}
 
-    /* Form Element Styles */
-    .form-container {
+/* ==========================================================================
+   4. FORM ELEMENTS
+   ========================================================================== */
+.form-container {
     display: flex;
     flex-direction: column;
-    }
+}
 
-    .form-container label {
+.form-container label {
     font-weight: 500;
     margin-bottom: 0.5rem;
     margin-top: 1.25rem;
-    color: #4a5568; /* Softer label color */
+    color: #4a5568;
     font-size: 0.9rem;
-    }
+}
 
-    .form-container input,
-    .form-container select {
+.form-container input,
+.form-container select {
     padding: 0.8rem 1rem;
     border: 1px solid #cbd5e0;
-    border-radius: 8px; /* More rounded inputs */
+    border-radius: 8px;
     transition: border-color 0.3s, box-shadow 0.3s;
     font-size: 1rem;
     background-color: #fdfdff;
-    }
+}
 
-    .form-container input:focus,
-    .form-container select:focus {
-    border-color: #005a9e; /* Alfamart Blue on focus */
+.form-container input:focus,
+.form-container select:focus {
+    border-color: #005a9e;
     box-shadow: 0 0 0 3px rgba(0, 90, 158, 0.2);
     outline: none;
-    }
+}
 
-    /* ======================= KODE YANG DIPERBARUI ======================= */
-    /* Menghilangkan panah dropdown untuk select yang di-disable */
-    select[disabled] {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-color: #e9ecef !important;
-        cursor: not-allowed;
-    }
-    /* ======================= AKHIR DARI PERUBAHAN ======================= */
+select[disabled] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: #e9ecef !important;
+    cursor: not-allowed;
+}
 
-    /* Section Titles */
-    .section-title {
-    color: #e53e3e; /* Alfamart Red */
-    border-bottom: 2px solid #ffc107; /* Alfamart Yellow */
+.section-title {
+    color: #e53e3e;
+    border-bottom: 2px solid #ffc107;
     padding-bottom: 8px;
     margin-top: 2.5rem;
     margin-bottom: 1.5rem;
     font-size: 1.4rem;
     font-weight: 700;
-    }
+}
 
-    /* Table Styles */
-    .table-container {
+/* ==========================================================================
+   5. TABLES
+   ========================================================================== */
+.table-container {
     overflow-x: auto;
     margin-top: 1rem;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    }
+}
 
-    table {
-    table-layout: fixed !important; /* Pastikan ini ada */
+table {
+    table-layout: fixed !important;
     width: 100% !important; 
     border-collapse: collapse;
-    }
+}
 
-    /* Lebar kolom disesuaikan untuk table-layout: fixed (Total 100%) */
-    .col-no { width: 3%; text-align: center; } /* Dikecilkan */
-    .col-jenis-pekerjaan { width: 34%; } /* Dilebarkan */
-    .col-satuan { width: 4%; text-align: center; } /* Dikecilkan */
-    .col-volume { width: 5%; text-align: center; } /* Dikecilkan */
-    .col-harga { width: 9%; } /* Harga Satuan (Mat & Upah) */
-    .col-total { width: 9%; } /* Total Harga Satuan (Mat & Upah) */
-    .col-total-harga { width: 10%; } /* Total Harga (Final) */
-    .col-aksi { width: 7%; text-align: center; } /* Dikecilkan */
+/* Column Widths */
+.col-no { width: 3%; text-align: center; }
+.col-jenis-pekerjaan { width: 34%; text-align: left !important; padding: 10px 8px !important; }
+.col-satuan { width: 4%; text-align: center; }
+.col-volume { width: 5%; text-align: center; }
+.col-harga { width: 9%; }
+.col-total { width: 9%; }
+.col-total-harga { width: 10%; }
+.col-aksi { width: 7%; text-align: center; }
 
-    table th,
-    table td {
+table th, table td {
     border: 1px solid #e2e8f0;
     vertical-align: middle;
     word-wrap: break-word;
     hyphens: auto;
-    }
+}
 
-    table thead th {
+table thead th {
     background-color: #fce4e4;
     font-weight: 700;
     color: #d61027;
@@ -172,77 +174,78 @@
     font-size: 0.75rem;
     line-height: 1.2;
     padding: 8px 3px;
-    }
+}
 
-    table tbody tr:nth-child(even) {
+table tbody tr:nth-child(even) {
     background-color: #fcfdff;
-    }
+}
 
-    table tbody td {
+table tbody td {
     padding: 6px 3px;
     font-size: 0.8rem;
     line-height: 1.3;
     white-space: normal;
-    }
+}
 
-    table tbody td input,
-    table tbody td select {
-        width: 100%;
-        box-sizing: border-box;
-        transition: all 0.2s ease;
-        min-height: 32px;
-        line-height: 1.2;
-        white-space: normal;
-        height: auto; 
-    }
+table tbody td input,
+table tbody td select {
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    min-height: 32px;
+    line-height: 1.2;
+    white-space: normal;
+    height: auto;
+    padding: 5px 3px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    text-align: center;
+}
 
-    table tbody td input[type="text"],
-    table tbody td select {
-        padding: 5px 3px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 0.8rem;
-        text-align: center;
-    }
+/* Select2 Specifics for Table */
+table tbody td select.jenis-pekerjaan {
+    text-align: left;
+    -moz-text-align-last: left;
+    text-align-last: left;
+}
 
-    table tbody td input:focus,
-    table tbody td select:focus {
-        border-color: #005a9e;
-        background-color: #fff;
-        box-shadow: 0 0 0 2px rgba(0, 90, 158, 0.2);
-        outline: none;
-    }
+table tbody td input:focus,
+table tbody td select:focus {
+    border-color: #005a9e;
+    background-color: #fff;
+    box-shadow: 0 0 0 2px rgba(0, 90, 158, 0.2);
+    outline: none;
+}
 
-    .auto-filled {
-        background-color: #e9ecef !important; /* Abu-abu muda */
-        cursor: not-allowed;
-        color: #6c757d;
-    }
-
-    .kondisional-input {
-        background-color: #fffde7 !important; /* Kuning muda */
-    }
-
-    .col-jenis-pekerjaan {
-    text-align: left !important;
-    padding: 10px 8px !important;
-    }
-
-    .col-harga input,
-    .col-total input,
-    .col-total-harga input {
+.col-harga input,
+.col-total input,
+.col-total-harga input {
     text-align: right;
     font-family: 'Courier New', monospace;
-    }
+}
 
-    /* Button Styles */
-    .button-group {
+/* Input States */
+.auto-filled {
+    background-color: #e9ecef !important;
+    cursor: not-allowed;
+    color: #6c757d;
+}
+
+.kondisional-input {
+    background-color: #fffde7 !important;
+}
+
+/* ==========================================================================
+   6. BUTTONS
+   ========================================================================== */
+.button-group {
     display: flex;
     gap: 1rem;
     margin-top: 2.5rem;
-    }
+}
 
-    .form-container button {
+.form-container button {
     background-color: #e53e3e;
     color: white;
     padding: 0.85rem 1.5rem;
@@ -253,30 +256,30 @@
     flex: 1;
     font-weight: 600;
     font-size: 1rem;
-    }
+}
 
-    .form-container button:hover {
+.form-container button:hover {
     background-color: #c53030;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
+}
 
-    .form-container button:disabled {
+.form-container button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
-    }
+}
 
-    .form-container button[type="reset"] {
-        background-color: #6c757d;
-    }
+.form-container button[type="reset"] {
+    background-color: #6c757d;
+}
 
-    .form-container button[type="reset"]:hover {
-        background-color: #5a6268;
-    }
+.form-container button[type="reset"]:hover {
+    background-color: #5a6268;
+}
 
-    .add-row-btn {
+.add-row-btn {
     background-color: #005a9e !important;
     margin-top: 1rem !important;
     padding: 0.6rem 1rem !important;
@@ -284,65 +287,95 @@
     align-self: flex-start;
     font-size: 0.9rem !important;
     font-weight: 500 !important;
-    }
+}
 
-    .add-row-btn:hover {
+.add-row-btn:hover {
     background-color: #004a80 !important;
-    }
+}
 
-    .delete-row-btn {
-        background-color: #f1f3f5 !important;
-        color: #e53e3e !important;
-        padding: 6px 10px !important;
-        border-radius: 6px !important;
-        font-weight: 500 !important;
-        font-size: 0.8rem !important;
-    }
+.delete-row-btn {
+    background-color: #f1f3f5 !important;
+    color: #e53e3e !important;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    font-size: 0.8rem !important;
+}
 
-    .delete-row-btn:hover {
-        background-color: #e53e3e !important;
-        color: white !important;
-    }
+.delete-row-btn:hover {
+    background-color: #e53e3e !important;
+    color: white !important;
+}
 
-    /* Grand Total Box */
-    .grand-total-box {
-    background-color: #fff9e6;
-    color: #1a202c;
-    border: 1px solid #ffc107;
-    padding: 1.5rem;
+/* ==========================================================================
+   7. FOOTER / TOTALS / MESSAGES
+   ========================================================================== */
+.grand-total-box {
+    /* Style Full Box - Kembali ke nuansa awal */
+    background-color: #fff9e6; /* Latar oranye muda */
+    border: 1px solid #ffc107; /* Border kuning tegas */
     border-radius: 10px;
-    text-align: right;
+    padding: 1.5rem;
     margin-top: 2.5rem;
-    }
+    width: 100%; /* Full width */
+    box-shadow: none;
+    position: relative;
+}
 
-    .grand-total-box span {
-    font-size: 1.5rem;
-    font-weight: 700;
-    }
+/* Hapus dekorasi gradient bar (jika ada dari kode sebelumnya) */
+.grand-total-box::before {
+    display: none;
+}
 
-    #grand-total-amount {
-        color: #e53e3e;
-        margin-left: 1rem;
-    }
-
-    /* Back Button */
-    .back-btn {
-    color: #005a9e;
-    text-decoration: none;
+.total-row, 
+.total-row-sub, 
+.total-row-final {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
     font-size: 1rem;
-    display: inline-block;
-    margin-top: 2rem;
-    cursor: pointer;
-    transition: color 0.3s;
+    /* Pastikan semua text menggunakan font root (Inter) */
+    font-family: 'Inter', sans-serif; 
+}
+
+/* Styling Label (Kiri) */
+.total-row span:first-child,
+.total-row-sub span:first-child {
+    color: #4a5568;
     font-weight: 500;
-    }
+}
 
-    .back-btn:hover {
-    color: #e53e3e;
-    }
+/* Styling Nilai (Kanan) - Menggunakan font Inter (bukan Courier) */
+.total-row span:last-child,
+.total-row-sub span:last-child {
+    color: #1a202c;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif; /* Font disamakan dengan root */
+    letter-spacing: normal;
+}
 
-    /* Message Display Area */
-    #message {
+/* Baris Final Grand Total */
+.total-row-final {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1); /* Separator halus */
+}
+
+.total-row-final span:first-child {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.total-row-final span:last-child {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #e53e3e; /* Warna merah untuk penekanan */
+    font-family: 'Inter', sans-serif;
+}
+
+#message {
     margin: 25px auto;
     max-width: 1200px;
     padding: 15px;
@@ -351,107 +384,230 @@
     text-align: center;
     display: none;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* ==========================================================================
+   9. LOADING SCREEN OVERLAY
+   ========================================================================== */
+.hidden-overlay {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: -1;
+}
+
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+#loading-overlay.active {
+    visibility: visible;
+    opacity: 1;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #dc2626; /* Merah Alfamart */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text h3 {
+    color: #dc2626;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.loading-text p {
+    color: #4a5568;
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* =========================================
+   MOBILE RESPONSIVE OVERRIDES (RAB PAGE)
+   ========================================= */
+
+@media (max-width: 768px) {
+    
+    /* === 1. GLOBAL LAYOUT FIXES === */
+    /* Mencegah scroll horizontal pada body akibat elemen yang melebar */
+    html, body {
+        overflow-x: hidden; 
     }
 
-    .btn-logout-form {
-        position: absolute;
-        right: 25px;
-        top: 50%;
-        transform: translateY(-50%);
-        padding: 0.5rem 1rem;
-        background-color: #e53e3e;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .btn-logout-form:hover {
-        background-color: #c53030;
-    }
-
-
-    /* Responsive Styles */
-    @media (max-width: 768px) {
     .container {
-        margin: 1rem;
-        padding: 1.5rem;
-        max-width: 100%;
+        padding: 1.25rem; /* Mengurangi padding container agar area isi lebih luas */
+        width: 95%; /* Memaksimalkan lebar di layar HP */
+        margin: 1rem auto;
     }
 
+    /* === 2. HEADER ADJUSTMENTS === */
     header {
-        flex-direction: column;
-        padding: 1.5rem;
-        height: auto;
-    }
-    
-    header h1 {
-        font-size: 1.5rem;
-        margin-top: 1rem;
-        text-align: center;
+        flex-direction: column; /* Penting: Susun elemen dari atas ke bawah */
+        height: auto; /* Biarkan tinggi menyesuaikan konten */
+        padding: 1.5rem 1rem;
+        gap: 1rem; /* Jarak antar elemen */
+        align-items: center; /* Pastikan semua rata tengah */
     }
 
+    /* Reset posisi Logo */
     .header-logo {
-        position: static;
-        transform: none;
-        margin: 0 auto;
-        width: 120px;
-        left: auto;
+        position: static; /* Matikan absolute positioning */
+        transform: none; /* Matikan centering desktop */
+        width: 100px; /* Ukuran logo di HP */
+        height: auto;
+        margin: 0; /* Hapus margin desktop */
+    }
+
+    /* Reset Judul */
+    header h1 {
+        font-size: 1.25rem; 
+        line-height: 1.4;
+        margin: 0;
+        text-align: center;
+        width: 100%; /* Pastikan teks tidak terpotong */
+    }
+
+    /* Reset Tombol Dashboard */
+    .btn-back-header {
+        position: static; /* Matikan absolute positioning */
+        transform: none; /* Matikan centering desktop */
+        width: 100%; /* Tombol selebar layar */
+        display: flex;
+        justify-content: center; /* Teks & Icon di tengah tombol */
+        margin-top: 0.5rem;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.2); /* Background sedikit lebih terang agar terlihat tombol */
     }
     
+    .btn-back-header:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* === 3. COMPLEX FORM INPUTS (NOMOR ULOK) === */
+    /* Mengatur container nomor ulok yang terdiri dari banyak input berjejer */
+    #nomor-ulok-container {
+        gap: 10px !important;
+    }
+    
+    /* Memaksa input dalam group Ulok menjadi full width saat di HP */
+    #nomor-ulok-container select,
+    #nomor-ulok-container input {
+        width: 100% !important;
+        flex: none !important; /* Matikan flex basis dari inline style HTML */
+        margin: 0 !important;
+    }
+
+    /* Menyembunyikan separator (-) karena input sudah menumpuk ke bawah */
+    #nomor-ulok-container span {
+        display: none; 
+    }
+
+    /* === 4. TABLE OPTIMIZATION === */
     .table-container {
-        -webkit-overflow-scrolling: touch;
+        /* Melebarkan container tabel sampai mentok pinggir layar HP */
+        margin-left: -1rem;
+        margin-right: -1rem;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        
+        /* Scroll hint (bayangan halus di kanan untuk memberi tahu user bisa di-scroll) */
+        background: 
+            linear-gradient(to right, white 30%, rgba(255,255,255,0)),
+            linear-gradient(to right, rgba(255,255,255,0), white 70%) 0 100%,
+            radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.2), transparent),
+            radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.2), transparent) 0 100%;
+        background-repeat: no-repeat;
+        background-attachment: local, local, scroll, scroll;
+        background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+        background-position: 0 0, 100% 0, 0 0, 100% 0;
     }
 
-    table {
-        min-width: 880px;
+    /* Tombol Tambah Item menjadi Full Width */
+    .add-row-btn {
+        width: 100%;
+        text-align: center;
+        margin-top: 15px !important;
+        padding: 12px !important;
     }
 
-    .button-group {
-        flex-direction: column;
-        gap: 10px;
+    /* Tombol Hapus di dalam tabel diperbesar sedikit area sentuhnya */
+    .delete-row-btn {
+        padding: 8px 12px !important;
     }
 
-    .form-container button {
-        padding: 10px 15px;
+    /* === 5. GRAND TOTAL BOX === */
+    .grand-total-box {
+        padding: 1rem;
+        margin-top: 2rem;
+        border-width: 2px; /* Border lebih tebal biar jelas */
+    }
+
+    .total-row span:first-child, 
+    .total-row-sub span:first-child {
+        font-size: 0.9rem; /* Label sedikit lebih kecil */
+    }
+
+    .total-row span:last-child, 
+    .total-row-sub span:last-child {
+        font-size: 1rem; /* Angka tetap terbaca jelas */
+    }
+
+    .total-row-final {
+        flex-direction: column; /* Grand Total Tumpuk Atas Bawah */
+        align-items: flex-end; /* Rata kanan */
+        gap: 5px;
+    }
+
+    .total-row-final span:first-child {
         font-size: 1rem;
+        color: #64748b;
+    }
+    
+    .total-row-final span:last-child {
+        font-size: 1.8rem; /* Nominal Grand Total Sangat Besar */
     }
 
-    .back-btn {
-        margin-top: 20px;
-        font-size: 0.9rem;
+    /* === 6. ACTION BUTTONS === */
+    .button-group {
+        position: sticky; /* Tombol melayang di bawah layar? Opsional, di sini kita buat statis tapi full width */
+        bottom: 0;
+        background: white;
+        padding: 10px 0;
+        z-index: 50;
+        border-top: 1px solid #eee;
+        margin-bottom: 0;
     }
-
-    .section-title {
+    
+    .form-container button {
+        width: 100%;
+        padding: 14px; /* Area tap lebih besar */
         font-size: 1.1rem;
     }
-
-    .grand-total-box {
-        padding: 15px;
-    }
-    
-    .grand-total-box span {
-        font-size: 1.5rem;
-    }
-
-    #nomor-ulok-container {
-        flex-direction: column;
-        gap: 8px !important;
-        align-items: stretch !important;
-    }
-
-    #nomor-ulok-container > * {
-        flex: 1 1 100% !important;
-        text-align: center;
-    }
-    }
-
-    /* Aturan untuk membuat dropdown rata kiri */
-    table tbody td select.jenis-pekerjaan {
-        text-align: left;
-        -moz-text-align-last: left; /* Khusus untuk Firefox */
-        text-align-last: left;
-    }
+}

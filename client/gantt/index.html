@@ -12,9 +12,7 @@
 
 <body>
     <header class="app-header">
-        <a href="/">
-            <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
-        </a>
+        <img src="../../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo" />
         <h1>Gantt Chart</h1>
         <a href="../../dashboard/index.html" class="btn-back-header">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -52,19 +50,28 @@
             <div class="gantt-chart" id="ganttChart"></div>
         </div>
 
+        <div id="bottom-action-container"></div>
+
         <div class="legend">
             <div class="legend-item">
                 <div class="legend-color" style="background: #48bb78;"></div>
-                <span>On Time</span>
+                <span>Progress</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);"></div>
                 <span>Terlambat</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background: #fbbf24;"></div>
+                <div class="legend-color" style="background: #bae6fd;"></div>
                 <span>Pengawasan</span>
             </div>
+        </div>
+    </div>
+    <div id="loading-overlay" class="hidden-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">
+            <h3 id="loading-title">Menyimpan Jadwal...</h3>
+            <p id="loading-desc">Mohon tunggu sebentar, data sedang diproses.</p>
         </div>
     </div>
     

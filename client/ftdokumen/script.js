@@ -2,22 +2,28 @@
 // 1. GLOBAL STATE & CONFIG
 // ==========================================
 const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com";
+// URL Apps Script (Backup logging)
+const APPS_SCRIPT_POST_URL = "https://script.google.com/macros/s/AKfycbzPubDTa7E2gT5HeVLv9edAcn1xaTiT3J4BtAVYqaqiFAvFtp1qovTXpqpm-VuNOxQJ/exec";
 
-// State global menggantikan useState React
 const STATE = {
     user: null,
     formData: {},
-    photos: {}, // { 1: { url, point, ... }, ... }
+    photos: {},
     currentPhotoNumber: 1,
     currentPage: 1,
     spkOptions: [],
     isCameraReady: false,
-    capturedBlob: null, // Blob foto sementara
-    currentPoint: null, // Titik yang sedang difoto
-    stream: null
+    capturedBlob: null,
+    currentPoint: null,
+    stream: null,
+    currentPhotoNote: null,
+    isLoadingData: false,
+    isSavingBackground: false,
+    isProcessing: false,
+    documentStatus: null
 };
 
-// Data titik koordinat (dari React useMemo)
+// ... (PHOTO_POINTS tetap sama, disingkat agar muat, JANGAN DIHAPUS di file asli Anda) ...
 const PHOTO_POINTS = {
     1: [
         { id: 1, x: 67.8, y: 92.8, label: "KANAN 50 M" },
@@ -65,109 +71,185 @@ const PHOTO_POINTS = {
     ]
 };
 
-// Flatten semua point untuk akses mudah
 const ALL_POINTS = [
     ...PHOTO_POINTS[1], ...PHOTO_POINTS[2], ...PHOTO_POINTS[3]
 ].sort((a, b) => a.id - b.id);
-
 
 // ==========================================
 // 2. HELPER FUNCTIONS
 // ==========================================
 const getEl = (id) => document.getElementById(id);
-const hide = (el) => el.classList.add("hidden");
-const show = (el) => el.classList.remove("hidden");
+const hide = (el) => el && el.classList.add("hidden");
+const show = (el) => el && el.classList.remove("hidden");
 
-const showToast = (text, type = "success") => {
+const showToast = (text, type = "success", duration = 3000) => {
     const toast = getEl("form-status-toast");
-    toast.textContent = text;
-    toast.style.background = type === "success" ? "#333" : "#dc2626";
-    show(toast);
-    setTimeout(() => hide(toast), 3000);
+    if (!toast) return;
+
+    toast.classList.remove("show");
+
+    setTimeout(() => {
+        toast.textContent = text;
+        toast.style.background = type === "success" ? "#16a34a" :
+            type === "error" ? "#dc2626" :
+                type === "warning" ? "#d97706" : "#333";
+        toast.classList.add("show");
+
+        setTimeout(() => toast.classList.remove("show"), duration);
+    }, 50);
 };
 
 const showLoading = (text = "Loading...") => {
-    getEl("loading-text").textContent = text;
-    show(getEl("loading-overlay"));
+    const txt = getEl("loading-text");
+    const ovl = getEl("loading-overlay");
+    if (txt) txt.textContent = text;
+    if (ovl) show(ovl);
 };
 
 const hideLoading = () => hide(getEl("loading-overlay"));
+
+// [FIXED] Robust URL to Base64 (Menangani 404/500/CORS)
+async function urlToBase64(url) {
+    if (!url) return null;
+    try {
+        // Timeout 10 detik agar tidak hanging selamanya
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(url, { 
+            cache: 'no-cache',
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            console.warn(`Gagal fetch gambar (${response.status}): ${url}`);
+            return null; // Return null agar PDF Worker merender kotak abu-abu
+        }
+
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = () => resolve(null); // Resolve null jika gagal baca
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.warn("Error konversi gambar:", url, error);
+        return null;
+    }
+}
+
+function preloadImage(url) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = url;
+        img.onload = () => resolve(true);
+        img.onerror = () => {
+            console.warn("Gagal memuat gambar (404/Error):", url);
+            resolve(false); 
+        };
+    });
+}
 
 // ==========================================
 // 3. AUTH & INIT
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
     checkSession();
-    setInterval(checkTimeLimit, 60000); // Cek jam tiap menit
+    checkTimeLimit();
+    setInterval(checkTimeLimit, 60000);
+
+    const dateEl = getEl("current-date-display");
+    if (dateEl) {
+        const d = new Date();
+        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateEl.textContent = d.toLocaleDateString('id-ID', opts);
+    }
+
     initEventListeners();
 });
 
 function checkSession() {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-        STATE.user = JSON.parse(userStr);
-        getEl("header-user-info").textContent = `Building & Maintenance — ${STATE.user.cabang || ""}`;
-        show(getEl("main-header"));
-        hide(getEl("view-login"));
-        
-        // Cek apakah data form tersimpan di server/temp untuk direstore
-        switchToView("form");
+    const ssoAuth = sessionStorage.getItem("authenticated");
+    const ssoEmail = sessionStorage.getItem("loggedInUserEmail");
+    const ssoCabang = sessionStorage.getItem("loggedInUserCabang");
+    const ssoRole = sessionStorage.getItem("userRole");
+
+    if (ssoAuth !== "true" || !ssoEmail) {
+        alert("Sesi Anda telah habis atau Anda belum login.");
+        window.location.href = '/';
+        return;
+    }
+
+    STATE.user = {
+        email: ssoEmail,
+        cabang: ssoCabang,
+        role: ssoRole || "USER",
+        source: "sso"
+    };
+
+    proceedToApp();
+}
+
+function proceedToApp() {
+    const headerCabang = getEl("header-cabang");
+    if (headerCabang) headerCabang.textContent = STATE.user.cabang || "";
+
+    show(getEl("main-header"));
+
+    if (localStorage.getItem("saved_ok") === "1") {
+        showToast("PDF Berhasil Disimpan & Diunduh! ✅", "success");
+        localStorage.removeItem("saved_ok");
+    }
+
+    switchToView("form");
+
+    const inpCabang = getEl("inp-cabang");
+    if (inpCabang) {
+        inpCabang.value = STATE.user.cabang || "";
+        STATE.formData.cabang = STATE.user.cabang || "";
+    }
+
+    if (STATE.user.cabang) {
         loadSpkData(STATE.user.cabang);
-    } else {
-        switchToView("login");
-        checkTimeLimit(); // Cek jam saat di login page
     }
 }
 
 function checkTimeLimit() {
     const now = new Date();
-    // UTC+7 setup
     const utc = now.getTime() + now.getTimezoneOffset() * 60000;
     const wib = new Date(utc + 7 * 60 * 60000);
     const hour = wib.getHours();
 
-    const isLoginView = !getEl("view-login").classList.contains("hidden");
-    const msgContainer = getEl("login-info-msg");
-    const btnLogin = getEl("btn-submit-login");
-
-    // Jam operasional 06:00 - 18:00
     if (hour < 6 || hour >= 18) {
         const timeStr = `${hour.toString().padStart(2, "0")}:${wib.getMinutes().toString().padStart(2, "0")}`;
-        const msg = `⏰ Login hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`;
-        
-        if (isLoginView) {
-            msgContainer.textContent = msg;
-            show(msgContainer);
-            btnLogin.disabled = true;
-            btnLogin.style.cursor = "not-allowed";
-        } else if (STATE.user) {
-            // Jika user sedang login tapi waktu habis
-            showWarningModal(msg, () => {
-                doLogout();
-            });
+        if (STATE.user) {
+            if (getEl("warning-modal") && getEl("warning-modal").classList.contains("hidden")) {
+                showWarningModal(`Sesi Anda telah berakhir.\nAplikasi hanya dapat diakses pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${timeStr} WIB.`, () => doLogout());
+            }
         }
-    } else {
-        hide(msgContainer);
-        btnLogin.disabled = false;
-        btnLogin.style.cursor = "pointer";
     }
 }
 
 function doLogout() {
+    sessionStorage.clear();
     localStorage.removeItem("user");
     STATE.user = null;
-    location.reload();
+    window.location.href = '/';
 }
 
 function switchToView(viewName) {
-    hide(getEl("view-login"));
     hide(getEl("view-form"));
     hide(getEl("view-floorplan"));
 
-    if (viewName === "login") show(getEl("view-login"));
-    else if (viewName === "form") show(getEl("view-form"));
-    else if (viewName === "floorplan") {
+    if (viewName === "form") {
+        show(getEl("view-form"));
+        show(getEl("main-header"));
+    } else if (viewName === "floorplan") {
         show(getEl("view-floorplan"));
+        show(getEl("main-header"));
         renderFloorPlan();
     }
 }
@@ -175,24 +257,10 @@ function switchToView(viewName) {
 // ==========================================
 // 4. API CALLS
 // ==========================================
-async function apiLogin(username, password) {
-    try {
-        const res = await fetch(`${API_BASE_URL}/doc/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
-        });
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.message || "Login gagal");
-        return json.user;
-    } catch (e) {
-        throw e;
-    }
-}
-
 async function loadSpkData(cabang) {
+    if (!cabang) return;
     try {
-        const res = await fetch(`${API_BASE_URL}/spk-data`, {
+        const res = await fetch(`${API_BASE_URL}/doc/spk-data`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ cabang }),
@@ -202,125 +270,141 @@ async function loadSpkData(cabang) {
             STATE.spkOptions = json.data;
             renderSpkOptions();
         }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 async function getTempByUlok(nomorUlok) {
-    const res = await fetch(`${API_BASE_URL}/get-temp`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+    const res = await fetch(`${API_BASE_URL}/doc/get-temp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nomorUlok }),
     });
     return res.json();
 }
 
 async function saveTemp(payload) {
-    return fetch(`${API_BASE_URL}/save-temp`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-    }).then(r => r.json());
+    try {
+        const res = await fetch(`${API_BASE_URL}/doc/save-temp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            const errText = await res.text(); 
+            throw new Error(`Server Error (${res.status})`);
+        }
+
+        return await res.json();
+    } catch (e) {
+        console.error("Save Temp Error:", e);
+        throw e;
+    }
+}
+
+// [FIXED] Ubah ke POST karena server menolak GET (405)
+async function cekStatus(ulok) {
+    if (!ulok) return null;
+    try {
+        // Mencoba POST terlebih dahulu sesuai pola endpoint lain
+        const res = await fetch(`${API_BASE_URL}/doc/cek-status`, {
+            method: "POST", 
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ulok }) // atau { nomorUlok: ulok } tergantung backend
+        });
+
+        if (!res.ok) {
+            // Jika backend ternyata GET (fallback logic jika POST gagal 404/405)
+            if (res.status === 404 || res.status === 405) {
+                 const resGet = await fetch(`${API_BASE_URL}/doc/cek-status?ulok=${ulok}`);
+                 if (resGet.ok) return await resGet.json();
+            }
+            console.warn(`Gagal cek status (Server ${res.status}).`);
+            return null;
+        }
+        return await res.json();
+    } catch (e) {
+        console.warn("Koneksi bermasalah saat cek status (diabaikan):", e);
+        return null; // Return null agar tidak memblokir flow
+    }
 }
 
 // ==========================================
-// 5. EVENT LISTENERS & LOGIC
+// 5. EVENT LISTENERS
 // ==========================================
 function initEventListeners() {
-    // LOGIN
-    getEl("form-login").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const u = getEl("login-username").value;
-        const p = getEl("login-password").value;
-        const btn = getEl("btn-submit-login");
-        
-        btn.textContent = "Memproses...";
-        btn.disabled = true;
-        hide(getEl("login-error-msg"));
+    const btnLogout = getEl("btn-logout");
+    if (btnLogout) btnLogout.addEventListener("click", doLogout);
 
-        try {
-            const user = await apiLogin(u, p);
-            localStorage.setItem("user", JSON.stringify(user));
-            checkSession();
-        } catch (err) {
-            const errDiv = getEl("login-error-msg");
-            errDiv.textContent = err.message;
-            show(errDiv);
-        } finally {
-            btn.textContent = "Login";
-            btn.disabled = false;
-        }
-    });
+    const chkManual = getEl("chk-manual-ulok");
+    if (chkManual) {
+        chkManual.addEventListener("change", (e) => {
+            const isManual = e.target.checked;
+            const sel = getEl("sel-ulok");
+            const inp = getEl("inp-ulok-manual");
 
-    getEl("btn-toggle-pass").addEventListener("click", () => {
-        const inp = getEl("login-password");
-        const icon = getEl("btn-toggle-pass").querySelector("i");
-        if (inp.type === "password") {
-            inp.type = "text";
-            icon.classList.remove("fa-eye");
-            icon.classList.add("fa-eye-slash");
-        } else {
-            inp.type = "password";
-            icon.classList.remove("fa-eye-slash");
-            icon.classList.add("fa-eye");
-        }
-    });
+            if (isManual) {
+                hide(sel);
+                show(inp);
+                STATE.formData.nomorUlok = inp.value;
+            } else {
+                show(sel);
+                hide(inp);
+                STATE.formData.nomorUlok = sel.value;
+            }
+            STATE.formData.isManualUlok = isManual;
+        });
+    }
 
-    getEl("btn-logout").addEventListener("click", doLogout);
+    const selUlok = getEl("sel-ulok");
+    if (selUlok) {
+        selUlok.addEventListener("change", async (e) => {
+            const val = e.target.value;
+            STATE.formData.isManualUlok = false;
+            if (!val) return;
 
-    // FORM DATA
-    getEl("chk-manual-ulok").addEventListener("change", (e) => {
-        const isManual = e.target.checked;
-        const sel = getEl("sel-ulok");
-        const inp = getEl("inp-ulok-manual");
+            STATE.formData.nomorUlok = val;
+            const found = STATE.spkOptions.find(o => o.nomorUlok === val);
 
-        if (isManual) {
-            hide(sel); show(inp);
-            STATE.formData.nomorUlok = inp.value;
-        } else {
-            show(sel); hide(inp);
-            STATE.formData.nomorUlok = sel.value;
-        }
-        STATE.formData.isManualUlok = isManual;
-    });
+            if (found) populateForm(found);
+            await loadTempData(val);
+        });
+    }
 
-    getEl("sel-ulok").addEventListener("change", async (e) => {
-        const val = e.target.value;
-        STATE.formData.nomorUlok = val;
-        
-        // Cari data detail dari opsi SPK
-        const found = STATE.spkOptions.find(o => o.nomorUlok === val);
-        if (found) populateForm(found);
+    const inpUlokMan = getEl("inp-ulok-manual");
+    if (inpUlokMan) {
+        inpUlokMan.addEventListener("change", async (e) => {
+            const val = e.target.value.toUpperCase();
+            STATE.formData.isManualUlok = true;
+            STATE.formData.nomorUlok = val;
+            await loadTempData(val, true);
+        });
+    }
 
-        // Cek data temp di server
-        await loadTempData(val);
-    });
-
-    getEl("inp-ulok-manual").addEventListener("change", async (e) => {
-        const val = e.target.value.toUpperCase();
-        STATE.formData.nomorUlok = val;
-        await loadTempData(val);
-    });
-
-    // Auto-save fields on change
     const inputs = document.querySelectorAll("#data-input-form input");
     inputs.forEach(inp => {
         inp.addEventListener("change", (e) => {
             const key = mapInputToKey(e.target.id);
-            if(key) STATE.formData[key] = e.target.value;
+            if (key) STATE.formData[key] = e.target.value;
             saveFormDataBackground();
         });
     });
 
-    getEl("data-input-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-        // Simpan data terakhir
-        updateStateFormData();
-        saveFormDataBackground().then(() => {
-            switchToView("floorplan");
+    const formInput = getEl("data-input-form");
+    if (formInput) {
+        formInput.addEventListener("submit", (e) => {
+            e.preventDefault();
+            updateStateFormData();
+            showToast("Menyimpan data...", "success");
+            saveFormDataBackground().then(() => switchToView("floorplan"));
         });
-    });
+    }
 
-    // FLOOR PLAN NAV
-    getEl("btn-back-form").addEventListener("click", () => switchToView("form"));
-    
+    const btnBack = getEl("btn-back-form");
+    if (btnBack) btnBack.addEventListener("click", () => switchToView("form"));
+
     document.querySelectorAll(".pagination-btn").forEach(btn => {
         btn.addEventListener("click", (e) => {
             document.querySelectorAll(".pagination-btn").forEach(b => b.classList.remove("active"));
@@ -330,38 +414,90 @@ function initEventListeners() {
         });
     });
 
-    // CAMERA & MODAL
-    getEl("btn-close-cam").addEventListener("click", closeCamera);
-    
-    getEl("btn-snap").addEventListener("click", capturePhoto);
-    getEl("btn-retake").addEventListener("click", resetCameraUI);
-    
-    getEl("btn-confirm-snap").addEventListener("click", async () => {
-        if (!STATE.capturedBlob && !STATE.currentPhotoNote) return;
-        await saveCapturedPhoto();
+    const btnCloseCam = getEl("btn-close-cam");
+    if (btnCloseCam) btnCloseCam.addEventListener("click", closeCamera);
+
+    const btnSnap = getEl("btn-snap");
+    if (btnSnap) btnSnap.addEventListener("click", capturePhoto);
+
+    const vid = getEl("cam-video");
+    if (vid) vid.addEventListener("click", capturePhoto);
+
+    const btnRetake = getEl("btn-retake");
+    if (btnRetake) btnRetake.addEventListener("click", resetCameraUI);
+
+    const btnConfirm = getEl("btn-confirm-snap");
+    if (btnConfirm) btnConfirm.addEventListener("click", () => {
+        if (STATE.capturedBlob) {
+            saveCapturedPhotoOptimistic();
+        } else {
+            closeCamera();
+        }
     });
 
-    getEl("inp-file-upload").addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            handlePreviewAndSave(evt.target.result); // base64
-        };
-        reader.readAsDataURL(file);
-    });
+    const inpFile = getEl("inp-file-upload");
+    if (inpFile) {
+        inpFile.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-    getEl("btn-cant-snap").addEventListener("click", () => {
-        // Mode "Tidak Bisa Difoto"
-        STATE.capturedBlob = "TIDAK_BISA_DIFOTO";
-        STATE.currentPhotoNote = "TIDAK BISA DIFOTO";
-        saveCapturedPhoto();
-    });
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result;
+                const pointId = STATE.currentPoint.id;
 
-    getEl("btn-warning-ok").addEventListener("click", () => hide(getEl("warning-modal")));
+                STATE.photos[pointId] = {
+                    url: base64,
+                    point: STATE.currentPoint,
+                    timestamp: new Date().toISOString(),
+                    note: null
+                };
 
-    // PDF GENERATION
-    getEl("btn-save-pdf").addEventListener("click", generateAndSendPDF);
+                if (pointId === STATE.currentPhotoNumber) {
+                    let next = pointId + 1;
+                    if (next > 38) next = 38;
+                    STATE.currentPhotoNumber = next;
+                }
+
+                closeCamera();
+                renderFloorPlan();
+                showToast(`Foto #${pointId} berhasil diunggah (menyimpan...)`, "success");
+                savePhotoToBackend(base64, null, pointId);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    const btnCant = getEl("btn-cant-snap");
+    if (btnCant) {
+        btnCant.addEventListener("click", () => {
+            const pointId = STATE.currentPoint.id;
+
+            STATE.photos[pointId] = {
+                url: "fototidakbisadiambil.jpeg",
+                point: STATE.currentPoint,
+                timestamp: new Date().toISOString(),
+                note: "TIDAK BISA DIFOTO"
+            };
+
+            if (pointId === STATE.currentPhotoNumber) {
+                let next = pointId + 1;
+                if (next > 38) next = 38;
+                STATE.currentPhotoNumber = next;
+            }
+
+            closeCamera();
+            renderFloorPlan();
+            showToast(`Foto #${pointId} ditandai tidak bisa`, "warning");
+            savePhotoToBackend(null, "TIDAK BISA DIFOTO", pointId);
+        });
+    }
+
+    const btnWarnOk = getEl("btn-warning-ok");
+    if (btnWarnOk) btnWarnOk.addEventListener("click", () => hide(getEl("warning-modal")));
+
+    const btnPdf = getEl("btn-save-pdf");
+    if (btnPdf) btnPdf.addEventListener("click", generateAndSendPDF);
 }
 
 // ==========================================
@@ -369,177 +505,312 @@ function initEventListeners() {
 // ==========================================
 function renderSpkOptions() {
     const sel = getEl("sel-ulok");
-    sel.innerHTML = '<option value="">-- pilih nomor ulok --</option>';
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Pilih nomor ulok --</option>';
+    if (STATE.spkOptions.length === 0) {
+        const op = document.createElement("option");
+        op.textContent = "Tidak ada data SPK untuk cabang ini";
+        op.disabled = true;
+        sel.appendChild(op);
+        return;
+    }
     STATE.spkOptions.forEach(opt => {
         const op = document.createElement("option");
         op.value = opt.nomorUlok;
         op.textContent = opt.nomorUlok;
         sel.appendChild(op);
     });
+    if (STATE.spkOptions.length === 1) {
+        const oneUlok = STATE.spkOptions[0].nomorUlok;
+        sel.value = oneUlok;
+        const event = new Event('change');
+        sel.dispatchEvent(event);
+    }
 }
 
 function mapInputToKey(id) {
     const map = {
-        "inp-sipil": "kontraktorSipil", "inp-me": "kontraktorMe",
-        "inp-spk-awal": "spkAwal", "inp-spk-akhir": "spkAkhir",
-        "inp-nama-toko": "namaToko", "inp-kode-toko": "kodeToko",
-        "inp-tgl-go": "tanggalGo", "inp-tgl-st": "tanggalSt",
+        "inp-sipil": "kontraktorSipil",
+        "inp-me": "kontraktorMe",
+        "inp-spk-awal": "spkAwal",
+        "inp-spk-akhir": "spkAkhir",
+        "inp-nama-toko": "namaToko",
+        "inp-kode-toko": "kodeToko",
+        "inp-tgl-go": "tanggalGo",
+        "inp-tgl-st": "tanggalSt",
         "inp-tgl-foto": "tanggalAmbilFoto"
     };
     return map[id];
 }
 
 function updateStateFormData() {
-    // Sync semua input ke STATE
     const map = {
-        "inp-cabang": "cabang", "inp-sipil": "kontraktorSipil", "inp-me": "kontraktorMe",
-        "inp-spk-awal": "spkAwal", "inp-spk-akhir": "spkAkhir", "inp-nama-toko": "namaToko", 
-        "inp-kode-toko": "kodeToko", "inp-tgl-go": "tanggalGo", "inp-tgl-st": "tanggalSt",
+        "inp-cabang": "cabang",
+        "inp-sipil": "kontraktorSipil",
+        "inp-me": "kontraktorMe",
+        "inp-spk-awal": "spkAwal",
+        "inp-spk-akhir": "spkAkhir",
+        "inp-nama-toko": "namaToko",
+        "inp-kode-toko": "kodeToko",
+        "inp-tgl-go": "tanggalGo",
+        "inp-tgl-st": "tanggalSt",
         "inp-tgl-foto": "tanggalAmbilFoto"
     };
-    for(let id in map) {
-        STATE.formData[map[id]] = getEl(id).value;
+    for (let id in map) {
+        const el = getEl(id);
+        if (el) STATE.formData[map[id]] = el.value;
+    }
+    const selUlok = getEl("sel-ulok");
+    const inpUlok = getEl("inp-ulok-manual");
+    if (!STATE.formData.isManualUlok && selUlok) {
+        STATE.formData.nomorUlok = selUlok.value;
+    } else if (inpUlok) {
+        STATE.formData.nomorUlok = inpUlok.value;
     }
 }
 
 function populateForm(data) {
-    if(!data) return;
+    if (!data) return;
+    const wasManual = STATE.formData.isManualUlok;
     STATE.formData = { ...STATE.formData, ...data };
+
+    if (wasManual) STATE.formData.isManualUlok = true;
+
+    const safeSet = (id, val) => {
+        const el = getEl(id);
+        if (el) el.value = val || "";
+    };
+    safeSet("inp-cabang", data.cabang || STATE.user?.cabang);
+    safeSet("inp-sipil", data.kontraktorSipil);
+    safeSet("inp-me", data.kontraktorMe);
+    safeSet("inp-spk-awal", formatDateInput(data.spkAwal));
+    safeSet("inp-spk-akhir", formatDateInput(data.spkAkhir));
+    safeSet("inp-nama-toko", data.namaToko);
+    safeSet("inp-kode-toko", data.kodeToko);
+    safeSet("inp-tgl-go", formatDateInput(data.tanggalGo));
+    safeSet("inp-tgl-st", formatDateInput(data.tanggalSt));
+    safeSet("inp-tgl-foto", formatDateInput(data.tanggalAmbilFoto));
+}
+
+function formatDateInput(dateString) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date)) return dateString;
+    return date.toISOString().split('T')[0];
+}
+
+async function loadTempData(ulok, isManualOverride = false) {
+    if (!ulok) return;
     
-    getEl("inp-cabang").value = data.cabang || STATE.user?.cabang || "";
-    getEl("inp-sipil").value = data.kontraktorSipil || "";
-    getEl("inp-me").value = data.kontraktorMe || "";
-    getEl("inp-spk-awal").value = formatDateInput(data.spkAwal);
-    getEl("inp-spk-akhir").value = formatDateInput(data.spkAkhir);
-    getEl("inp-nama-toko").value = data.namaToko || "";
-    getEl("inp-kode-toko").value = data.kodeToko || "";
-    getEl("inp-tgl-go").value = formatDateInput(data.tanggalGo);
-    getEl("inp-tgl-st").value = formatDateInput(data.tanggalSt);
-    getEl("inp-tgl-foto").value = formatDateInput(data.tanggalAmbilFoto);
-}
-
-function formatDateInput(dateStr) {
-    if(!dateStr) return "";
-    try { return new Date(dateStr).toISOString().split("T")[0]; } 
-    catch { return ""; }
-}
-
-async function loadTempData(ulok) {
-    if(!ulok) return;
-    showLoading("Cek data server...");
+    STATE.isLoadingData = true;
+    showLoading("Sinkronisasi data..."); 
+    
     try {
-        const res = await getTempByUlok(ulok);
-        if (res.ok && res.data) {
-            // Restore form
-            populateForm(res.data);
-            
-            // Restore Photos
+        const [res, statusRes] = await Promise.all([
+            getTempByUlok(ulok).catch(err => ({ ok: false, error: err })), 
+            cekStatus(ulok).catch(() => null)
+        ]);
+
+        STATE.documentStatus = statusRes ? statusRes.status : null;
+
+        if (res && res.ok && res.data) {
+            if (isManualOverride) {
+                const { isManualUlok: _ignored, ...rest } = res.data;
+                populateForm(rest);
+                STATE.formData.isManualUlok = true;
+            } else {
+                populateForm(res.data);
+            }
+
             if (Array.isArray(res.data.photos)) {
                 STATE.photos = {};
-                // Preload photos
-                const promises = res.data.photos.map((pid, idx) => {
-                    if(!pid) return null;
+                const preloadPromises = [];
+                console.log("Preloading images...");
+
+                res.data.photos.forEach((pid, idx) => {
+                    if (!pid) return;
                     const id = idx + 1;
-                    const url = `${API_BASE_URL}/view-photo/${pid}`;
-                    // Object structure for photos
+                    const url = `${API_BASE_URL}/doc/view-photo/${pid}`;
+                    
+                    const p = preloadImage(url)
+                        .then(() => true)
+                        .catch((err) => {
+                            console.warn(`Gagal load gambar ${id}:`, err);
+                            return false; 
+                        });
+                        
+                    preloadPromises.push(p);
+
                     STATE.photos[id] = {
                         url: url,
-                        point: ALL_POINTS.find(p => p.id === id),
-                        timestamp: new Date().toISOString()
+                        point: ALL_POINTS.find(p => p.id === id) || { id, label: "Unknown" },
+                        timestamp: new Date().toISOString(),
                     };
-                    // Simple preload image
-                    return new Promise(r => { 
-                        const img = new Image(); 
-                        img.onload = r; img.onerror = r; 
-                        img.src = url; 
-                    });
                 });
-                await Promise.all(promises);
-                
-                // Hitung next photo number
+
+                // Kita tunggu sebentar tapi tidak wajib sukses semua
+                await Promise.allSettled(preloadPromises);
+
                 const taken = Object.keys(STATE.photos).map(Number);
                 const next = taken.length > 0 ? Math.max(...taken) + 1 : 1;
                 STATE.currentPhotoNumber = next > 38 ? 38 : next;
             }
         }
-    } catch(e) {
-        console.error(e);
+    } catch (e) {
+        console.error("Error loadTempData:", e);
+        showToast("Gagal memuat sebagian data", "error");
     } finally {
+        STATE.isLoadingData = false;
         hideLoading();
+        renderFloorPlan();
     }
 }
 
 async function saveFormDataBackground() {
+    STATE.isSavingBackground = true;
     try {
         await saveTemp(STATE.formData);
         console.log("Form saved background");
-    } catch(e) { console.error("Save fail", e); }
+    } catch (e) {
+        console.error("Save fail", e);
+    } finally {
+        STATE.isSavingBackground = false;
+    }
 }
 
 // ==========================================
-// 7. FLOOR PLAN & CAMERA LOGIC
+// 7. FLOOR PLAN & CAMERA
 // ==========================================
 function renderFloorPlan() {
-    // Update Header Info
-    getEl("fp-store-name").textContent = `${STATE.formData.namaToko || "-"} (${STATE.formData.kodeToko || "-"})`;
-    getEl("fp-date").textContent = STATE.formData.tanggalAmbilFoto || "-";
-    
-    // Update Progress
+    const tStore = getEl("fp-store-name");
+    if (tStore) tStore.textContent = `${STATE.formData.namaToko || "-"} (${STATE.formData.kodeToko || "-"})`;
+
+    const tDate = getEl("fp-date");
+    if (tDate) tDate.textContent = STATE.formData.tanggalAmbilFoto || "-";
+
     const completed = Object.keys(STATE.photos).length;
-    getEl("progress-text").textContent = `Progress: ${completed}/38 foto`;
-    getEl("progress-fill").style.width = `${(completed/38)*100}%`;
-    
-    // Show Completion?
-    if (completed === 38) show(getEl("completion-section"));
-    else hide(getEl("completion-section"));
+    const photoCount = getEl("photo-count");
+    if (photoCount) photoCount.textContent = completed;
 
-    // Render Image
-    const imgMap = { 1: "floor.png", 2: "floor3.jpeg", 3: "floor2.jpeg" };
-    getEl("floor-img").src = imgMap[STATE.currentPage] || "floor.png";
+    const txtProg = getEl("progress-text");
+    if (txtProg) txtProg.textContent = `Progress: ${completed}/38 foto`;
 
-    // Render Points
-    const container = getEl("points-container");
-    container.innerHTML = "";
-    
-    const pagePoints = PHOTO_POINTS[STATE.currentPage] || [];
-    pagePoints.forEach(p => {
-        const btn = document.createElement("button");
-        let status = "pending";
-        if (STATE.photos[p.id]) status = "completed";
-        else if (p.id === STATE.currentPhotoNumber) status = "active";
-        else if (p.id < STATE.currentPhotoNumber) status = "missed"; // missed logic
+    const fillProg = getEl("progress-fill");
+    if (fillProg) fillProg.style.width = `${(completed / 38) * 100}%`;
 
-        btn.className = `photo-point ${status}`;
-        btn.style.left = `${p.x}%`;
-        btn.style.top = `${p.y}%`;
-        btn.textContent = p.id;
-        
-        // Disable click logic
-        if (p.id > STATE.currentPhotoNumber && !STATE.photos[p.id]) {
-            btn.disabled = true;
-            btn.style.opacity = 0.6;
+    const floorImg = getEl("floor-img");
+    const imgMap = { 1: "../../assets/floor.png", 2: "../../assets/floor3.jpeg", 3: "../../assets/floor2.jpeg" };
+    if (floorImg) floorImg.src = imgMap[STATE.currentPage] || "../../assets/floor.png";
+
+    const btnSave = getEl("btn-save-pdf");
+    const compSec = getEl("completion-section");
+    const isApproved = STATE.documentStatus === "DISETUJUI";
+
+    if (btnSave) {
+        if (isApproved) {
+            hide(btnSave);
         } else {
-            btn.onclick = () => openCamera(p);
+            show(btnSave);
         }
+    }
 
-        container.appendChild(btn);
-    });
+    if (compSec) {
+        if (isApproved) {
+            show(compSec);
+            compSec.className = "alert alert-success"; 
+            compSec.innerHTML = `
+                <h3 style="margin: 0 0 0.5rem 0;">
+                    <i class="fa-solid fa-clipboard-check"></i> Dokumen Sudah Disetujui
+                </h3>
+                <p style="margin: 0; font-size: 0.95rem;">
+                    Dokumen ini telah berstatus <b>DISETUJUI</b>. Data dikunci dan tidak dapat diubah lagi.
+                </p>
+            `;
+        } else {
+            compSec.className = "alert alert-success"; 
+            compSec.innerHTML = `
+                <h3 style="margin: 0 0 0.5rem 0;">
+                    <i class="fa-solid fa-circle-check"></i> Semua Foto Lengkap! 🎉
+                </h3>
+                <p style="margin: 0; font-size: 0.95rem;">Silakan tekan tombol "Simpan & Kirim PDF" di atas.</p>
+            `;
+            
+            if (completed === 38) show(compSec);
+            else hide(compSec);
+        }
+    }
 
+    const container = getEl("points-container");
+    if (container) {
+        container.innerHTML = "";
+        const pagePoints = PHOTO_POINTS[STATE.currentPage] || [];
+        pagePoints.forEach(p => {
+            const btn = document.createElement("button");
+            let status = "pending";
+            if (STATE.photos[p.id]) status = "completed";
+            else if (p.id === STATE.currentPhotoNumber) status = "active";
+            else if (p.id < STATE.currentPhotoNumber) status = "missed";
+
+            btn.className = `photo-point ${status}`;
+            btn.style.left = `${p.x}%`;
+            btn.style.top = `${p.y}%`;
+            btn.textContent = p.id;
+
+            const isLocked = !STATE.photos[p.id] && p.id > STATE.currentPhotoNumber;
+            
+            if (STATE.isLoadingData) {
+                btn.disabled = true;
+                btn.style.cursor = "wait";
+            } else if (isApproved) {
+                btn.disabled = false;
+                btn.style.cursor = "pointer";
+                if (!STATE.photos[p.id]) {
+                    btn.disabled = true;
+                    btn.style.opacity = 0.5;
+                }
+            } else if (isLocked) {
+                btn.disabled = true;
+                btn.style.opacity = 0.6;
+                btn.style.cursor = "not-allowed";
+                btn.title = "Harap ambil foto berurutan"; 
+            } else {
+                btn.disabled = false;
+                btn.onclick = () => openCamera(p);
+                btn.title = p.label;
+            }
+
+            if (isApproved && STATE.photos[p.id]) {
+                btn.onclick = () => viewLargePhoto(STATE.photos[p.id].url);
+            }
+
+            if (STATE.photos[p.id]) {
+                const check = document.createElement("span");
+                check.className = "check-mark";
+                check.textContent = "✓";
+                btn.appendChild(check);
+            }
+
+            container.appendChild(btn);
+        });
+    }
     renderPhotoList();
 }
 
 function renderPhotoList() {
     const list = getEl("photo-list-grid");
+    if (!list) return;
     list.innerHTML = "";
-    
-    ALL_POINTS.forEach(p => {
+
+    const currentPoints = PHOTO_POINTS[STATE.currentPage] || [];
+
+    currentPoints.forEach(p => {
         const item = document.createElement("div");
         let status = STATE.photos[p.id] ? "completed" : "pending";
         item.className = `photo-item ${status}`;
-        
+
         let html = `
-            <div style="font-weight:bold; color:#dc2626; font-size:0.9rem">${p.id}</div>
-            <div style="font-size:0.8rem; color:#666">${p.label}</div>
+            <div class="photo-number">${p.id}</div>
+            <div class="photo-label">${p.label}</div>
         `;
 
         if (STATE.photos[p.id]) {
@@ -547,7 +818,7 @@ function renderPhotoList() {
             if (data.note) {
                 html += `<div class="photo-note">${data.note}</div>`;
             } else {
-                html += `<img src="${data.url}" class="thumbnail" loading="lazy">`;
+                html += `<img src="${data.url}" class="thumbnail" loading="lazy" onclick="viewLargePhoto('${data.url}')" />`;
             }
         }
         item.innerHTML = html;
@@ -555,23 +826,61 @@ function renderPhotoList() {
     });
 }
 
-// --- CAMERA FUNCTIONS ---
+window.viewLargePhoto = (url) => {
+    const img = getEl("captured-img");
+    img.src = url;
+
+    hide(getEl("cam-preview-container"));
+    show(getEl("photo-result-container"));
+
+    hide(getEl("actions-pre-capture"));
+    hide(getEl("actions-post-capture"));
+
+    getEl("cam-title").textContent = "Lihat Foto";
+    show(getEl("camera-modal"));
+
+    const btnClose = getEl("btn-close-cam");
+    const newBtn = btnClose.cloneNode(true);
+    btnClose.parentNode.replaceChild(newBtn, btnClose);
+    newBtn.addEventListener("click", closeCamera);
+};
+
+function resetCameraUI() {
+    STATE.capturedBlob = null;
+    STATE.currentPhotoNote = null;
+    show(getEl("cam-preview-container"));
+    hide(getEl("photo-result-container"));
+    
+    show(getEl("actions-pre-capture"));
+    hide(getEl("actions-post-capture"));
+}
+
 async function openCamera(point) {
+    if (STATE.isLoadingData) {
+        showToast("Sedang memuat data, harap tunggu...", "error");
+        return;
+    }
+
     STATE.currentPoint = point;
     getEl("cam-title").textContent = `Foto #${point.id}: ${point.label}`;
-    show(getEl("camera-modal"));
+
     resetCameraUI();
-    
+    show(getEl("camera-modal"));
+
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+            video: {
+                facingMode: "environment",
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
         });
         STATE.stream = stream;
         const vid = getEl("cam-video");
         vid.srcObject = stream;
         vid.onloadedmetadata = () => STATE.isCameraReady = true;
     } catch (e) {
-        alert("Gagal akses kamera: " + e.message);
+        showToast("Gagal akses kamera: " + e.message, "error");
         closeCamera();
     }
 }
@@ -586,78 +895,72 @@ function closeCamera() {
 }
 
 function capturePhoto() {
-    if (!STATE.isCameraReady) return;
+    if (!STATE.stream) return;
+
+    const video = getEl("cam-video");
+    const canvas = getEl("cam-canvas");
+    const imgResult = getEl("captured-img");
     
-    const vid = getEl("cam-video");
-    const cvs = getEl("cam-canvas");
-    const ctx = cvs.getContext("2d");
+    if (!video || !canvas || !imgResult) return;
+
+    let w = video.videoWidth;
+    let h = video.videoHeight;
     
-    // Resize logic (Max 1280px)
-    const MAX = 1280;
-    let w = vid.videoWidth, h = vid.videoHeight;
-    if (w > MAX || h > MAX) {
-        if (w > h) { h = (h/w)*MAX; w = MAX; }
-        else { w = (w/h)*MAX; h = MAX; }
+    // [OPTIMASI] Turunkan Max Width dari 1000 ke 800 agar file lebih kecil
+    const MAX_WIDTH = 800; 
+    if (w > MAX_WIDTH) {
+        h = Math.round(h * (MAX_WIDTH / w));
+        w = MAX_WIDTH;
     }
-    cvs.width = w; cvs.height = h;
-    ctx.drawImage(vid, 0, 0, w, h);
+
+    canvas.width = w;
+    canvas.height = h;
     
-    cvs.toBlob(blob => {
-        STATE.capturedBlob = blob;
-        const url = URL.createObjectURL(blob);
-        
-        // Show result
-        getEl("captured-img").src = url;
-        hide(getEl("cam-preview-container"));
-        show(getEl("photo-result-container"));
-        
-        // Toggle buttons
-        hide(getEl("actions-pre-capture"));
-        show(getEl("actions-post-capture"));
-    }, "image/jpeg", 0.7);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, w, h);
+
+    // [OPTIMASI] Turunkan kualitas JPEG dari 0.65 ke 0.5 (Masih cukup jelas untuk laporan)
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.5); 
+    
+    STATE.capturedBlob = dataUrl;
+    imgResult.src = dataUrl;
+
+    hide(getEl("cam-preview-container"));
+    show(getEl("photo-result-container"));
+    hide(getEl("actions-pre-capture"));
+    show(getEl("actions-post-capture"));
 }
 
-function resetCameraUI() {
-    STATE.capturedBlob = null;
-    show(getEl("cam-preview-container"));
-    hide(getEl("photo-result-container"));
-    show(getEl("actions-pre-capture"));
-    hide(getEl("actions-post-capture"));
-}
+async function saveCapturedPhotoOptimistic() {
+    const base64 = STATE.capturedBlob; 
 
-// Handle upload dari file
-async function handlePreviewAndSave(base64) {
-    // Langsung save
-    await savePhotoToBackend(base64, null);
-}
-
-async function saveCapturedPhoto() {
-    showLoading("Menyimpan foto...");
-    try {
-        let base64 = null;
-        let note = STATE.currentPhotoNote || null; // Jika "TIDAK BISA DIFOTO"
-
-        if (STATE.capturedBlob && STATE.capturedBlob !== "TIDAK_BISA_DIFOTO") {
-            base64 = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(STATE.capturedBlob);
-            });
-        }
-        
-        await savePhotoToBackend(base64, note);
-
-    } catch (e) {
-        alert("Gagal simpan: " + e.message);
-    } finally {
-        hideLoading();
+    if (!base64) {
+        showToast("Gagal menyimpan foto: Data kosong", "error");
+        return;
     }
-}
 
-async function savePhotoToBackend(base64, note) {
     const pointId = STATE.currentPoint.id;
-    
-    // Payload
+
+    STATE.photos[pointId] = {
+        url: base64,
+        point: STATE.currentPoint,
+        timestamp: new Date().toISOString(),
+        note: null
+    };
+
+    if (pointId === STATE.currentPhotoNumber) {
+        let next = pointId + 1;
+        if (next > 38) next = 38;
+        STATE.currentPhotoNumber = next;
+    }
+
+    closeCamera();
+    renderFloorPlan();
+    showToast(`Foto #${pointId} disimpan!`);
+    savePhotoToBackend(base64, null, pointId);
+}
+
+async function savePhotoToBackend(base64, note, pointId) {
     const payload = {
         nomorUlok: STATE.formData.nomorUlok,
         photoId: pointId,
@@ -665,125 +968,184 @@ async function savePhotoToBackend(base64, note) {
         photoBase64: base64
     };
 
-    const res = await saveTemp(payload);
-    if (!res.ok) throw new Error(res.error || "Gagal save server");
-
-    // Update LOCAL STATE
-    STATE.photos[pointId] = {
-        url: base64 || "fototidakbisadiambil.jpeg", // Preview local
-        point: STATE.currentPoint,
-        timestamp: new Date().toISOString(),
-        note: note
-    };
-
-    // Update Photo Number jika foto baru
-    if (pointId === STATE.currentPhotoNumber) {
-        let next = pointId + 1;
-        if (next > 38) next = 38;
-        STATE.currentPhotoNumber = next;
+    try {
+        const res = await saveTemp(payload);
+        if (!res.ok) throw new Error(res.error || "Gagal save server");
+        console.log(`Foto #${pointId} synced to server.`);
+    } catch (e) {
+        console.error("Gagal save foto background:", e);
+        showToast(`Warning: Foto #${pointId} belum tersync ke server. Periksa koneksi.`, "warning");
     }
-
-    STATE.currentPhotoNote = null; // reset note
-    closeCamera();
-    renderFloorPlan(); // Refresh UI
-    showToast(`Foto #${pointId} tersimpan!`);
 }
 
 function showWarningModal(msg, onOk) {
-    getEl("warning-msg").textContent = msg;
+    const msgEl = getEl("warning-msg");
+    if (msgEl) msgEl.textContent = msg;
     const btn = getEl("btn-warning-ok");
-    
-    // Hapus event lama agar tidak menumpuk
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
-    
+
     newBtn.addEventListener("click", () => {
         hide(getEl("warning-modal"));
-        if(onOk) onOk();
+        if (onOk) onOk();
     });
     show(getEl("warning-modal"));
 }
 
+// GENERATE PDF
+async function generateAndSendPDF() {
+    console.log("Memulai proses PDF...");
 
-// ==========================================
-// 8. PDF WORKER INTEGRATION
-// ==========================================
-function generateAndSendPDF() {
-    showLoading("Membuat PDF (Mohon Tunggu)...");
-    
-    // Pastikan file pdf.worker.js ada di folder yang sama
-    const worker = new Worker("pdf.worker.js", { type: "module" });
+    if (typeof ALL_POINTS === 'undefined' || !ALL_POINTS || ALL_POINTS.length === 0) {
+        showToast("Error Sistem: Data ALL_POINTS tidak ditemukan.", "error");
+        return;
+    }
+
+    const ulok = STATE.formData.nomorUlok;
+
+    if (ulok) {
+        showLoading("Mengecek status...");
+        try {
+            const statusRes = await cekStatus(ulok);
+            if (statusRes && (statusRes.status === "DISETUJUI" || statusRes.status === "MENUNGGU VALIDASI")) {
+                hideLoading();
+                showWarningModal(`Gagal Simpan!\nDokumen status: ${statusRes.status}.`);
+                return;
+            }
+        } catch (e) {
+            console.warn("Cek status skip karena server error:", e);
+        }
+    }
+
+    showLoading("Menyiapkan data gambar...");
+
+    const photosForPdf = {};
+    const photoKeys = Object.keys(STATE.photos);
+
+    const conversionPromises = photoKeys.map(async (key) => {
+        const original = STATE.photos[key];
+        const newItem = { ...original };
+        
+        if (newItem.url && !newItem.url.startsWith("data:")) {
+            try {
+                const base64 = await urlToBase64(newItem.url);
+                if (base64) {
+                    newItem.url = base64; 
+                } else {
+                    console.warn(`Foto #${key} gagal di-load (Server Error), dikosongkan di PDF.`);
+                    newItem.url = null; 
+                }
+            } catch (e) {
+                console.error(`Error convert foto #${key}:`, e);
+                newItem.url = null;
+            }
+        }
+        photosForPdf[key] = newItem;
+    });
+
+    await Promise.all(conversionPromises);
+
+    showLoading("Merender PDF...");
+
+    let worker;
+    try {
+        worker = new Worker("pdf.worker.js");
+    } catch (e) {
+        hideLoading();
+        showToast("Gagal memuat sistem PDF.", "error");
+        return;
+    }
 
     worker.postMessage({
         formData: STATE.formData,
-        capturedPhotos: STATE.photos,
+        capturedPhotos: photosForPdf,
         allPhotoPoints: ALL_POINTS
     });
 
     worker.onmessage = async (e) => {
         const { ok, pdfBase64, pdfBlob, error } = e.data;
-        
-        if(!ok) {
-            console.error(error);
-            alert("Gagal membuat PDF");
+
+        if (!ok) {
+            console.error("PDF Worker Error:", error);
+            showToast("Gagal generate PDF.", "error");
             hideLoading();
             worker.terminate();
             return;
         }
 
-        try {
-            // Logic Save to SpreadSheet & Email (dari api.js lama)
-            // Kita implementasi ulang fetch-nya di sini agar tidak ribet import
-            
-            showLoading("Mengirim PDF ke Email...");
-            
-            const user = STATE.user;
-            const safeDate = STATE.formData.tanggalAmbilFoto || "unknown";
-            const filename = `Dokumentasi_${STATE.formData.kodeToko}_${safeDate}.pdf`;
+        const user = STATE.user || { email: "unknown" };
+        const safeDate = formatDateInput(STATE.formData.tanggalAmbilFoto) || "unknown";
+        const filename = `Dokumentasi_${STATE.formData.kodeToko || "TOKO"}_${safeDate}.pdf`;
 
-            // 1. Save Toko (Drive + Sheet)
-            const payload = {
-                ...STATE.formData,
-                pdfBase64, 
-                emailPengirim: user.email || ""
-            };
-            
-            const resSave = await fetch(`${API_BASE_URL}/save-toko`, {
-                method: "POST", headers:{"Content-Type":"application/json"},
-                body: JSON.stringify(payload)
-            });
-            const jsonSave = await resSave.json();
-            if(!jsonSave.ok) throw new Error("Gagal simpan ke Spreadsheet");
-
-            // 2. Kirim Email
-            const resEmail = await fetch(`${API_BASE_URL}/send-pdf-email`, {
-                method:"POST", headers:{"Content-Type":"application/json"},
-                body: JSON.stringify({
-                    email: user.email,
-                    pdfBase64, filename, pdfUrl: jsonSave.pdfUrl,
-                    ...STATE.formData
-                })
-            });
-
-            // Download lokal
+        const downloadLocal = () => {
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement("a");
-            a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click(); a.remove();
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        };
 
-            showToast("Berhasil disimpan & dikirim! ✅");
+        try {
+            showLoading("Mengupload ke Server...");
+
+            const payload = {
+                ...STATE.formData,
+                pdfBase64, //
+                emailPengirim: user.email || ""
+            };
+
+            const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
             
-        } catch(err) {
-            console.error(err);
-            alert("Error upload: " + err.message);
-        } finally {
+            if (!resSave.ok) {
+                const errText = await resSave.text();
+                throw new Error(`Server Error (${resSave.status}). Kemungkinan ukuran file terlalu besar.`);
+            }
+            
+            const jsonSave = await resSave.json();
+
+            showToast("Berhasil disimpan ke server!", "success");
+
+            fetch(`${API_BASE_URL}/doc/send-pdf-email`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: user.email,
+                    pdfBase64: pdfBase64,
+                    filename: filename,
+                    pdfUrl: jsonSave.pdfUrl,
+                    namaToko: STATE.formData.namaToko,
+                    kodeToko: STATE.formData.kodeToko
+                })
+            }).catch(console.warn);
+            downloadLocal();
+
+            localStorage.setItem("saved_ok", "1");
+            setTimeout(() => location.reload(), 2000);
+
+        } catch (err) {
+            console.error("Upload Gagal:", err);
             hideLoading();
+            downloadLocal();
+            
+            showWarningModal(
+                `Gagal Simpan ke Server: ${err.message}\n\n` +
+                `TAPI JANGAN KHAWATIR!\nPDF sudah didownload otomatis ke HP Anda.\n` +
+                `Silakan kirim file PDF tersebut secara manual ke Admin.`
+            );
+        } finally {
             worker.terminate();
         }
     };
-
+    
     worker.onerror = (e) => {
-        console.error("Worker Error", e);
+        console.error("Worker Crash:", e);
+        showToast("Error Worker PDF", "error");
         hideLoading();
         worker.terminate();
     };
