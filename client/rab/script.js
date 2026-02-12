@@ -183,7 +183,7 @@ const TableManager = {
         if (!selectEl) return;
 
         const dataSource = (scope === "Sipil") ? State.categorizedPrices.categorizedSipilPrices :
-                           (scope === "ME") ? State.categorizedPrices.categorizedMePrices : {};
+                            (scope === "ME") ? State.categorizedPrices.categorizedMePrices : {};
         const itemsInCategory = dataSource ? (dataSource[category] || []) : [];
 
         // Get currently selected values to prevent duplicates
