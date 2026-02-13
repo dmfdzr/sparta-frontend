@@ -1157,8 +1157,8 @@ const Render = {
                                         <th style="padding:10px;">Kategori</th><th style="padding:10px;">Jenis Pekerjaan</th>
                                         <th class="text-center">Volume RAB</th><th class="text-center">Satuan</th>
                                         <th class="text-center">Harga Material</th><th class="text-center">Harga Upah</th>
-                                        <th class="text-center">Volume Akhir</th><th class="text-center">Selisih</th>
-                                        <th class="text-center">Total</th><th class="text-center">Desain</th>
+                                        <th class="text-center">Volume Akhir</th><th class="text-center">Selisih Volume</th>
+                                        <th class="text-center">Total Selisih</th><th class="text-center">Desain</th>
                                         <th class="text-center">Kualitas</th><th class="text-center">Spesifikasi</th>
                                         <th class="text-center">Foto</th><th style="padding:10px;">Catatan</th>
                                         <th class="text-center">Status</th><th class="text-center">Aksi</th>
