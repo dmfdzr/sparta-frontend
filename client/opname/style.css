@@ -417,6 +417,67 @@ tr:hover td { background-color: #f8fafc; }
     100% { transform: rotate(360deg); }
 }
 
+/* ======================== NEW DROPDOWN STYLES ======================== */
+
+/* Style dasar untuk Select/Dropdown */
+.form-select {
+    width: 100%;
+    padding: 8px 12px; /* Padding yang nyaman */
+    font-size: 0.9rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--neutral-700);
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1; /* Warna border sama dengan .form-input */
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    /* Menghilangkan panah bawaan browser untuk diganti custom (opsional, agar rapi) */
+    appearance: none; 
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    
+    /* Menambahkan panah dropdown custom (SVG minimalis) */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 32px; /* Memberi ruang agar teks tidak menabrak panah */
+}
+
+/* Efek saat mouse diarahkan (Hover) */
+.form-select:hover {
+    border-color: #94a3b8;
+    background-color: #f8fafc;
+}
+
+/* Efek saat diklik/aktif (Focus) */
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary-blue); /* Menggunakan biru sesuai tema login */
+    box-shadow: 0 0 0 3px rgba(0, 90, 158, 0.1); /* Efek glow halus */
+}
+
+/* Mengatur opsi di dalam dropdown */
+.form-select option {
+    padding: 10px;
+    color: #333;
+}
+
+/* === TABLE ADJUSTMENTS UNTUK KOLOM BARU === */
+
+/* Memastikan kolom dropdown memiliki lebar minimum agar tidak gepeng */
+td .form-select {
+    min-width: 140px; 
+}
+
+/* Mengatur agar dropdown berada di tengah secara vertikal */
+td {
+    vertical-align: middle;
+}
+
+/* ===================================================================== */
+
 /* ======================== SUMMARY BOX STYLING ======================== */
 .summary-box {
     background: #ffffff;
