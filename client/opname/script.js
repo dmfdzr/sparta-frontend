@@ -1189,15 +1189,12 @@ const Render = {
                                                 <input type="number" class="form-input vol-input" data-id="${item.id}" value="${item.volume_akhir}" 
                                                 style="width:80px; text-align:center;" ${item.isSubmitted?'disabled':''}>
                                             </td>
-                                            
                                             <td class="text-center font-bold" id="selisih-${item.id}" style="color:${selisihColor}">
                                                 ${(item.volume_akhir!=='') ? item.selisih : '-'}
                                             </td>
-                                            
                                             <td class="text-right font-bold" id="total-${item.id}" style="color:${item.total_harga<0?'red':'black'}">
                                                 ${formatRupiah(item.total_harga)}
                                             </td>
-
                                             <td class="text-center">
                                                 <select class="form-select design-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;">
                                                     <option value="Sesuai" ${item.design === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
