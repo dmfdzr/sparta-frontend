@@ -550,9 +550,24 @@ const PDFGenerator = {
         // ==========================================
         if (submissions && submissions.length > 0) {
             const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
+            
             submissions.forEach(it => {
-                const sel = toNumberVol_PDF(it.selisih);
+                // [FIX] Hitung ulang selisih untuk memastikan akurasi, terutama untuk item IL
+                // Kadang data API mengembalikan selisih '0' untuk IL meskipun ada beda volume
+                const vAkhir = toNumberVol_PDF(it.volume_akhir);
+                const vAwal = toNumberVol_PDF(it.vol_rab); // Untuk IL, ini adalah Volume Estimasi IL
+                
+                // Hitung selisih manual
+                let sel = vAkhir - vAwal;
+                
+                // Pembulatan 2 desimal untuk menghindari floating point issue (misal: 0.0000001)
+                sel = Math.round((sel + Number.EPSILON) * 100) / 100;
+
+                // Jika hasil hitungan manual tidak 0, kita gunakan itu (overwrite data API jika perlu)
                 if (sel !== 0) {
+                    // Update properti selisih di object item agar konsisten di tabel & perhitungan selanjutnya
+                    it.selisih = String(sel).replace('.', ','); 
+                    
                     const type = sel < 0 ? "PEKERJAAN KURANG" : "PEKERJAAN TAMBAH";
                     groupsByType[type].push(it);
                 }
@@ -577,15 +592,18 @@ const PDFGenerator = {
                         const hMat = toNumberID_PDF(item.harga_material);
                         const hUpah = toNumberID_PDF(item.harga_upah);
                         const deltaNominal = sel * (hMat + hUpah);
+                        
+                        // [FIX] Pastikan penanda (IL) muncul di nama pekerjaan
                         const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
+                        
                         return [idx + 1, namaPekerjaan, item.vol_rab, item.satuan, item.volume_akhir, `${item.selisih} ${item.satuan}`, formatRupiah(deltaNominal)];
                     });
 
                     doc.autoTable({
-                        head: [["NO.", "JENIS PEKERJAAN", "VOL RAB", "SATUAN", "VOLUME AKHIR", "SELISIH", "NILAI SELISIH (Rp)"]],
+                        head: [["NO.", "JENIS PEKERJAAN", "VOL AWAL", "SATUAN", "VOL AKHIR", "SELISIH", "NILAI SELISIH (Rp)"]],
                         body: rows, startY: lastY, margin: { left: margin, right: margin }, theme: "grid",
                         styles: { fontSize: 8, cellPadding: 3, lineWidth: 0.1 }, headStyles: { fillColor: [205, 234, 242], textColor: [0,0,0], fontSize: 8.5, fontStyle: "bold", halign: "center" },
-                        columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
+                        columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "center" }, 4: { halign: "center" }, 5: { halign: "center", fontStyle: "bold" } },
                         didParseCell: (data) => { if(data.section === 'body') { const originalItem = kItems[data.row.index]; if (originalItem && originalItem.is_il) { data.cell.styles.fillColor = [255, 249, 196]; } } }
                     });
                     lastY = doc.lastAutoTable.finalY + 10;
