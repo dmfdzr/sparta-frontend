@@ -1188,7 +1188,6 @@ const Render = {
                                 <span style="color:#666;">${AppState.selectedStore.nama_toko} (ULOK: ${AppState.selectedUlok})</span>
                             </div>
                         </div>
-
                         <div class="table-container" style="overflow-x:auto;">
                             <table style="width:100%; min-width:1400px; border-collapse:collapse;">
                                 <thead>
@@ -1199,13 +1198,13 @@ const Render = {
                                         <th class="text-center">Volume Akhir</th><th class="text-center">Selisih Volume</th>
                                         <th class="text-center">Total Selisih</th><th class="text-center">Desain</th>
                                         <th class="text-center">Kualitas</th><th class="text-center">Spesifikasi</th>
-                                        <th class="text-center">Foto</th><th style="padding:10px;">Catatan</th>
+                                        <th class="text-center">Foto</th>
+                                        <th style="padding:10px; min-width: 200px;">Catatan (Kontraktor)</th>
                                         <th class="text-center">Status</th><th class="text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${items.map(item => {
-                                        // Setup Variabel Tampilan
                                         let rowBg = '';
                                         if (item.is_il) rowBg = '#fff9c4'; 
                                         else if (item.isSubmitted) rowBg = '#f0fff0';
@@ -1216,17 +1215,12 @@ const Render = {
                                         else if (selisihVal > 0) selisihColor = '#166534';
 
                                         const isDisabled = item.isSubmitted ? 'disabled' : '';
-
-                                        // Tentukan value default untuk dropdown jika kosong/null
                                         const valDesain = item.desain || '-';
                                         const valKualitas = item.kualitas || '-';
                                         const valSpec = item.spesifikasi || '-';
-
-                                        // LOGIKA BARU: Cek apakah status Rejected
-                                        // Tombol perbaiki hanya aktif jika status == 'Rejected'
                                         const status = String(item.approval_status || '').toLowerCase();
                                         const isRejected = status === 'rejected';
-                                        const canFix = isRejected; // Hanya bisa diperbaiki jika Rejected
+                                        const canFix = isRejected;
 
                                         return `
                                         <tr style="border-bottom:1px solid #ddd; background:${rowBg}">
@@ -1290,13 +1284,22 @@ const Render = {
                                                 }
                                             </td>
                                             
-                                            <td>
-                                                <input type="text" class="form-input note-input" 
-                                                    data-id="${item.id}" 
-                                                    value="${item.catatan}" 
-                                                    placeholder="Catatan..." 
-                                                    style="min-width:120px;"
-                                                    ${isDisabled}>
+                                            <td style="padding: 8px;">
+                                                <div style="
+                                                    background: #f8fafc;
+                                                    border: 1px solid #e2e8f0;
+                                                    border-radius: 6px;
+                                                    padding: 8px 10px;
+                                                    font-size: 0.85rem;
+                                                    color: #334155;
+                                                    min-width: 200px; 
+                                                    max-height: 80px;
+                                                    overflow-y: auto;
+                                                    white-space: pre-wrap;
+                                                    line-height: 1.4;
+                                                ">
+                                                    ${item.catatan && item.catatan !== '-' ? item.catatan : '<span style="color:#94a3b8; font-style:italic;">Tidak ada catatan</span>'}
+                                                </div>
                                             </td>
 
                                             <td class="text-center">
