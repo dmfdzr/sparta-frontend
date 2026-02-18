@@ -1202,36 +1202,98 @@ const Render = {
                                 </thead>
                                 <tbody>
                                     ${items.map(item => {
+                                        // 1. Setup Variabel Tampilan
                                         let rowBg = '';
-                                        if (item.is_il) rowBg = '#fff9c4'; 
-                                        else if (item.isSubmitted) rowBg = '#f0fff0';
+                                        if (item.is_il) rowBg = '#fff9c4'; // Kuning muda untuk IL
+                                        else if (item.isSubmitted) rowBg = '#f0fff0'; // Hijau muda jika sudah submit
                                         
-                                        const selisihVal = parseFloat(item.selisih);
+                                        const selisihVal = parseFloat(item.selisih) || 0;
                                         let selisihColor = 'black';
-                                        if (selisihVal < 0) selisihColor = 'red';
-                                        else if (selisihVal > 0) selisihColor = 'green';
+                                        if (selisihVal < 0) selisihColor = '#dc2626'; // Merah
+                                        else if (selisihVal > 0) selisihColor = '#166534'; // Hijau
+
+                                        // Cek apakah input harus disable (jika sudah submit)
+                                        const isDisabled = item.isSubmitted ? 'disabled' : '';
 
                                         return `
                                         <tr style="border-bottom:1px solid #ddd; background:${rowBg}">
+                                            <td style="padding:10px; font-weight:600; color:#475569;">${item.kategori_pekerjaan}</td>
+                                            <td style="padding:10px;">
+                                                ${item.jenis_pekerjaan}
+                                                ${item.is_il ? '<br><span class="badge" style="background:#ffeb3b; color:#000; font-size:10px;">Instruksi Lapangan</span>' : ''}
+                                            </td>
+
+                                            <td class="text-center">${item.vol_rab}</td>
+                                            <td class="text-center">${item.satuan}</td>
+                                            <td class="text-right">${formatRupiah(item.harga_material)}</td>
+                                            <td class="text-right">${formatRupiah(item.harga_upah)}</td>
+
                                             <td class="text-center">
-                                                <select class="form-select design-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;" ${isDisabled}>
+                                                <input type="number" step="0.01" class="form-input vol-input" 
+                                                    data-id="${item.id}" 
+                                                    value="${item.volume_akhir}" 
+                                                    placeholder="0"
+                                                    style="min-width:80px; text-align:center;" 
+                                                    ${isDisabled}>
+                                            </td>
+
+                                            <td class="text-center font-bold" id="selisih-${item.id}" style="color:${selisihColor}">
+                                                ${item.selisih}
+                                            </td>
+                                            <td class="text-right font-bold" id="total-${item.id}" style="color:${item.total_harga < 0 ? '#dc2626' : 'inherit'}">
+                                                ${formatRupiah(item.total_harga)}
+                                            </td>
+
+                                            <td class="text-center">
+                                                <select class="form-select design-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
                                                     <option value="Sesuai" ${item.design === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
                                                     <option value="Tidak Sesuai" ${item.design === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
                                                 </select>
                                             </td>
 
                                             <td class="text-center">
-                                                <select class="form-select quality-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;" ${isDisabled}>
+                                                <select class="form-select quality-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
                                                     <option value="Baik" ${item.kualitas === 'Baik' ? 'selected' : ''}>Baik</option>
                                                     <option value="Tidak Baik" ${item.kualitas === 'Tidak Baik' ? 'selected' : ''}>Tidak Baik</option>
                                                 </select>
                                             </td>
 
                                             <td class="text-center">
-                                                <select class="form-select spec-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;" ${isDisabled}>
+                                                <select class="form-select spec-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
                                                     <option value="Sesuai" ${item.spesifikasi === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
                                                     <option value="Tidak Sesuai" ${item.spesifikasi === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
                                                 </select>
+                                            </td>
+
+                                            <td class="text-center">
+                                                ${item.foto_url ? 
+                                                    `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` : 
+                                                    `<label class="btn btn-outline" style="padding:4px 8px; font-size:12px; cursor:pointer;">
+                                                        Upload <input type="file" class="file-input" data-id="${item.id}" accept="image/*" style="display:none;" ${isDisabled}>
+                                                    </label>`
+                                                }
+                                            </td>
+
+                                            <td>
+                                                <input type="text" class="form-input note-input" 
+                                                    data-id="${item.id}" 
+                                                    value="${item.catatan}" 
+                                                    placeholder="Catatan..." 
+                                                    style="min-width:120px;"
+                                                    ${isDisabled}>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <span class="badge ${item.approval_status === 'Approved' ? 'badge-success' : (item.approval_status === 'Rejected' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.approval_status || 'Pending'}
+                                                </span>
+                                            </td>
+
+                                            <td class="text-center">
+                                                ${item.isSubmitted ? 
+                                                    `<button class="btn btn-secondary perbaiki-btn" data-id="${item.id}" style="font-size:12px; padding:6px 10px;" ${item.approval_status === 'Approved' ? 'disabled' : ''}>Perbaiki</button>` : 
+                                                    `<button class="btn btn-primary save-btn" data-id="${item.id}" style="font-size:12px; padding:6px 12px;">Simpan</button>`
+                                                }
                                             </td>
                                         </tr>
                                     `}).join('')}
