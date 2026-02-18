@@ -1,166 +1,281 @@
-/* Inherit variables from dashboard/style.css if imported, else redefine */
+/* ================= ADAPTED FROM GANTT/STYLE.CSS ================= */
 :root {
-    --primary-color: #005a9e;
-    --secondary-color: #dc2626;
-    --bg-color: #f4f7f6;
-    --card-bg: #ffffff;
-    --text-main: #2d3748;
-    --border-color: #e2e8f0;
+    --primary: #d62828; /* Merah Alfamart */
+    --primary-dark: #b91c1c;
+    --secondary-color: #1976d2;
+    --bg-color: #f5f5f5;
+    --text-color: #333;
+    --border-color: #ddd;
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --radius: 12px;
+    --neutral-700: #333333;
 }
 
 body {
+    font-family: 'Inter', sans-serif;
     background-color: var(--bg-color);
     margin: 0;
-    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
 }
 
-/* Header Adjustments */
-.header-left {
+/* HEADER STYLE (Sama Persis dengan Gantt) */
+header.app-header {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
-    gap: 1rem;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.back-link {
+.header-logo {
+    width: 140px;
+    position: absolute;
+    left: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+header.app-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.btn-back-header {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
     color: white;
     text-decoration: none;
-    font-weight: 600;
-    border: 1px solid rgba(255,255,255,0.3);
-    padding: 5px 10px;
-    border-radius: 5px;
+    font-weight: 500;
+    backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+}
+
+.btn-back-header:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.02);
+}
+
+/* USER GREETING & CONTAINER */
+.user-greeting-wrapper {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: -10px;
+}
+
+.user-info {
+    display: inline-block;
+    padding: 8px 24px;
     font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--neutral-700);
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.container-fluid {
-    max-width: 1400px; /* Lebih lebar dari dashboard menu */
-    margin: 1.5rem auto;
-    padding: 0 1.5rem;
+.container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 20px;
 }
 
-/* Filter Section */
-.filter-card {
-    background: var(--card-bg);
-    padding: 1rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    margin-bottom: 1.5rem;
-}
-
-#filter-form {
+/* CONTROLS (Filter Bar - Style Gantt) */
+.controls {
+    background: #fff;
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
     display: flex;
-    gap: 1rem;
-    align-items: flex-end;
-    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+    align-items: flex-end; /* Agar tombol rata bawah dengan input */
 }
 
-.form-group {
+.control-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 8px;
 }
 
-.form-group label {
-    font-size: 0.85rem;
+.control-group label {
+    font-size: 12px;
     font-weight: 600;
-    color: #4a5568;
+    color: #666;
 }
 
-.form-control {
-    padding: 0.5rem;
+select {
+    padding: 10px 15px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    min-width: 150px;
+    font-size: 14px;
+    min-width: 200px;
+    outline: none;
+    transition: border-color 0.2s;
 }
 
-.btn-filter {
-    background-color: var(--primary-color);
+select:focus {
+    border-color: var(--secondary-color);
+}
+
+.btn-apply-filter {
+    background: var(--secondary-color);
     color: white;
     border: none;
-    padding: 0.6rem 1.2rem;
+    padding: 10px 20px;
     border-radius: 6px;
-    cursor: pointer;
     font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 40px; /* Samakan tinggi dengan select */
 }
 
-/* KPI Grid */
-.kpi-grid {
+.btn-apply-filter:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* ================= DASHBOARD SPECIFIC STYLES ================= */
+
+/* KPI CARDS GRID */
+.stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    gap: 20px;
+    margin-bottom: 20px;
 }
 
-.kpi-card {
-    background: var(--card-bg);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    border-left: 4px solid var(--primary-color);
+.stat-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-left: 4px solid var(--secondary-color); /* Aksen biru */
 }
 
-.kpi-card h3 {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #718096;
+.stat-card:nth-child(2) { border-left-color: #d69e2e; } /* Kuning */
+.stat-card:nth-child(3) { border-left-color: #e53e3e; } /* Merah */
+.stat-card:nth-child(4) { border-left-color: #38a169; } /* Hijau */
+
+.stat-label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 5px;
     font-weight: 500;
 }
 
-.kpi-value {
-    font-size: 1.8rem;
+.stat-value {
+    font-size: 24px;
     font-weight: 700;
-    margin: 0.5rem 0;
-    color: var(--text-main);
+    color: #333;
+    margin-bottom: 5px;
 }
 
-.kpi-value.warning { color: #d69e2e; }
+.stat-value.warning { color: #d69e2e; }
+.stat-value.success { color: #38a169; }
 
-.kpi-sub { font-size: 0.8rem; color: #a0aec0; }
-.kpi-trend.positive { color: #38a169; font-size: 0.85rem; font-weight: 600; }
+.stat-sub { font-size: 12px; color: #888; }
+.stat-trend { font-size: 12px; font-weight: 600; }
+.stat-trend.positive { color: #38a169; }
 
-/* Charts Grid */
-.charts-grid {
+/* CHARTS LAYOUT */
+.charts-wrapper {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    /* Baris pertama: Chart besar ambil 2 kolom, chart donat 1 kolom */
+    grid-template-columns: 2fr 1fr 1fr; /* Layout 3 Kolom */
     grid-template-areas: 
-        "trend trend scope"
-        "status status status"; 
+        "main pie status";
+    gap: 20px;
 }
 
 .chart-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    height: 350px; /* Tinggi tetap agar rapi */
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--card-shadow);
     display: flex;
     flex-direction: column;
 }
 
-.chart-card.large { grid-area: trend; }
-.chart-card:nth-child(2) { grid-area: scope; }
-.chart-card:nth-child(3) { grid-area: status; height: 300px; }
+.chart-card.large {
+    grid-area: main;
+}
 
-.chart-header h4 {
-    margin: 0 0 1rem 0;
-    color: var(--text-main);
+.chart-header-title h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+    font-weight: 600;
+}
+
+.chart-subtitle {
+    font-size: 12px;
+    color: #888;
 }
 
 .chart-body {
     flex: 1;
     position: relative;
-    width: 100%;
-    min-height: 0; /* Penting untuk Chart.js responsive */
+    min-height: 250px;
+    margin-top: 15px;
 }
 
-/* Mobile Responsive */
-@media (max-width: 992px) {
-    .charts-grid {
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+    .charts-wrapper {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: 
+            "main main"
+            "pie status";
+    }
+}
+
+@media (max-width: 768px) {
+    header.app-header {
+        flex-direction: column;
+        padding: 1rem;
+        gap: 1rem;
+    }
+    
+    .header-logo {
+        position: static;
+        transform: none;
+        width: 100px;
+    }
+    
+    .btn-back-header {
+        position: static;
+        transform: none;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .charts-wrapper {
         grid-template-columns: 1fr;
         grid-template-areas: 
-            "trend"
-            "scope"
+            "main"
+            "pie"
             "status";
     }
 }
