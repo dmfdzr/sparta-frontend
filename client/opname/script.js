@@ -1095,7 +1095,6 @@ const Render = {
             } catch (err) {
                 console.warn("Gagal cek keterlambatan:", err);
             }
-
             // Mapping Items
             AppState.opnameItems = data.map((task, index) => {
                 const volRab = toNumInput(task.vol_rab);
@@ -1108,6 +1107,11 @@ const Render = {
                 
                 const alreadySubmitted = task.isSubmitted === true || !!task.item_id || ["PENDING", "APPROVED", "REJECTED"].includes(String(task.approval_status || "").toUpperCase());
                 
+                // --- LOGIKA PEMBERSIH CATATAN ---
+                let rawCatatan = task.catatan || "";
+                // Hapus teks di dalam kurung siku [...] seperti [REJECT 18/2/2026...]
+                let cleanCatatan = rawCatatan.replace(/\[.*?\]/g, "").trim();
+                
                 return { 
                     ...task, 
                     id: index + 1, 
@@ -1117,7 +1121,8 @@ const Render = {
                     volume_akhir: alreadySubmitted ? String(volAkhirNum) : "", 
                     selisih: (Math.round((selisihNum + Number.EPSILON) * 100) / 100).toFixed(2), 
                     total_harga,
-                    catatan: task.catatan || "",
+                    // Gunakan catatan yang sudah dibersihkan
+                    catatan: cleanCatatan, 
                     approval_status: task.approval_status || (alreadySubmitted ? "Pending" : ""),
                     desain: task.desain || "-",
                     kualitas: task.kualitas || "-",
