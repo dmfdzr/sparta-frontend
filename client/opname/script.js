@@ -1219,6 +1219,12 @@ const Render = {
                                         const valKualitas = item.kualitas || '-';
                                         const valSpec = item.spesifikasi || '-';
 
+                                        // LOGIKA BARU: Cek apakah status Rejected
+                                        // Tombol perbaiki hanya aktif jika status == 'Rejected'
+                                        const status = String(item.approval_status || '').toLowerCase();
+                                        const isRejected = status === 'rejected';
+                                        const canFix = isRejected; // Hanya bisa diperbaiki jika Rejected
+
                                         return `
                                         <tr style="border-bottom:1px solid #ddd; background:${rowBg}">
                                             <td style="padding:10px; font-weight:600; color:#475569;">${item.kategori_pekerjaan}</td>
@@ -1298,8 +1304,13 @@ const Render = {
 
                                             <td class="text-center">
                                                 ${item.isSubmitted ? 
-                                                    `<button class="btn btn-secondary perbaiki-btn" data-id="${item.id}" style="font-size:12px; padding:6px 10px;" ${item.approval_status === 'Approved' ? 'disabled' : ''}>Perbaiki</button>` : 
-                                                    `<button class="btn btn-primary save-btn" data-id="${item.id}" style="font-size:12px; padding:6px 12px;">Simpan</button>`
+                                                    `<button class="btn btn-secondary perbaiki-btn" 
+                                                        data-id="${item.id}" 
+                                                        style="font-size:12px; padding:6px 10px;" 
+                                                        ${canFix ? '' : 'disabled'}>Perbaiki</button>` : 
+                                                    `<button class="btn btn-primary save-btn" 
+                                                        data-id="${item.id}" 
+                                                        style="font-size:12px; padding:6px 12px;">Simpan</button>`
                                                 }
                                             </td>
                                         </tr>
