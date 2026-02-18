@@ -1213,52 +1213,25 @@ const Render = {
 
                                         return `
                                         <tr style="border-bottom:1px solid #ddd; background:${rowBg}">
-                                            <td style="padding:10px;">
-                                                ${item.kategori_pekerjaan}
-                                                ${item.is_il ? '<br><span class="badge" style="background:#ffeb3b; color:#000; font-size:9px;">Instruksi Lapangan</span>' : ''}
-                                            </td>
-                                            <td style="padding:10px;">${item.jenis_pekerjaan}</td>
-                                            <td class="text-center">${item.vol_rab}</td><td class="text-center">${item.satuan}</td>
-                                            <td class="text-right">${formatRupiah(item.harga_material)}</td><td class="text-right">${formatRupiah(item.harga_upah)}</td>
-                                            
                                             <td class="text-center">
-                                                <input type="number" class="form-input vol-input" data-id="${item.id}" value="${item.volume_akhir}" 
-                                                style="width:80px; text-align:center;" ${item.isSubmitted?'disabled':''}>
-                                            </td>
-                                            <td class="text-center font-bold" id="selisih-${item.id}" style="color:${selisihColor}">
-                                                ${(item.volume_akhir!=='') ? item.selisih : '-'}
-                                            </td>
-                                            <td class="text-right font-bold" id="total-${item.id}" style="color:${item.total_harga<0?'red':'black'}">
-                                                ${formatRupiah(item.total_harga)}
-                                            </td>
-                                            <td class="text-center">
-                                                <select class="form-select design-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;">
+                                                <select class="form-select design-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;" ${isDisabled}>
                                                     <option value="Sesuai" ${item.design === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
                                                     <option value="Tidak Sesuai" ${item.design === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
                                                 </select>
                                             </td>
+
                                             <td class="text-center">
-                                                <select class="form-select quality-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;">
+                                                <select class="form-select quality-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;" ${isDisabled}>
                                                     <option value="Baik" ${item.kualitas === 'Baik' ? 'selected' : ''}>Baik</option>
                                                     <option value="Tidak Baik" ${item.kualitas === 'Tidak Baik' ? 'selected' : ''}>Tidak Baik</option>
                                                 </select>
                                             </td>
+
                                             <td class="text-center">
-                                                <select class="form-select spec-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;">
+                                                <select class="form-select spec-select" data-id="${item.id}" style="font-size: 0.9rem; padding: 4px;" ${isDisabled}>
                                                     <option value="Sesuai" ${item.spesifikasi === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
                                                     <option value="Tidak Sesuai" ${item.spesifikasi === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
                                                 </select>
-                                            </td>
-                                            
-                                            <td class="text-center">
-                                                ${item.foto_url ? `<a href="${item.foto_url}" target="_blank">Lihat</a>` : 
-                                                (!item.isSubmitted ? `<input type="file" class="file-input" data-id="${item.id}" id="f-${item.id}" hidden><label for="f-${item.id}" class="btn btn-sm btn-outline">Upload</label>`:'-')}
-                                            </td>
-                                            <td>${item.catatan||'-'}</td>
-                                            <td class="text-center"><span class="badge badge-success">${item.approval_status||'-'}</span></td>
-                                            <td class="text-center">
-                                                ${!item.isSubmitted ? `<button class="btn btn-primary btn-sm save-btn" data-id="${item.id}">Simpan</button>` : 
-                                                item.approval_status==='REJECTED' ? `<button class="btn btn-warning btn-sm perbaiki-btn" data-id="${item.id}">Perbaiki</button>` : 'Saved'}
                                             </td>
                                         </tr>
                                     `}).join('')}
@@ -1449,7 +1422,11 @@ const Render = {
                                 harga_upah: item.harga_upah,
                                 total_harga_akhir: item.total_harga,
                                 lingkup_pekerjaan: AppState.selectedLingkup,
-                                is_il: item.is_il
+                                is_il: item.is_il,
+                                design: item.design || '-',
+                                kualitas: item.kualitas || '-',
+                                spesifikasi: item.spesifikasi || '-',
+                                catatan: item.catatan || '-'
                             };
                             await fetch(`${API_BASE_URL}/api/opname/item/submit`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
                             item.isSubmitted=true; item.approval_status="Pending";
