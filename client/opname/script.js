@@ -1202,18 +1202,22 @@ const Render = {
                                 </thead>
                                 <tbody>
                                     ${items.map(item => {
-                                        // 1. Setup Variabel Tampilan
+                                        // Setup Variabel Tampilan
                                         let rowBg = '';
-                                        if (item.is_il) rowBg = '#fff9c4'; // Kuning muda untuk IL
-                                        else if (item.isSubmitted) rowBg = '#f0fff0'; // Hijau muda jika sudah submit
+                                        if (item.is_il) rowBg = '#fff9c4'; 
+                                        else if (item.isSubmitted) rowBg = '#f0fff0';
                                         
                                         const selisihVal = parseFloat(item.selisih) || 0;
                                         let selisihColor = 'black';
-                                        if (selisihVal < 0) selisihColor = '#dc2626'; // Merah
-                                        else if (selisihVal > 0) selisihColor = '#166534'; // Hijau
+                                        if (selisihVal < 0) selisihColor = '#dc2626';
+                                        else if (selisihVal > 0) selisihColor = '#166534';
 
-                                        // Cek apakah input harus disable (jika sudah submit)
                                         const isDisabled = item.isSubmitted ? 'disabled' : '';
+
+                                        // Tentukan value default untuk dropdown jika kosong/null
+                                        const valDesain = item.desain || '-';
+                                        const valKualitas = item.kualitas || '-';
+                                        const valSpec = item.spesifikasi || '-';
 
                                         return `
                                         <tr style="border-bottom:1px solid #ddd; background:${rowBg}">
@@ -1246,22 +1250,25 @@ const Render = {
 
                                             <td class="text-center">
                                                 <select class="form-select design-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
-                                                    <option value="Sesuai" ${item.desain === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
-                                                    <option value="Tidak Sesuai" ${item.desain === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
+                                                    <option value="-" ${valDesain === '-' ? 'selected' : ''}>-</option>
+                                                    <option value="Sesuai" ${valDesain === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
+                                                    <option value="Tidak Sesuai" ${valDesain === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
                                                 </select>
                                             </td>
 
                                             <td class="text-center">
                                                 <select class="form-select quality-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
-                                                    <option value="Baik" ${item.kualitas === 'Baik' ? 'selected' : ''}>Baik</option>
-                                                    <option value="Tidak Baik" ${item.kualitas === 'Tidak Baik' ? 'selected' : ''}>Tidak Baik</option>
+                                                    <option value="-" ${valKualitas === '-' ? 'selected' : ''}>-</option>
+                                                    <option value="Baik" ${valKualitas === 'Baik' ? 'selected' : ''}>Baik</option>
+                                                    <option value="Tidak Baik" ${valKualitas === 'Tidak Baik' ? 'selected' : ''}>Tidak Baik</option>
                                                 </select>
                                             </td>
 
                                             <td class="text-center">
                                                 <select class="form-select spec-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
-                                                    <option value="Sesuai" ${item.spesifikasi === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
-                                                    <option value="Tidak Sesuai" ${item.spesifikasi === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
+                                                    <option value="-" ${valSpec === '-' ? 'selected' : ''}>-</option>
+                                                    <option value="Sesuai" ${valSpec === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
+                                                    <option value="Tidak Sesuai" ${valSpec === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
                                                 </select>
                                             </td>
 
@@ -1273,7 +1280,7 @@ const Render = {
                                                     </label>`
                                                 }
                                             </td>
-
+                                            
                                             <td>
                                                 <input type="text" class="form-input note-input" 
                                                     data-id="${item.id}" 
@@ -1761,15 +1768,16 @@ const Render = {
                         <div id="approval-message" style="display:none; padding:10px; border-radius:8px; margin-bottom:15px;"></div>
 
                         <div class="table-container">
-                            <table style="width:100%; min-width:1000px;">
-                                <thead>
+                            <table style="width:100%; min-width:1200px;"> <thead>
                                     <tr style="background:#f2f2f2;">
                                         <th style="padding:12px;">Kategori</th>
                                         <th style="padding:12px;">Jenis Pekerjaan</th>
                                         <th style="padding:12px; text-align:center;">Volume Akhir</th>
+                                        
                                         <th class="text-center" style="width: 10%;">Desain</th>
                                         <th class="text-center" style="width: 10%;">Kualitas</th>
                                         <th class="text-center" style="width: 10%;">Spesifikasi</th>
+                                        
                                         <th style="padding:12px; text-align:center;">Foto</th>
                                         <th style="padding:12px;">PIC</th>
                                         <th style="padding:12px;">Waktu Submit</th>
@@ -1779,27 +1787,29 @@ const Render = {
                                 </thead>
                                 <tbody id="approval-tbody">
                                     ${pendingItems.length === 0 ? 
-                                        '<tr><td colspan="8" class="text-center" style="padding:20px;">Tidak ada opname yang menunggu persetujuan.</td></tr>' : 
+                                        '<tr><td colspan="11" class="text-center" style="padding:20px;">Tidak ada opname yang menunggu persetujuan.</td></tr>' : 
                                         pendingItems.map(item => `
                                         <tr id="row-${item.item_id}" style="border-bottom:1px solid #ddd;">
                                             <td>${item.kategori_pekerjaan}</td>
                                             <td>${item.jenis_pekerjaan}</td>
                                             <td class="text-center"><b>${item.volume_akhir}</b> ${item.satuan || ''}</td>
+                                            
                                             <td class="text-center">
-                                                <span class="badge ${item.desain === 'Sesuai' ? 'badge-success' : (item.desain ? 'badge-danger' : 'badge-neutral')}">
+                                                <span class="badge ${item.desain === 'Sesuai' ? 'badge-success' : (item.desain === 'Tidak Sesuai' ? 'badge-danger' : 'badge-neutral')}">
                                                     ${item.desain || '-'}
                                                 </span>
                                             </td>
                                             <td class="text-center">
-                                                <span class="badge ${item.kualitas === 'Baik' ? 'badge-success' : (item.kualitas ? 'badge-danger' : 'badge-neutral')}">
+                                                <span class="badge ${item.kualitas === 'Baik' ? 'badge-success' : (item.kualitas === 'Tidak Baik' ? 'badge-danger' : 'badge-neutral')}">
                                                     ${item.kualitas || '-'}
                                                 </span>
                                             </td>
                                             <td class="text-center">
-                                                <span class="badge ${item.spesifikasi === 'Sesuai' ? 'badge-success' : (item.spesifikasi ? 'badge-danger' : 'badge-neutral')}">
+                                                <span class="badge ${item.spesifikasi === 'Sesuai' ? 'badge-success' : (item.spesifikasi === 'Tidak Sesuai' ? 'badge-danger' : 'badge-neutral')}">
                                                     ${item.spesifikasi || '-'}
                                                 </span>
                                             </td>
+                                            
                                             <td class="text-center">
                                                 ${item.foto_url ? `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` : '<span style="color:#999;">-</span>'}
                                             </td>
