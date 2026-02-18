@@ -1,0 +1,166 @@
+/* Inherit variables from dashboard/style.css if imported, else redefine */
+:root {
+    --primary-color: #005a9e;
+    --secondary-color: #dc2626;
+    --bg-color: #f4f7f6;
+    --card-bg: #ffffff;
+    --text-main: #2d3748;
+    --border-color: #e2e8f0;
+}
+
+body {
+    background-color: var(--bg-color);
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Header Adjustments */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.back-link {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+.container-fluid {
+    max-width: 1400px; /* Lebih lebar dari dashboard menu */
+    margin: 1.5rem auto;
+    padding: 0 1.5rem;
+}
+
+/* Filter Section */
+.filter-card {
+    background: var(--card-bg);
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem;
+}
+
+#filter-form {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.form-control {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    min-width: 150px;
+}
+
+.btn-filter {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* KPI Grid */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border-left: 4px solid var(--primary-color);
+}
+
+.kpi-card h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #718096;
+    font-weight: 500;
+}
+
+.kpi-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    color: var(--text-main);
+}
+
+.kpi-value.warning { color: #d69e2e; }
+
+.kpi-sub { font-size: 0.8rem; color: #a0aec0; }
+.kpi-trend.positive { color: #38a169; font-size: 0.85rem; font-weight: 600; }
+
+/* Charts Grid */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    /* Baris pertama: Chart besar ambil 2 kolom, chart donat 1 kolom */
+    grid-template-areas: 
+        "trend trend scope"
+        "status status status"; 
+}
+
+.chart-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    height: 350px; /* Tinggi tetap agar rapi */
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-card.large { grid-area: trend; }
+.chart-card:nth-child(2) { grid-area: scope; }
+.chart-card:nth-child(3) { grid-area: status; height: 300px; }
+
+.chart-header h4 {
+    margin: 0 0 1rem 0;
+    color: var(--text-main);
+}
+
+.chart-body {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    min-height: 0; /* Penting untuk Chart.js responsive */
+}
+
+/* Mobile Responsive */
+@media (max-width: 992px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+        grid-template-areas: 
+            "trend"
+            "scope"
+            "status";
+    }
+}

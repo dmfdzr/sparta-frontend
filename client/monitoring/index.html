@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Dashboard</title>
+    <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="../dashboard/style.css"> 
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-left">
+            <a href="../../dashboard/" class="back-link">Dashboard</a>
+            <h1>Monitoring & Evaluasi</h1>
+        </div>
+        <div class="user-info">
+            <span id="user-cabang-display">Loading...</span>
+        </div>
+    </header>
+
+    <main class="container-fluid">
+        <div class="filter-card">
+            <form id="filter-form">
+                <div class="form-group">
+                    <label>Cabang</label>
+                    <select id="filter-cabang" class="form-control">
+                        <option value="ALL">Semua Cabang</option>
+                        </select>
+                </div>
+                <div class="form-group">
+                    <label>Tahun</label>
+                    <select id="filter-tahun" class="form-control">
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Lingkup</label>
+                    <select id="filter-lingkup" class="form-control">
+                        <option value="ALL">Semua (Sipil & ME)</option>
+                        <option value="Sipil">Sipil</option>
+                        <option value="ME">ME</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-filter">Terapkan Filter</button>
+            </form>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <h3>Total Nilai RAB (Approved)</h3>
+                <p class="kpi-value" id="kpi-total-rab">Rp 0</p>
+                <span class="kpi-trend positive">↑ 12% dari bulan lalu</span>
+            </div>
+            <div class="kpi-card">
+                <h3>Total SPK Terbit</h3>
+                <p class="kpi-value" id="kpi-total-spk">0</p>
+                <span class="kpi-sub">Dokumen</span>
+            </div>
+            <div class="kpi-card">
+                <h3>Rata-rata Durasi Pengerjaan</h3>
+                <p class="kpi-value" id="kpi-avg-duration">0</p>
+                <span class="kpi-sub">Hari Kalender</span>
+            </div>
+            <div class="kpi-card">
+                <h3>Pending Approval</h3>
+                <p class="kpi-value warning" id="kpi-pending">0</p>
+                <span class="kpi-sub">Perlu Tindakan</span>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card large">
+                <div class="chart-header">
+                    <h4>Tren Pengajuan RAB vs Realisasi SPK</h4>
+                </div>
+                <div class="chart-body">
+                    <canvas id="chartTrend"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h4>Komposisi Lingkup Pekerjaan</h4>
+                </div>
+                <div class="chart-body">
+                    <canvas id="chartScope"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h4>Status Pengajuan Terkini</h4>
+                </div>
+                <div class="chart-body">
+                    <canvas id="chartStatus"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
