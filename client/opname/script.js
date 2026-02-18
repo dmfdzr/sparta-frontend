@@ -552,20 +552,26 @@ const PDFGenerator = {
             const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
             
             submissions.forEach(it => {
-                // [FIX] Hitung ulang selisih untuk memastikan akurasi, terutama untuk item IL
-                // Kadang data API mengembalikan selisih '0' untuk IL meskipun ada beda volume
+                // [FIX] Validasi Volume untuk IL
                 const vAkhir = toNumberVol_PDF(it.volume_akhir);
-                const vAwal = toNumberVol_PDF(it.vol_rab); // Untuk IL, ini adalah Volume Estimasi IL
+                
+                // Coba ambil Volume Awal dari berbagai kemungkinan nama field
+                // Untuk item IL, jika tidak ada volume awal/RAB, kita anggap 0
+                let rawVolAwal = it.vol_rab;
+                if (rawVolAwal === undefined || rawVolAwal === null || rawVolAwal === "") {
+                    rawVolAwal = it.volume_awal; // Coba fallback ke properti lain
+                }
+                const vAwal = toNumberVol_PDF(rawVolAwal); 
                 
                 // Hitung selisih manual
                 let sel = vAkhir - vAwal;
                 
-                // Pembulatan 2 desimal untuk menghindari floating point issue (misal: 0.0000001)
+                // Pembulatan 2 desimal untuk menghindari floating point issue
                 sel = Math.round((sel + Number.EPSILON) * 100) / 100;
 
-                // Jika hasil hitungan manual tidak 0, kita gunakan itu (overwrite data API jika perlu)
+                // Jika hasil hitungan manual tidak 0, masukkan ke kategori
                 if (sel !== 0) {
-                    // Update properti selisih di object item agar konsisten di tabel & perhitungan selanjutnya
+                    // Update properti selisih di object item agar konsisten
                     it.selisih = String(sel).replace('.', ','); 
                     
                     const type = sel < 0 ? "PEKERJAAN KURANG" : "PEKERJAAN TAMBAH";
@@ -593,10 +599,15 @@ const PDFGenerator = {
                         const hUpah = toNumberID_PDF(item.harga_upah);
                         const deltaNominal = sel * (hMat + hUpah);
                         
-                        // [FIX] Pastikan penanda (IL) muncul di nama pekerjaan
                         const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
                         
-                        return [idx + 1, namaPekerjaan, item.vol_rab, item.satuan, item.volume_akhir, `${item.selisih} ${item.satuan}`, formatRupiah(deltaNominal)];
+                        // Gunakan vol_rab (vAwal) yang sudah divalidasi tadi, atau 0 jika kosong
+                        let displayVolAwal = item.vol_rab;
+                        if (displayVolAwal === undefined || displayVolAwal === null || displayVolAwal === "") {
+                            displayVolAwal = "0";
+                        }
+
+                        return [idx + 1, namaPekerjaan, displayVolAwal, item.satuan, item.volume_akhir, `${item.selisih} ${item.satuan}`, formatRupiah(deltaNominal)];
                     });
 
                     doc.autoTable({
@@ -604,7 +615,14 @@ const PDFGenerator = {
                         body: rows, startY: lastY, margin: { left: margin, right: margin }, theme: "grid",
                         styles: { fontSize: 8, cellPadding: 3, lineWidth: 0.1 }, headStyles: { fillColor: [205, 234, 242], textColor: [0,0,0], fontSize: 8.5, fontStyle: "bold", halign: "center" },
                         columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "center" }, 4: { halign: "center" }, 5: { halign: "center", fontStyle: "bold" } },
-                        didParseCell: (data) => { if(data.section === 'body') { const originalItem = kItems[data.row.index]; if (originalItem && originalItem.is_il) { data.cell.styles.fillColor = [255, 249, 196]; } } }
+                        didParseCell: (data) => { 
+                            if(data.section === 'body') { 
+                                const originalItem = kItems[data.row.index]; 
+                                if (originalItem && originalItem.is_il) { 
+                                    data.cell.styles.fillColor = [255, 249, 196]; // Highlight Kuning untuk IL
+                                } 
+                            } 
+                        }
                     });
                     lastY = doc.lastAutoTable.finalY + 10;
                 }
