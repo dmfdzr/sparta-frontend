@@ -1314,14 +1314,21 @@ const Render = {
                                             </td>
 
                                             <td class="text-center">
-                                                ${item.isSubmitted ? 
-                                                    `<button class="btn btn-secondary perbaiki-btn" 
-                                                        data-id="${item.id}" 
-                                                        style="font-size:12px; padding:6px 10px;" 
-                                                        ${canFix ? '' : 'disabled'}>Perbaiki</button>` : 
+                                                ${!item.isSubmitted ? 
+                                                    // KONDISI 1: Belum Submit -> Muncul Tombol Simpan
                                                     `<button class="btn btn-primary save-btn" 
                                                         data-id="${item.id}" 
-                                                        style="font-size:12px; padding:6px 12px;">Simpan</button>`
+                                                        style="font-size:12px; padding:6px 12px;">Simpan</button>` 
+                                                    : 
+                                                    (status === 'rejected' ? 
+                                                        // KONDISI 2: Rejected -> Muncul Tombol Perbaiki
+                                                        `<button class="btn btn-secondary perbaiki-btn" 
+                                                            data-id="${item.id}" 
+                                                            style="font-size:12px; padding:6px 10px;">Perbaiki</button>` 
+                                                        : 
+                                                        // KONDISI 3: Pending / Approved -> Hilangkan Tombol (Tampil strip)
+                                                        `<span style="color:#94a3b8;">-</span>`
+                                                    )
                                                 }
                                             </td>
                                         </tr>
