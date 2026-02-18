@@ -1,118 +1,34 @@
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
-    // 1. CEK SESI & AUTH (KEAMANAN)
+    // 1. GLOBAL VARIABLES & AUTH
     // ==========================================
+    let rawData = []; // Menyimpan semua data dari API
+    let filteredData = []; // Menyimpan data setelah difilter
+    
+    // --- Chart Instances (Agar bisa di-update/destroy) ---
+    let trendChartInstance = null;
+    let scopeChartInstance = null;
+    let statusChartInstance = null;
+
+    // --- Cek Sesi ---
     const userRole = sessionStorage.getItem('userRole'); 
     const userCabang = sessionStorage.getItem('loggedInUserCabang'); 
     
     if (!userRole) {
-        // Jika tidak ada sesi, lempar ke login
         window.location.href = '../../auth/index.html';
         return;
     }
 
-    // Tampilkan Nama User & Role di Header
+    // Tampilkan User Info
     const emailDisplay = sessionStorage.getItem('loggedInUserEmail') || 'User';
     document.getElementById('userNameDisplay').textContent = emailDisplay;
     document.getElementById('roleBadge').textContent = `${userCabang} - ${userRole}`;
 
     // ==========================================
-    // 2. SETUP CHART.JS (Visualisasi Grafik)
-    // ==========================================
-    Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.color = '#666';
-
-    // --- A. Chart Tren (Budget vs Realisasi) ---
-    const ctxTrend = document.getElementById('trendChart').getContext('2d');
-    new Chart(ctxTrend, {
-        type: 'bar',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
-            datasets: [
-                {
-                    label: 'Realisasi SPK (Juta Rp)',
-                    data: [150, 230, 180, 320, 290, 350], // Data Dummy
-                    backgroundColor: '#d62828', // Merah Alfamart
-                    borderRadius: 4,
-                    order: 2
-                },
-                {
-                    label: 'Target Budget',
-                    data: [200, 200, 250, 300, 300, 350], // Data Dummy
-                    type: 'line',
-                    borderColor: '#1976d2', // Biru
-                    borderWidth: 2,
-                    tension: 0.3,
-                    pointRadius: 3,
-                    order: 1
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom' }
-            },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#f0f0f0' } },
-                x: { grid: { display: false } }
-            }
-        }
-    });
-
-    // --- B. Chart Scope (Doughnut) ---
-    const ctxScope = document.getElementById('scopeChart').getContext('2d');
-    new Chart(ctxScope, {
-        type: 'doughnut',
-        data: {
-            labels: ['Sipil', 'ME', 'Renovasi'],
-            datasets: [{
-                data: [45, 30, 25], // Data Dummy
-                backgroundColor: ['#d62828', '#1976d2', '#38a169'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 12 } }
-            }
-        }
-    });
-
-    // --- C. Chart Status (Horizontal Bar) ---
-    const ctxStatus = document.getElementById('statusChart').getContext('2d');
-    new Chart(ctxStatus, {
-        type: 'bar',
-        indexAxis: 'y', // Horizontal
-        data: {
-            labels: ['Draft', 'Approval', 'On Progress', 'Selesai'],
-            datasets: [{
-                label: 'Jumlah Dokumen',
-                data: [5, 8, 15, 42], // Data Dummy
-                backgroundColor: ['#cbd5e0', '#d69e2e', '#1976d2', '#38a169'],
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { display: false },
-                y: { grid: { display: false } }
-            }
-        }
-    });
-
-    // ==========================================
-    // 3. INTEGRASI DATA OPNAME (API REAL)
+    // 2. HELPER FUNCTIONS
     // ==========================================
     
-    // --- Helper Formatter ---
+    // Format Rupiah
     const formatRupiah = (num) => {
         return "Rp " + new Intl.NumberFormat("id-ID", {
             minimumFractionDigits: 0,
@@ -120,19 +36,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }).format(num);
     };
 
-    // Helper untuk membersihkan string uang (misal: "13.286.700" -> 13286700)
-    // Menghandle kemungkinan #REF! atau string kosong
-    const parseCurrency = (str) => {
-        if (!str || typeof str !== 'string') return 0;
-        if (str.includes('#REF!')) return 0; 
-        
-        // Hapus titik, ganti koma dengan titik (jika ada desimal), lalu parse
-        const cleanStr = str.replace(/\./g, '').replace(/,/g, '.');
-        const floatVal = parseFloat(cleanStr);
-        return isNaN(floatVal) ? 0 : floatVal;
+    // Parser Angka Aman (Handle #REF!, string, null)
+    const parseCurrency = (value) => {
+        if (value === null || value === undefined || value === '') return 0;
+        if (typeof value === 'number') return value;
+        if (typeof value === 'string') {
+            if (value.includes('#REF!') || value.includes('Error')) return 0;
+            const cleanStr = value.replace(/\./g, '').replace(/,/g, '.');
+            const floatVal = parseFloat(cleanStr);
+            return isNaN(floatVal) ? 0 : floatVal;
+        }
+        return 0;
     };
 
-    // Fungsi Animasi Angka (Counter Up Effect)
+    // Parser Tahun dari berbagai format tanggal (6-Jan-2026, 2026-03-13, dll)
+    const getYearFromDate = (dateStr) => {
+        if (!dateStr) return null;
+        // Coba cari 4 digit angka (tahun)
+        const match = dateStr.match(/\d{4}/);
+        return match ? match[0] : null;
+    };
+
+    // Parser Bulan untuk Chart (Jan, Feb, ...)
+    const getMonthFromDate = (dateStr) => {
+        if (!dateStr) return -1;
+        const dateObj = new Date(dateStr);
+        if (!isNaN(dateObj)) return dateObj.getMonth(); // 0 = Jan
+        
+        // Fallback manual parsing jika format "6-Jan-2026"
+        const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+        const parts = dateStr.split(/[- ]/);
+        for (let part of parts) {
+            const idx = months.findIndex(m => part.includes(m) || m.toLowerCase() === part.toLowerCase());
+            if (idx !== -1) return idx;
+        }
+        return -1;
+    };
+
+    // Animasi Angka
     function animateValue(id, start, end, duration) {
         const obj = document.getElementById(id);
         if(!obj) return;
@@ -141,121 +82,295 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
             obj.innerHTML = Math.floor(progress * (end - start) + start);
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            }
+            if (progress < 1) window.requestAnimationFrame(step);
         };
         window.requestAnimationFrame(step);
     }
 
-    // --- Fungsi Fetch Data API ---
-    async function fetchOpnameStats() {
+    // ==========================================
+    // 3. FETCH DATA & INIT
+    // ==========================================
+    async function initDashboard() {
         const API_URL = "https://sparta-backend-5hdj.onrender.com/api/opname/summary-data";
         
-        // Set loading state text
-        const elProyek = document.getElementById('card-total-proyek');
-        if(elProyek) elProyek.textContent = "...";
+        // Loading State
+        document.getElementById('card-total-proyek').textContent = "...";
 
         try {
             const response = await fetch(API_URL);
             const result = await response.json();
 
-            // Cek apakah status success dan data tersedia
             if (result.status === 'success' && Array.isArray(result.data)) {
-                calculateAndRenderCards(result.data);
+                rawData = result.data;
+                
+                // 1. Setup Filter Opsi dari Data
+                populateFilters(rawData);
+                
+                // 2. Terapkan Filter Default (Semua)
+                applyFilters(); 
             } else {
-                console.error("Format data API tidak sesuai atau kosong");
-                if(elProyek) elProyek.textContent = "0";
+                console.error("Data API kosong/format salah");
+                document.getElementById('card-total-proyek').textContent = "0";
             }
         } catch (error) {
-            console.error("Gagal mengambil data opname:", error);
-            if(elProyek) elProyek.textContent = "Err";
+            console.error("Error Fetching:", error);
+            document.getElementById('card-total-proyek').textContent = "Err";
         }
     }
 
-    // --- Fungsi Kalkulasi & Render ke HTML ---
-    function calculateAndRenderCards(data) {
-        // 1. Inisialisasi Variable Aggregator
-        let totalProyek = data.length;
-        let totalNilaiSPK = 0;
-        let totalNilaiOpname = 0;
-        let totalKerjaTambah = 0;
-        let totalKerjaKurang = 0;
-
-        // 2. Looping Data untuk Penjumlahan
-        data.forEach(item => {
-            // Mengambil field sesuai JSON API Anda
-            totalNilaiSPK += parseCurrency(item["Nominal SPK"]);
-            totalNilaiOpname += parseCurrency(item["Grand Total Opname Final"]);
-            totalKerjaTambah += parseCurrency(item["Kerja_Tambah"]);
-            totalKerjaKurang += parseCurrency(item["Kerja_Kurang"]);
-        });
-
-        // 3. Update DOM Elements (KPI Cards)
-        
-        // Card 1: Total Proyek (Pakai animasi)
-        animateValue("card-total-proyek", 0, totalProyek, 1000);
-
-        // Card 2: Total Nilai SPK
-        const elSpk = document.getElementById("card-total-spk");
-        if(elSpk) elSpk.textContent = formatRupiah(totalNilaiSPK);
-
-        // Card 3: Total Opname Final
-        const elOpname = document.getElementById("card-total-opname");
-        if(elOpname) elOpname.textContent = formatRupiah(totalNilaiOpname);
-
-        // Card 4: Kerja Tambah & Kurang
-        const elTambah = document.getElementById("card-total-tambah");
-        const elKurang = document.getElementById("card-total-kurang");
-        
-        if(elTambah) elTambah.textContent = formatRupiah(totalKerjaTambah);
-        if(elKurang) elKurang.textContent = `Kurang: -${formatRupiah(totalKerjaKurang)}`;
-
-        // Debugging di Console
-        console.log("Data Loaded:", {
-            totalProyek,
-            totalNilaiSPK,
-            totalNilaiOpname,
-            totalKerjaTambah
-        });
-    }
-
     // ==========================================
-    // 4. FILTER INTERACTION (Simulasi UI)
+    // 4. FILTER LOGIC (DYNAMIC)
     // ==========================================
-    const cabangSelect = document.getElementById('filterCabang');
-    const isHO = userCabang === 'HEAD OFFICE';
-    
-    // Logika Filter Cabang
-    if(!isHO) {
-        // Jika Cabang, kunci pilihan hanya ke cabangnya sendiri
-        cabangSelect.innerHTML = `<option value="${userCabang}">${userCabang}</option>`;
-        cabangSelect.disabled = true;
-    } else {
-        // Jika HO, tampilkan daftar cabang (Bisa diganti fetch API Cabang nanti)
-        // Saat ini statis dulu untuk demo
-        const branches = ['BANDUNG 1', 'BANDUNG 2', 'CIKOKOL', 'BEKASI', 'SEMARANG', 'LOMBOK', 'MEDAN'];
-        branches.forEach(cab => {
+    function populateFilters(data) {
+        const cabangSelect = document.getElementById('filterCabang');
+        const tahunSelect = document.getElementById('filterTahun');
+
+        // --- A. Populate Cabang ---
+        // Ambil unik cabang, bersihkan string kosong, urutkan abjad
+        const uniqueCabang = [...new Set(data.map(item => item.Cabang))]
+            .filter(c => c && c.trim() !== "")
+            .sort();
+
+        // Reset opsi (sisakan opsi default 'Semua')
+        cabangSelect.innerHTML = '<option value="ALL">Semua Cabang</option>';
+
+        // Jika user bukan HO, kunci ke cabangnya sendiri
+        const isHO = userCabang === 'HEAD OFFICE';
+        if (!isHO) {
+            // Hanya masukkan cabang user yang login
             const opt = document.createElement('option');
-            opt.value = cab;
-            opt.textContent = cab;
+            opt.value = userCabang;
+            opt.textContent = userCabang;
             cabangSelect.appendChild(opt);
+            cabangSelect.value = userCabang;
+            cabangSelect.disabled = true;
+        } else {
+            // Jika HO, masukkan semua cabang yang ada di DB
+            uniqueCabang.forEach(cab => {
+                const opt = document.createElement('option');
+                opt.value = cab;
+                opt.textContent = cab;
+                cabangSelect.appendChild(opt);
+            });
+        }
+
+        // --- B. Populate Tahun ---
+        // Ambil tahun dari 'Awal_SPK' (atau field tanggal lain yg relevan)
+        const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item.Awal_SPK)))]
+            .filter(y => y) // Hapus null/undefined
+            .sort((a, b) => b - a); // Urutkan descending (terbaru diatas)
+
+        tahunSelect.innerHTML = '<option value="ALL">Semua Tahun</option>';
+        uniqueTahun.forEach(thn => {
+            const opt = document.createElement('option');
+            opt.value = thn;
+            opt.textContent = thn;
+            tahunSelect.appendChild(opt);
         });
+        
+        // Auto-select tahun terbaru jika ada
+        if(uniqueTahun.length > 0) {
+            tahunSelect.value = uniqueTahun[0];
+        } else {
+            tahunSelect.value = "ALL";
+        }
     }
 
-    // Tombol Terapkan Filter
+    // Fungsi Utama Filter Data
+    function applyFilters() {
+        const selectedCabang = document.getElementById('filterCabang').value;
+        const selectedTahun = document.getElementById('filterTahun').value;
+
+        filteredData = rawData.filter(item => {
+            // 1. Cek Cabang
+            const matchCabang = (selectedCabang === 'ALL') || (item.Cabang === selectedCabang);
+            
+            // 2. Cek Tahun (Cek di Awal_SPK, Opname Final, atau Akhir SPK)
+            const itemYear = getYearFromDate(item.Awal_SPK) || getYearFromDate(item.tanggal_opname_final);
+            const matchTahun = (selectedTahun === 'ALL') || (itemYear == selectedTahun);
+
+            return matchCabang && matchTahun;
+        });
+
+        // Update UI dengan data yang sudah difilter
+        renderKPI(filteredData);
+        renderCharts(filteredData);
+    }
+
+    // Event Listener Tombol Filter
     const btnFilter = document.getElementById('btnApplyFilter');
     if(btnFilter) {
-        btnFilter.addEventListener('click', () => {
-            // Disini nanti logika reload data berdasarkan filter
-            alert(`Filter diterapkan untuk: ${cabangSelect.value}`);
-            // fetchOpnameStats(cabangSelect.value); // Contoh pengembangan kedepan
+        btnFilter.addEventListener('click', (e) => {
+            e.preventDefault(); // Mencegah reload form jika ada tag form
+            applyFilters();
         });
     }
 
     // ==========================================
-    // 5. INISIALISASI AKHIR
+    // 5. RENDER KPI CARDS
     // ==========================================
-    // Panggil fetch data Opname saat halaman selesai dimuat
-    fetchOpnameStats();
+    function renderKPI(data) {
+        let totalProyek = data.length;
+        let totalSPK = 0;
+        let totalOpname = 0;
+        let totalTambah = 0;
+        let totalKurang = 0;
+
+        data.forEach(item => {
+            totalSPK += parseCurrency(item["Nominal SPK"]);
+            totalOpname += parseCurrency(item["Grand Total Opname Final"]);
+            totalTambah += parseCurrency(item["Kerja_Tambah"]);
+            totalKurang += parseCurrency(item["Kerja_Kurang"]);
+        });
+
+        animateValue("card-total-proyek", 0, totalProyek, 800);
+        
+        const elSpk = document.getElementById("card-total-spk");
+        if(elSpk) elSpk.textContent = formatRupiah(totalSPK);
+
+        const elOpname = document.getElementById("card-total-opname");
+        if(elOpname) elOpname.textContent = formatRupiah(totalOpname);
+
+        const elTambah = document.getElementById("card-total-tambah");
+        const elKurang = document.getElementById("card-total-kurang");
+        if(elTambah) elTambah.textContent = formatRupiah(totalTambah);
+        if(elKurang) elKurang.textContent = `Kurang: -${formatRupiah(totalKurang)}`;
+    }
+
+    // ==========================================
+    // 6. RENDER CHARTS (DYNAMIC)
+    // ==========================================
+    function renderCharts(data) {
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#666';
+
+        // --- A. DATA PREPARATION FOR CHARTS ---
+        
+        // 1. Trend Bulanan (Berdasarkan Bulan dari Awal_SPK)
+        const monthlySPK = new Array(12).fill(0);
+        const monthlyOpname = new Array(12).fill(0);
+
+        data.forEach(item => {
+            const monthIndex = getMonthFromDate(item.Awal_SPK);
+            if (monthIndex >= 0 && monthIndex < 12) {
+                monthlySPK[monthIndex] += parseCurrency(item["Nominal SPK"]);
+                monthlyOpname[monthIndex] += parseCurrency(item["Grand Total Opname Final"]);
+            }
+        });
+
+        // Convert ke Jutaan agar grafik rapi
+        const dataSPKMillion = monthlySPK.map(v => v / 1000000);
+        const dataOpnameMillion = monthlyOpname.map(v => v / 1000000);
+
+        // 2. Scope Pekerjaan
+        let scopeCounts = { 'Sipil': 0, 'ME': 0, 'Renovasi': 0, 'Lainnya': 0 };
+        data.forEach(item => {
+            const scope = item.Lingkup_Pekerjaan || 'Lainnya';
+            // Normalisasi teks (SIPIL -> Sipil)
+            if (scope.match(/sipil/i)) scopeCounts['Sipil']++;
+            else if (scope.match(/me|mekanikal/i)) scopeCounts['ME']++;
+            else if (item.Proyek && item.Proyek.match(/renovasi/i)) scopeCounts['Renovasi']++;
+            else scopeCounts['Lainnya']++;
+        });
+
+        // 3. Status Dokumen
+        let statusCounts = { 'Draft': 0, 'Progress': 0, 'Done': 0, 'Lainnya': 0 };
+        data.forEach(item => {
+            const status = item["Status Opname Final"] || 'Lainnya';
+            if (status.match(/done/i)) statusCounts['Done']++;
+            else if (status.match(/progress/i)) statusCounts['Progress']++;
+            else if (status.match(/draft/i)) statusCounts['Draft']++;
+            else statusCounts['Lainnya']++;
+        });
+
+        // --- B. CHART RENDERING ---
+
+        // 1. Trend Chart
+        const ctxTrend = document.getElementById('trendChart').getContext('2d');
+        if (trendChartInstance) trendChartInstance.destroy();
+        
+        trendChartInstance = new Chart(ctxTrend, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                datasets: [
+                    {
+                        label: 'Opname (Juta Rp)',
+                        data: dataOpnameMillion,
+                        backgroundColor: '#d62828',
+                        borderRadius: 4,
+                        order: 2
+                    },
+                    {
+                        label: 'SPK (Juta Rp)',
+                        data: dataSPKMillion,
+                        type: 'line',
+                        borderColor: '#1976d2',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 2,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { 
+                    y: { beginAtZero: true },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 2. Scope Chart
+        const ctxScope = document.getElementById('scopeChart').getContext('2d');
+        if (scopeChartInstance) scopeChartInstance.destroy();
+
+        scopeChartInstance = new Chart(ctxScope, {
+            type: 'doughnut',
+            data: {
+                labels: ['Sipil', 'ME', 'Renovasi', 'Lainnya'],
+                datasets: [{
+                    data: [scopeCounts['Sipil'], scopeCounts['ME'], scopeCounts['Renovasi'], scopeCounts['Lainnya']],
+                    backgroundColor: ['#d62828', '#1976d2', '#38a169', '#718096'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // 3. Status Chart
+        const ctxStatus = document.getElementById('statusChart').getContext('2d');
+        if (statusChartInstance) statusChartInstance.destroy();
+
+        statusChartInstance = new Chart(ctxStatus, {
+            type: 'bar',
+            indexAxis: 'y',
+            data: {
+                labels: ['Done', 'Progress', 'Draft', 'Lainnya'],
+                datasets: [{
+                    label: 'Jumlah Dokumen',
+                    data: [statusCounts['Done'], statusCounts['Progress'], statusCounts['Draft'], statusCounts['Lainnya']],
+                    backgroundColor: ['#38a169', '#1976d2', '#cbd5e0', '#718096'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { grid: { display: false } } }
+            }
+        });
+    }
+
+    // Jalankan Init
+    initDashboard();
 });
