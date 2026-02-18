@@ -1246,8 +1246,8 @@ const Render = {
 
                                             <td class="text-center">
                                                 <select class="form-select design-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
-                                                    <option value="Sesuai" ${item.design === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
-                                                    <option value="Tidak Sesuai" ${item.design === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
+                                                    <option value="Sesuai" ${item.desain === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
+                                                    <option value="Tidak Sesuai" ${item.desain === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
                                                 </select>
                                             </td>
 
@@ -1425,7 +1425,7 @@ const Render = {
                     }
                 });
 
-                // 1. Listener untuk Dropdown Design
+                // 1. Listener untuk Dropdown Desain
                 container.querySelectorAll('.design-select').forEach(sel => {
                     sel.addEventListener('change', (e) => {
                         const id = parseInt(e.target.getAttribute('data-id')); // Ambil ID item
@@ -1434,8 +1434,8 @@ const Render = {
                         // Cari item yang sesuai di memori (AppState) dan update datanya
                         const item = AppState.opnameItems.find(i => i.id === id);
                         if(item) {
-                            item.design = val; // Simpan ke memori
-                            console.log(`Item ${id} Design diubah menjadi: ${val}`); // Cek di console
+                            item.desain = val; // Simpan ke memori
+                            console.log(`Item ${id} Desain diubah menjadi: ${val}`); // Cek di console
                         }
                     });
                 });
@@ -1485,7 +1485,7 @@ const Render = {
                                 total_harga_akhir: item.total_harga,
                                 lingkup_pekerjaan: AppState.selectedLingkup,
                                 is_il: item.is_il,
-                                design: item.design || '-',
+                                desain: item.desain || '-',
                                 kualitas: item.kualitas || '-',
                                 spesifikasi: item.spesifikasi || '-',
                                 catatan: item.catatan || '-'
@@ -1767,7 +1767,7 @@ const Render = {
                                         <th style="padding:12px;">Kategori</th>
                                         <th style="padding:12px;">Jenis Pekerjaan</th>
                                         <th style="padding:12px; text-align:center;">Volume Akhir</th>
-                                        <th class="text-center" style="width: 10%;">Design</th>
+                                        <th class="text-center" style="width: 10%;">Desain</th>
                                         <th class="text-center" style="width: 10%;">Kualitas</th>
                                         <th class="text-center" style="width: 10%;">Spesifikasi</th>
                                         <th style="padding:12px; text-align:center;">Foto</th>
@@ -1786,8 +1786,8 @@ const Render = {
                                             <td>${item.jenis_pekerjaan}</td>
                                             <td class="text-center"><b>${item.volume_akhir}</b> ${item.satuan || ''}</td>
                                             <td class="text-center">
-                                                <span class="badge ${item.design === 'Sesuai' ? 'badge-success' : (item.design ? 'badge-danger' : 'badge-neutral')}">
-                                                    ${item.design || '-'}
+                                                <span class="badge ${item.desain === 'Sesuai' ? 'badge-success' : (item.desain ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.desain || '-'}
                                                 </span>
                                             </td>
                                             <td class="text-center">
