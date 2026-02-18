@@ -2,13 +2,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 1. GLOBAL VARIABLES & AUTH
     // ==========================================
-    let rawData = []; // Menyimpan semua data dari API
-    let filteredData = []; // Menyimpan data setelah difilter
+    let rawData = []; 
+    let filteredData = []; 
     
-    // --- Chart Instances (Agar bisa di-update/destroy) ---
+    // --- Chart Instances ---
     let trendChartInstance = null;
     let scopeChartInstance = null;
     let statusChartInstance = null;
+    let kategoriChartInstance = null; // Instance baru
 
     // --- Cek Sesi ---
     const userRole = sessionStorage.getItem('userRole'); 
@@ -28,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. HELPER FUNCTIONS
     // ==========================================
     
-    // Format Rupiah
     const formatRupiah = (num) => {
         return "Rp " + new Intl.NumberFormat("id-ID", {
             minimumFractionDigits: 0,
@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }).format(num);
     };
 
-    // Parser Angka Aman (Handle #REF!, string, null)
     const parseCurrency = (value) => {
         if (value === null || value === undefined || value === '') return 0;
         if (typeof value === 'number') return value;
@@ -49,21 +48,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return 0;
     };
 
-    // Parser Tahun dari berbagai format tanggal (6-Jan-2026, 2026-03-13, dll)
     const getYearFromDate = (dateStr) => {
         if (!dateStr) return null;
-        // Coba cari 4 digit angka (tahun)
         const match = dateStr.match(/\d{4}/);
         return match ? match[0] : null;
     };
 
-    // Parser Bulan untuk Chart (Jan, Feb, ...)
     const getMonthFromDate = (dateStr) => {
         if (!dateStr) return -1;
         const dateObj = new Date(dateStr);
-        if (!isNaN(dateObj)) return dateObj.getMonth(); // 0 = Jan
+        if (!isNaN(dateObj)) return dateObj.getMonth();
         
-        // Fallback manual parsing jika format "6-Jan-2026"
         const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
         const parts = dateStr.split(/[- ]/);
         for (let part of parts) {
@@ -73,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return -1;
     };
 
-    // Animasi Angka
     function animateValue(id, start, end, duration) {
         const obj = document.getElementById(id);
         if(!obj) return;
@@ -93,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initDashboard() {
         const API_URL = "https://sparta-backend-5hdj.onrender.com/api/opname/summary-data";
         
-        // Loading State
         document.getElementById('card-total-proyek').textContent = "...";
 
         try {
@@ -102,11 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.status === 'success' && Array.isArray(result.data)) {
                 rawData = result.data;
-                
-                // 1. Setup Filter Opsi dari Data
                 populateFilters(rawData);
-                
-                // 2. Terapkan Filter Default (Semua)
                 applyFilters(); 
             } else {
                 console.error("Data API kosong/format salah");
@@ -119,25 +108,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 4. FILTER LOGIC (DYNAMIC)
+    // 4. FILTER LOGIC
     // ==========================================
     function populateFilters(data) {
         const cabangSelect = document.getElementById('filterCabang');
         const tahunSelect = document.getElementById('filterTahun');
 
-        // --- A. Populate Cabang ---
-        // Ambil unik cabang, bersihkan string kosong, urutkan abjad
         const uniqueCabang = [...new Set(data.map(item => item.Cabang))]
             .filter(c => c && c.trim() !== "")
             .sort();
 
-        // Reset opsi (sisakan opsi default 'Semua')
         cabangSelect.innerHTML = '<option value="ALL">Semua Cabang</option>';
 
-        // Jika user bukan HO, kunci ke cabangnya sendiri
         const isHO = userCabang === 'HEAD OFFICE';
         if (!isHO) {
-            // Hanya masukkan cabang user yang login
             const opt = document.createElement('option');
             opt.value = userCabang;
             opt.textContent = userCabang;
@@ -145,7 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
             cabangSelect.value = userCabang;
             cabangSelect.disabled = true;
         } else {
-            // Jika HO, masukkan semua cabang yang ada di DB
             uniqueCabang.forEach(cab => {
                 const opt = document.createElement('option');
                 opt.value = cab;
@@ -154,11 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // --- B. Populate Tahun ---
-        // Ambil tahun dari 'Awal_SPK' (atau field tanggal lain yg relevan)
         const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item.Awal_SPK)))]
-            .filter(y => y) // Hapus null/undefined
-            .sort((a, b) => b - a); // Urutkan descending (terbaru diatas)
+            .filter(y => y)
+            .sort((a, b) => b - a);
 
         tahunSelect.innerHTML = '<option value="ALL">Semua Tahun</option>';
         uniqueTahun.forEach(thn => {
@@ -168,40 +149,29 @@ document.addEventListener('DOMContentLoaded', () => {
             tahunSelect.appendChild(opt);
         });
         
-        // Auto-select tahun terbaru jika ada
-        if(uniqueTahun.length > 0) {
-            tahunSelect.value = uniqueTahun[0];
-        } else {
-            tahunSelect.value = "ALL";
-        }
+        if(uniqueTahun.length > 0) tahunSelect.value = uniqueTahun[0];
+        else tahunSelect.value = "ALL";
     }
 
-    // Fungsi Utama Filter Data
     function applyFilters() {
         const selectedCabang = document.getElementById('filterCabang').value;
         const selectedTahun = document.getElementById('filterTahun').value;
 
         filteredData = rawData.filter(item => {
-            // 1. Cek Cabang
             const matchCabang = (selectedCabang === 'ALL') || (item.Cabang === selectedCabang);
-            
-            // 2. Cek Tahun (Cek di Awal_SPK, Opname Final, atau Akhir SPK)
             const itemYear = getYearFromDate(item.Awal_SPK) || getYearFromDate(item.tanggal_opname_final);
             const matchTahun = (selectedTahun === 'ALL') || (itemYear == selectedTahun);
-
             return matchCabang && matchTahun;
         });
 
-        // Update UI dengan data yang sudah difilter
         renderKPI(filteredData);
         renderCharts(filteredData);
     }
 
-    // Event Listener Tombol Filter
     const btnFilter = document.getElementById('btnApplyFilter');
     if(btnFilter) {
         btnFilter.addEventListener('click', (e) => {
-            e.preventDefault(); // Mencegah reload form jika ada tag form
+            e.preventDefault();
             applyFilters();
         });
     }
@@ -215,12 +185,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalOpname = 0;
         let totalTambah = 0;
         let totalKurang = 0;
+        let totalDenda = 0; // Var Baru
 
         data.forEach(item => {
             totalSPK += parseCurrency(item["Nominal SPK"]);
             totalOpname += parseCurrency(item["Grand Total Opname Final"]);
             totalTambah += parseCurrency(item["Kerja_Tambah"]);
             totalKurang += parseCurrency(item["Kerja_Kurang"]);
+            totalDenda += parseCurrency(item["Denda"]); // Hitung Denda
         });
 
         animateValue("card-total-proyek", 0, totalProyek, 800);
@@ -235,18 +207,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const elKurang = document.getElementById("card-total-kurang");
         if(elTambah) elTambah.textContent = formatRupiah(totalTambah);
         if(elKurang) elKurang.textContent = `Kurang: -${formatRupiah(totalKurang)}`;
+        
+        // Update Card Denda
+        const elDenda = document.getElementById("card-total-denda");
+        if(elDenda) elDenda.textContent = formatRupiah(totalDenda);
     }
 
     // ==========================================
-    // 6. RENDER CHARTS (DYNAMIC)
+    // 6. RENDER CHARTS
     // ==========================================
     function renderCharts(data) {
         Chart.defaults.font.family = "'Inter', sans-serif";
         Chart.defaults.color = '#666';
 
-        // --- A. DATA PREPARATION FOR CHARTS ---
-        
-        // 1. Trend Bulanan (Berdasarkan Bulan dari Awal_SPK)
+        // 1. DATA PREP: Trend
         const monthlySPK = new Array(12).fill(0);
         const monthlyOpname = new Array(12).fill(0);
 
@@ -258,34 +232,40 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Convert ke Jutaan agar grafik rapi
         const dataSPKMillion = monthlySPK.map(v => v / 1000000);
         const dataOpnameMillion = monthlyOpname.map(v => v / 1000000);
 
-        // 2. Scope Pekerjaan
-        let scopeCounts = { 'Sipil': 0, 'ME': 0, 'Renovasi': 0, 'Lainnya': 0 };
+        // 2. DATA PREP: Lingkup Pekerjaan (Hanya Sipil & ME)
+        let scopeCounts = { 'Sipil': 0, 'ME': 0 };
         data.forEach(item => {
-            const scope = item.Lingkup_Pekerjaan || 'Lainnya';
-            // Normalisasi teks (SIPIL -> Sipil)
-            if (scope.match(/sipil/i)) scopeCounts['Sipil']++;
-            else if (scope.match(/me|mekanikal/i)) scopeCounts['ME']++;
-            else if (item.Proyek && item.Proyek.match(/renovasi/i)) scopeCounts['Renovasi']++;
-            else scopeCounts['Lainnya']++;
+            const scope = (item.Lingkup_Pekerjaan || '').toLowerCase();
+            // Filter ketat sesuai request
+            if (scope.includes('sipil')) scopeCounts['Sipil']++;
+            else if (scope.includes('me') || scope.includes('mekanikal')) scopeCounts['ME']++;
         });
 
-        // 3. Status Dokumen
-        let statusCounts = { 'Draft': 0, 'Progress': 0, 'Done': 0, 'Lainnya': 0 };
+        // 3. DATA PREP: Status Dokumen (Hanya Done & Progress)
+        let statusCounts = { 'Done': 0, 'Progress': 0 };
         data.forEach(item => {
-            const status = item["Status Opname Final"] || 'Lainnya';
-            if (status.match(/done/i)) statusCounts['Done']++;
-            else if (status.match(/progress/i)) statusCounts['Progress']++;
-            else if (status.match(/draft/i)) statusCounts['Draft']++;
-            else statusCounts['Lainnya']++;
+            const status = (item["Status Opname Final"] || '').toLowerCase();
+            // Filter ketat sesuai request
+            if (status.includes('done')) statusCounts['Done']++;
+            else if (status.includes('progress')) statusCounts['Progress']++;
         });
 
-        // --- B. CHART RENDERING ---
+        // 4. DATA PREP: Kategori Toko (Ruko vs Non Ruko) - CHART BARU
+        let kategoriCounts = {};
+        data.forEach(item => {
+            let kat = item.Kategori || 'Tidak Diketahui';
+            if(kat.trim() === '') kat = 'Tidak Diketahui';
+            
+            if(!kategoriCounts[kat]) kategoriCounts[kat] = 0;
+            kategoriCounts[kat]++;
+        });
+        
+        // --- CHART RENDERING ---
 
-        // 1. Trend Chart
+        // A. Trend Chart
         const ctxTrend = document.getElementById('trendChart').getContext('2d');
         if (trendChartInstance) trendChartInstance.destroy();
         
@@ -324,17 +304,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 2. Scope Chart
+        // B. Lingkup Pekerjaan Chart (Hanya Sipil & ME)
         const ctxScope = document.getElementById('scopeChart').getContext('2d');
         if (scopeChartInstance) scopeChartInstance.destroy();
 
         scopeChartInstance = new Chart(ctxScope, {
             type: 'doughnut',
             data: {
-                labels: ['Sipil', 'ME', 'Renovasi', 'Lainnya'],
+                labels: ['Sipil', 'ME'],
                 datasets: [{
-                    data: [scopeCounts['Sipil'], scopeCounts['ME'], scopeCounts['Renovasi'], scopeCounts['Lainnya']],
-                    backgroundColor: ['#d62828', '#1976d2', '#38a169', '#718096'],
+                    data: [scopeCounts['Sipil'], scopeCounts['ME']],
+                    backgroundColor: ['#d62828', '#1976d2'], // Merah & Biru
                     borderWidth: 0
                 }]
             },
@@ -346,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 3. Status Chart
+        // C. Status Chart (Hanya Done & Progress)
         const ctxStatus = document.getElementById('statusChart').getContext('2d');
         if (statusChartInstance) statusChartInstance.destroy();
 
@@ -354,11 +334,11 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'bar',
             indexAxis: 'y',
             data: {
-                labels: ['Done', 'Progress', 'Draft', 'Lainnya'],
+                labels: ['Done', 'Progress'],
                 datasets: [{
                     label: 'Jumlah Dokumen',
-                    data: [statusCounts['Done'], statusCounts['Progress'], statusCounts['Draft'], statusCounts['Lainnya']],
-                    backgroundColor: ['#38a169', '#1976d2', '#cbd5e0', '#718096'],
+                    data: [statusCounts['Done'], statusCounts['Progress']],
+                    backgroundColor: ['#38a169', '#1976d2'], // Hijau & Biru
                     borderRadius: 4
                 }]
             },
@@ -369,8 +349,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 scales: { x: { display: false }, y: { grid: { display: false } } }
             }
         });
+
+        // D. Kategori Chart (Baru)
+        const ctxKategori = document.getElementById('kategoriChart').getContext('2d');
+        if (kategoriChartInstance) kategoriChartInstance.destroy();
+
+        const katLabels = Object.keys(kategoriCounts);
+        const katData = Object.values(kategoriCounts);
+        // Generate warna dinamis jika kategori banyak, atau fix jika sedikit
+        const katColors = ['#e53e3e', '#3182ce', '#38a169', '#d69e2e', '#805ad5'];
+
+        kategoriChartInstance = new Chart(ctxKategori, {
+            type: 'pie', // Atau 'bar' sesuai selera
+            data: {
+                labels: katLabels,
+                datasets: [{
+                    data: katData,
+                    backgroundColor: katColors.slice(0, katLabels.length),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
     }
 
-    // Jalankan Init
     initDashboard();
 });
