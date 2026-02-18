@@ -1118,7 +1118,10 @@ const Render = {
                     selisih: (Math.round((selisihNum + Number.EPSILON) * 100) / 100).toFixed(2), 
                     total_harga,
                     catatan: task.catatan || "",
-                    approval_status: task.approval_status || (alreadySubmitted ? "Pending" : "")
+                    approval_status: task.approval_status || (alreadySubmitted ? "Pending" : ""),
+                    desain: task.desain || "-",
+                    kualitas: task.kualitas || "-",
+                    spesifikasi: task.spesifikasi || "-"
                 };
             });
 
@@ -1558,6 +1561,7 @@ const Render = {
         }
 
         if (!AppState.selectedLingkup) {
+            // ... (Kode pemilihan lingkup biarkan sama seperti sebelumnya) ...
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
                     <div class="card text-center" style="max-width:600px; margin:0 auto;">
@@ -1623,7 +1627,11 @@ const Render = {
                     ...task, 
                     total_harga, 
                     vol_akhir_num: volAkhirNum, 
-                    harga_satuan: hargaMaterial + hargaUpah 
+                    harga_satuan: hargaMaterial + hargaUpah,
+                    // Pastikan field ini ada
+                    desain: task.desain || '-',
+                    kualitas: task.kualitas || '-',
+                    spesifikasi: task.spesifikasi || '-'
                 };
             });
 
@@ -1652,6 +1660,11 @@ const Render = {
                                         <th style="padding:12px;">Kategori</th>
                                         <th style="padding:12px;">Jenis Pekerjaan</th>
                                         <th class="text-center">Vol Akhir</th>
+                                        
+                                        <th class="text-center">Desain</th>
+                                        <th class="text-center">Kualitas</th>
+                                        <th class="text-center">Spesifikasi</th>
+                                        
                                         <th class="text-center">Status</th>
                                         <th class="text-center">Tgl Submit</th>
                                         <th class="text-center">PIC</th>
@@ -1660,7 +1673,6 @@ const Render = {
                                 </thead>
                                 <tbody>
                                     ${items.map((item, idx) => {
-                                        // --- LOGIKA BARU: Warna Kuning untuk IL ---
                                         const rowBg = item.is_il ? '#fff9c4' : 'transparent';
                                         
                                         return `
@@ -1673,6 +1685,23 @@ const Render = {
                                             <td class="text-center font-bold">
                                                 ${item.volume_akhir} ${item.satuan}
                                             </td>
+
+                                            <td class="text-center">
+                                                <span class="badge ${item.desain === 'Sesuai' ? 'badge-success' : (item.desain === 'Tidak Sesuai' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.desain}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge ${item.kualitas === 'Baik' ? 'badge-success' : (item.kualitas === 'Tidak Baik' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.kualitas}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge ${item.spesifikasi === 'Sesuai' ? 'badge-success' : (item.spesifikasi === 'Tidak Sesuai' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.spesifikasi}
+                                                </span>
+                                            </td>
+
                                             <td class="text-center">
                                                 <span class="badge badge-success" style="font-size:11px;">${item.approval_status || 'Approved'}</span>
                                             </td>
