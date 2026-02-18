@@ -49,24 +49,47 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Total RAB Diajukan</div>
-                <div class="stat-value" id="kpi-total-rab">Rp 0</div>
-                <div class="stat-trend positive">↑ 8.5% Bulan ini</div>
+                <div class="stat-icon" style="background: #e3f2fd; color: #1976d2;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Proyek Opname</div>
+                    <div class="stat-value" id="card-total-proyek">0</div>
+                    <div class="stat-sub">Data Terintegrasi</div>
+                </div>
             </div>
+
             <div class="stat-card">
-                <div class="stat-label">Total SPK Terbit</div>
-                <div class="stat-value" id="kpi-total-spk">0</div>
-                <div class="stat-sub">Dokumen</div>
+                <div class="stat-icon" style="background: #fff7ed; color: #c05621;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Nilai SPK</div>
+                    <div class="stat-value" id="card-total-spk">Rp 0</div>
+                    <div class="stat-sub">Budget Awal</div>
+                </div>
             </div>
+
             <div class="stat-card">
-                <div class="stat-label">Menunggu Approval</div>
-                <div class="stat-value warning" id="kpi-pending">0</div>
-                <div class="stat-sub">Perlu Tindakan</div>
+                <div class="stat-icon" style="background: #f0fff4; color: #2f855a;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Opname Final</div>
+                    <div class="stat-value" id="card-total-opname">Rp 0</div>
+                    <div class="stat-sub">Realisasi Pembayaran</div>
+                </div>
             </div>
+
             <div class="stat-card">
-                <div class="stat-label">Proyek Selesai</div>
-                <div class="stat-value success" id="kpi-completed">0%</div>
-                <div class="stat-sub">Realisasi</div>
+                <div class="stat-icon" style="background: #f7fafc; color: #4a5568;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Kerja Tambah</div>
+                    <div class="stat-value" id="card-total-tambah">Rp 0</div>
+                    <div class="stat-sub" id="card-total-kurang">Kurang: Rp 0</div>
+                </div>
             </div>
         </div>
 

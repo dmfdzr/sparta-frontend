@@ -168,6 +168,25 @@ select:focus {
     flex-direction: column;
     justify-content: center;
     border-left: 4px solid var(--secondary-color); /* Aksen biru */
+    display: flex;
+    align-items: center; /* Vertically center */
+    padding: 20px;
+    gap: 15px;
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* Agar icon tidak mengecil */
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
 }
 
 .stat-card:nth-child(2) { border-left-color: #d69e2e; } /* Kuning */
@@ -182,7 +201,7 @@ select:focus {
 }
 
 .stat-value {
-    font-size: 24px;
+    font-size: 1.25rem;
     font-weight: 700;
     color: #333;
     margin-bottom: 5px;
