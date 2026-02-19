@@ -116,12 +116,12 @@ header.app-header h1 {
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
-    /* min-width dan white-space dihapus agar fit dan teks wrap otomatis */
+    font-size: 13px; 
 }
 
+/* PERUBAHAN DIGABUNGKAN DISINI: Padding sel tabel dikurangi */
 .data-table th, .data-table td {
-    padding: 12px 16px;
+    padding: 8px 10px; /* Jauh lebih compact dibanding sebelumnya (12px 16px) */
     border-bottom: 1px solid #eee;
 }
 
@@ -148,15 +148,15 @@ header.app-header h1 {
     border-bottom: none;
 }
 
-/* BUTTON AKSI */
 .btn-view {
     background-color: #eff6ff;
     color: #2563eb;
     border: 1px solid #bfdbfe;
-    padding: 6px 14px;
-    border-radius: 6px;
+    /* PERUBAHAN DISINI: Tombol dibuat lebih tipis */
+    padding: 4px 10px; 
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px; /* Opsional: font sedikit lebih kecil */
     font-weight: 600;
     transition: all 0.2s;
 }
