@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const roleBadgeEl = document.getElementById('roleBadge');
     if(roleBadgeEl) {
-        roleBadgeEl.textContent = `${userCabang || 'HO'} - ${userRole || 'Admin'}`;
+        roleBadgeEl.textContent = `${userCabang || '-'} - ${userRole || '-'}`;
     }
 
     // ==========================================
