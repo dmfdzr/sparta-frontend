@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const elTambah = document.getElementById("card-total-tambah");
         const elKurang = document.getElementById("card-total-kurang");
         if(elTambah) elTambah.textContent = formatRupiah(totalTambah);
-        if(elKurang) elKurang.textContent = `Kurang: -${formatRupiah(totalKurang)}`;
+        if(elKurang) elKurang.textContent = `(-${formatRupiah(totalKurang)})`;
         
         // Update Card Denda
         const elDenda = document.getElementById("card-total-denda");
