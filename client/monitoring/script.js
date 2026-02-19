@@ -5,12 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let rawData = []; 
     let filteredData = []; 
     
-    // --- Chart Instances ---
-    let trendChartInstance = null;
-    let scopeChartInstance = null;
-    let statusChartInstance = null;
-    let kategoriChartInstance = null; // Instance baru
-
     // --- Cek Sesi ---
     const userRole = sessionStorage.getItem('userRole'); 
     const userCabang = sessionStorage.getItem('loggedInUserCabang'); 
@@ -52,20 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!dateStr) return null;
         const match = dateStr.match(/\d{4}/);
         return match ? match[0] : null;
-    };
-
-    const getMonthFromDate = (dateStr) => {
-        if (!dateStr) return -1;
-        const dateObj = new Date(dateStr);
-        if (!isNaN(dateObj)) return dateObj.getMonth();
-        
-        const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-        const parts = dateStr.split(/[- ]/);
-        for (let part of parts) {
-            const idx = months.findIndex(m => part.includes(m) || m.toLowerCase() === part.toLowerCase());
-            if (idx !== -1) return idx;
-        }
-        return -1;
     };
 
     function animateValue(id, start, end, duration) {
@@ -165,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         renderKPI(filteredData);
-        renderCharts(filteredData);
     }
 
     const btnFilter = document.getElementById('btnApplyFilter');
@@ -182,199 +161,48 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderKPI(data) {
         let totalProyek = data.length;
         let totalSPK = 0;
+        let totalJHK = 0;
+        let totalKeterlambatan = 0;
+        let totalDenda = 0;
         let totalOpname = 0;
-        let totalTambah = 0;
-        let totalKurang = 0;
-        let totalDenda = 0; // Var Baru
+        let totalLuasBangunan = 0;
 
         data.forEach(item => {
+            // 1. Total Nilai SPK
             totalSPK += parseCurrency(item["Nominal SPK"]);
+            
+            // 2. JHK Pekerjaan (Durasi + Tambah + Keterlambatan)
+            const durasiSpk = parseFloat(item["Durasi SPK"]) || 0;
+            const tambahSpk = parseFloat(item["tambah_spk"]) || 0;
+            const keterlambatan = parseFloat(item["Keterlambatan"]) || 0;
+            
+            totalJHK += (durasiSpk + tambahSpk + keterlambatan);
+            
+            // 3. Akumulasi Keterlambatan
+            totalKeterlambatan += keterlambatan;
+            
+            // 4. Total Denda
+            totalDenda += parseCurrency(item["Denda"]);
+            
+            // 5. Data untuk Cost /m2
             totalOpname += parseCurrency(item["Grand Total Opname Final"]);
-            totalTambah += parseCurrency(item["Kerja_Tambah"]);
-            totalKurang += parseCurrency(item["Kerja_Kurang"]);
-            totalDenda += parseCurrency(item["Denda"]); // Hitung Denda
+            totalLuasBangunan += parseFloat(item["Luas Bangunan"]) || 0;
         });
 
+        // Hitung Rata-rata
+        const avgKeterlambatan = totalProyek > 0 ? Math.round(totalKeterlambatan / totalProyek) : 0;
+        
+        // Rata-rata Cost /m2 dihitung dari Total Seluruh Opname / Total Seluruh Luas Bangunan (Portfolio Average)
+        const avgCostM2 = totalLuasBangunan > 0 ? (totalOpname / totalLuasBangunan) : 0;
+
+        // Render ke HTML
         animateValue("card-total-proyek", 0, totalProyek, 800);
         
-        const elSpk = document.getElementById("card-total-spk");
-        if(elSpk) elSpk.textContent = formatRupiah(totalSPK);
-
-        const elOpname = document.getElementById("card-total-opname");
-        if(elOpname) elOpname.textContent = formatRupiah(totalOpname);
-
-        const elTambah = document.getElementById("card-total-tambah");
-        const elKurang = document.getElementById("card-total-kurang");
-        if(elTambah) elTambah.textContent = formatRupiah(totalTambah);
-        if(elKurang) elKurang.textContent = `(-${formatRupiah(totalKurang)})`;
-        
-        // Update Card Denda
-        const elDenda = document.getElementById("card-total-denda");
-        if(elDenda) elDenda.textContent = formatRupiah(totalDenda);
-    }
-
-    // ==========================================
-    // 6. RENDER CHARTS
-    // ==========================================
-    function renderCharts(data) {
-        Chart.defaults.font.family = "'Inter', sans-serif";
-        Chart.defaults.color = '#666';
-
-        // 1. DATA PREP: Trend
-        const monthlySPK = new Array(12).fill(0);
-        const monthlyOpname = new Array(12).fill(0);
-
-        data.forEach(item => {
-            const monthIndex = getMonthFromDate(item.Awal_SPK);
-            if (monthIndex >= 0 && monthIndex < 12) {
-                monthlySPK[monthIndex] += parseCurrency(item["Nominal SPK"]);
-                monthlyOpname[monthIndex] += parseCurrency(item["Grand Total Opname Final"]);
-            }
-        });
-
-        const dataSPKMillion = monthlySPK.map(v => v / 1000000);
-        const dataOpnameMillion = monthlyOpname.map(v => v / 1000000);
-
-        // 2. DATA PREP: Lingkup Pekerjaan (Hanya Sipil & ME)
-        let scopeCounts = { 'Sipil': 0, 'ME': 0 };
-        data.forEach(item => {
-            const scope = (item.Lingkup_Pekerjaan || '').toLowerCase();
-            // Filter ketat sesuai request
-            if (scope.includes('sipil')) scopeCounts['Sipil']++;
-            else if (scope.includes('me') || scope.includes('mekanikal')) scopeCounts['ME']++;
-        });
-
-        // 3. DATA PREP: Status Dokumen (Hanya Done & Progress)
-        let statusCounts = { 'Done': 0, 'Progress': 0 };
-        data.forEach(item => {
-            const status = (item["Status Opname Final"] || '').toLowerCase();
-            // Filter ketat sesuai request
-            if (status.includes('done')) statusCounts['Done']++;
-            else if (status.includes('progress')) statusCounts['Progress']++;
-        });
-
-        // 4. DATA PREP: Kategori Toko (Ruko vs Non Ruko) - CHART BARU
-        let kategoriCounts = {};
-        data.forEach(item => {
-            let kat = item.Kategori || 'Tidak Diketahui';
-            if(kat.trim() === '') kat = 'Tidak Diketahui';
-            
-            if(!kategoriCounts[kat]) kategoriCounts[kat] = 0;
-            kategoriCounts[kat]++;
-        });
-        
-        // --- CHART RENDERING ---
-
-        // A. Trend Chart
-        const ctxTrend = document.getElementById('trendChart').getContext('2d');
-        if (trendChartInstance) trendChartInstance.destroy();
-        
-        trendChartInstance = new Chart(ctxTrend, {
-            type: 'bar',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
-                datasets: [
-                    {
-                        label: 'Opname (Juta Rp)',
-                        data: dataOpnameMillion,
-                        backgroundColor: '#d62828',
-                        borderRadius: 4,
-                        order: 2
-                    },
-                    {
-                        label: 'SPK (Juta Rp)',
-                        data: dataSPKMillion,
-                        type: 'line',
-                        borderColor: '#1976d2',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        pointRadius: 2,
-                        order: 1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } },
-                scales: { 
-                    y: { beginAtZero: true },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-
-        // B. Lingkup Pekerjaan Chart (Hanya Sipil & ME)
-        const ctxScope = document.getElementById('scopeChart').getContext('2d');
-        if (scopeChartInstance) scopeChartInstance.destroy();
-
-        scopeChartInstance = new Chart(ctxScope, {
-            type: 'doughnut',
-            data: {
-                labels: ['Sipil', 'ME'],
-                datasets: [{
-                    data: [scopeCounts['Sipil'], scopeCounts['ME']],
-                    backgroundColor: ['#d62828', '#1976d2'], // Merah & Biru
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '65%',
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-
-        // C. Status Chart (Hanya Done & Progress)
-        const ctxStatus = document.getElementById('statusChart').getContext('2d');
-        if (statusChartInstance) statusChartInstance.destroy();
-
-        statusChartInstance = new Chart(ctxStatus, {
-            type: 'bar',
-            indexAxis: 'y',
-            data: {
-                labels: ['Done', 'Progress'],
-                datasets: [{
-                    label: 'Jumlah Dokumen',
-                    data: [statusCounts['Done'], statusCounts['Progress']],
-                    backgroundColor: ['#38a169', '#1976d2'], // Hijau & Biru
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { display: false }, y: { grid: { display: false } } }
-            }
-        });
-
-        // D. Kategori Chart (Baru)
-        const ctxKategori = document.getElementById('kategoriChart').getContext('2d');
-        if (kategoriChartInstance) kategoriChartInstance.destroy();
-
-        const katLabels = Object.keys(kategoriCounts);
-        const katData = Object.values(kategoriCounts);
-        // Generate warna dinamis jika kategori banyak, atau fix jika sedikit
-        const katColors = ['#e53e3e', '#3182ce', '#38a169', '#d69e2e', '#805ad5'];
-
-        kategoriChartInstance = new Chart(ctxKategori, {
-            type: 'pie', // Atau 'bar' sesuai selera
-            data: {
-                labels: katLabels,
-                datasets: [{
-                    data: katData,
-                    backgroundColor: katColors.slice(0, katLabels.length),
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
+        document.getElementById("card-total-spk").textContent = formatRupiah(totalSPK);
+        document.getElementById("card-jhk").textContent = totalJHK + " Hari";
+        document.getElementById("card-avg-keterlambatan").textContent = avgKeterlambatan + " Hari";
+        document.getElementById("card-total-denda").textContent = formatRupiah(totalDenda);
+        document.getElementById("card-avg-cost-m2").textContent = formatRupiah(avgCostM2);
     }
 
     initDashboard();

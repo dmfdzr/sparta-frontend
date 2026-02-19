@@ -178,12 +178,12 @@ select:focus {
 }
 
 /* Warna Border Kiri Tiap Card */
-.stat-card:nth-child(1) { border-left-color: #1976d2; } /* Biru */
-.stat-card:nth-child(2) { border-left-color: #c05621; } /* Orange */
-.stat-card:nth-child(3) { border-left-color: #2f855a; } /* Hijau */
-.stat-card:nth-child(4) { border-left-color: #b91c1c; } /* Merah (Denda) */
-.stat-card:nth-child(5) { border-left-color: #4a5568; } /* Abu */
-
+.stat-card:nth-child(1) { border-left-color: #1976d2; } /* Biru - Proyek */
+.stat-card:nth-child(2) { border-left-color: #c05621; } /* Orange - SPK */
+.stat-card:nth-child(3) { border-left-color: #2f855a; } /* Hijau - JHK */
+.stat-card:nth-child(4) { border-left-color: #e53e3e; } /* Merah - Rata-rata Keterlambatan */
+.stat-card:nth-child(5) { border-left-color: #b91c1c; } /* Merah Gelap - Denda */
+.stat-card:nth-child(6) { border-left-color: #805ad5; } /* Ungu - Cost /m2 */
 .stat-icon {
     width: 48px;
     height: 48px;

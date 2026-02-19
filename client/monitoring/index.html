@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header class="app-header">
@@ -54,7 +53,7 @@
                 <div class="stat-content">
                     <div class="stat-label">Total Proyek</div>
                     <div class="stat-value" id="card-total-proyek">0</div>
-                    <div class="stat-sub">Proyek Toko</div>
+                    <div class="stat-sub">Dokumen SPK</div>
                 </div>
             </div>
 
@@ -71,12 +70,23 @@
 
             <div class="stat-card">
                 <div class="stat-icon" style="background: #f0fff4; color: #2f855a;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                 </div>
                 <div class="stat-content">
-                    <div class="stat-label">Total Opname Final</div>
-                    <div class="stat-value" id="card-total-opname">Rp 0</div>
-                    <div class="stat-sub">Realisasi Pembayaran</div>
+                    <div class="stat-label">Total JHK Pekerjaan</div>
+                    <div class="stat-value" id="card-jhk">0 Hari</div>
+                    <div class="stat-sub">Durasi + Tambah + Keterlambatan</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #fff5f5; color: #e53e3e;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Rata-rata Keterlambatan</div>
+                    <div class="stat-value" id="card-avg-keterlambatan">0 Hari</div>
+                    <div class="stat-sub">Per Proyek</div>
                 </div>
             </div>
 
@@ -87,60 +97,22 @@
                 <div class="stat-content">
                     <div class="stat-label">Total Denda</div>
                     <div class="stat-value" id="card-total-denda">Rp 0</div>
-                    <div class="stat-sub">Keterlambatan</div>
+                    <div class="stat-sub">Keterlambatan Proyek</div>
                 </div>
             </div>
 
             <div class="stat-card">
-                <div class="stat-icon" style="background: #f7fafc; color: #4a5568;">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <div class="stat-icon" style="background: #faf5ff; color: #805ad5;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
                 </div>
                 <div class="stat-content">
-                    <div class="stat-label">Total Kerja Tambah Kurang</div>
-                    <div class="stat-value" id="card-total-tambah">Rp 0</div>
-                    <div class="stat-sub" id="card-total-kurang">(Rp 0)</div>
+                    <div class="stat-label">Rata-rata Cost /m²</div>
+                    <div class="stat-value" id="card-avg-cost-m2">Rp 0</div>
+                    <div class="stat-sub">Opname Final / Luas Bangunan</div>
                 </div>
             </div>
         </div>
 
-        <div class="charts-wrapper">
-            <div class="chart-card large">
-                <div class="chart-header-title">
-                    <h3>Grafik SPK dan Opname</h3>
-                    <span class="chart-subtitle">Nilai SPK dan Opname Final /Bulan</span>
-                </div>
-                <div class="chart-body">
-                  <canvas id="trendChart"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-card">
-                <div class="chart-header-title">
-                    <h3>Lingkup Pekerjaan</h3>
-                </div>
-                <div class="chart-body doughnut-container">
-                    <canvas id="scopeChart"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-card">
-                <div class="chart-header-title">
-                    <h3>Status Dokumen</h3>
-                </div>
-                <div class="chart-body">
-                    <canvas id="statusChart"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-card">
-                <div class="chart-header-title">
-                    <h3>Kategori Toko</h3>
-                </div>
-                <div class="chart-body">
-                    <canvas id="kategoriChart"></canvas>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script src="script.js"></script>
