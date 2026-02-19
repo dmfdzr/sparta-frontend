@@ -124,15 +124,22 @@ header.app-header h1 {
 .data-table th, .data-table td {
     padding: 12px 16px;
     border-bottom: 1px solid #eee;
-    text-align: left;
+}
+
+.data-table td {
+    text-align: left; /* Isi tabel tetap rata kiri agar mudah dibaca */
 }
 
 .data-table th {
-    background-color: #f8fafc;
-    color: #475569;
+    /* Menggunakan gradasi merah yang sama dengan header/navbar */
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); 
+    color: #ffffff; /* Teks warna putih */
     font-weight: 600;
     position: sticky;
     top: 0;
+    text-align: center; /* Teks header rata tengah */
+    z-index: 1; /* Supaya header tidak tertutup saat di-scroll */
+    border-bottom: 2px solid #991b1b; /* Tambahan border bawah agak gelap biar tegas */
 }
 
 .data-table tbody tr:hover {
