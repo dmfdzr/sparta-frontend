@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalKeterlambatan = 0;
         let totalDenda = 0;
         let totalOpname = 0;
-        let totalLuasBangunan = 0;
+        let totalLuasTerbangun = 0; // Ubah nama variabel agar sesuai
 
         data.forEach(item => {
             // 1. Total Nilai SPK
@@ -184,16 +184,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // 4. Total Denda
             totalDenda += parseCurrency(item["Denda"]);
             
-            // 5. Data untuk Cost /m2
+            // 5. Data untuk Cost /m2 (Ganti ke Luas Terbangunan)
             totalOpname += parseCurrency(item["Grand Total Opname Final"]);
-            totalLuasBangunan += parseFloat(item["Luas Bangunan"]) || 0;
+            totalLuasTerbangun += parseFloat(item["Luas Terbangunan"]) || 0;
         });
 
         // Hitung Rata-rata
         const avgKeterlambatan = totalProyek > 0 ? Math.round(totalKeterlambatan / totalProyek) : 0;
         
-        // Rata-rata Cost /m2 dihitung dari Total Seluruh Opname / Total Seluruh Luas Bangunan (Portfolio Average)
-        const avgCostM2 = totalLuasBangunan > 0 ? (totalOpname / totalLuasBangunan) : 0;
+        // Rata-rata Cost /m2 dihitung dari Total Seluruh Opname / Total Seluruh Luas Terbangunan
+        const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
 
         // Render ke HTML
         animateValue("card-total-proyek", 0, totalProyek, 800);
