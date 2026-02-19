@@ -116,9 +116,8 @@ header.app-header h1 {
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 1200px;
     font-size: 13px;
-    white-space: nowrap;
+    /* min-width dan white-space dihapus agar fit dan teks wrap otomatis */
 }
 
 .data-table th, .data-table td {
@@ -127,19 +126,18 @@ header.app-header h1 {
 }
 
 .data-table td {
-    text-align: left; /* Isi tabel tetap rata kiri agar mudah dibaca */
+    text-align: left;
 }
 
 .data-table th {
-    /* Menggunakan gradasi merah yang sama dengan header/navbar */
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); 
-    color: #ffffff; /* Teks warna putih */
+    color: #ffffff; 
     font-weight: 600;
     position: sticky;
     top: 0;
-    text-align: center; /* Teks header rata tengah */
-    z-index: 1; /* Supaya header tidak tertutup saat di-scroll */
-    border-bottom: 2px solid #991b1b; /* Tambahan border bawah agak gelap biar tegas */
+    text-align: center;
+    z-index: 1; 
+    border-bottom: 2px solid #991b1b; 
 }
 
 .data-table tbody tr:hover {
@@ -148,6 +146,24 @@ header.app-header h1 {
 
 .data-table tbody tr:last-child td {
     border-bottom: none;
+}
+
+/* BUTTON AKSI */
+.btn-view {
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-view:hover {
+    background-color: #2563eb;
+    color: white;
 }
 
 /* ================= PAGINATION STYLES ================= */
@@ -193,6 +209,94 @@ header.app-header h1 {
     color: #94a3b8;
     cursor: not-allowed;
     border-color: #e2e8f0;
+}
+
+/* ================= MODAL STYLES ================= */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 100; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    background-color: rgba(0,0,0,0.5); 
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #fff;
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    animation: modalFadeIn 0.3s ease;
+    overflow: hidden;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.close-modal {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-modal:hover {
+    color: #fca5a5;
+}
+
+.modal-body {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: #64748b;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.detail-value {
+    font-weight: 600;
+    color: #334155;
+    text-align: right;
+    max-width: 60%;
+    font-size: 13px;
 }
 
 /* ================= RESPONSIVE MOBILE STYLES ================= */
@@ -246,7 +350,6 @@ header.app-header h1 {
         padding: 8px 16px;
     }
 
-    /* Tumpuk kontrol paginasi di layar sempit */
     .pagination-wrapper {
         flex-direction: column;
         gap: 15px;
