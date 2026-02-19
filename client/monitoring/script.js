@@ -3,6 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. GLOBAL VARIABLES & AUTH
     // ==========================================
     let rawData = []; 
+    
+    // Variabel Pagination
+    let currentPage = 1;
+    const rowsPerPage = 10;
 
     // --- Cek Sesi ---
     const userRole = sessionStorage.getItem('userRole'); 
@@ -58,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.status === 'success' && Array.isArray(result.data)) {
                 rawData = result.data;
+                currentPage = 1; // Reset ke halaman pertama setiap load data
                 renderTable(rawData); 
             } else {
                 console.error("Data API kosong atau format salah.");
@@ -70,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 4. RENDER DATA TABLE
+    // 4. RENDER DATA TABLE & PAGINATION
     // ==========================================
     function renderTable(data) {
         const tbody = document.getElementById('table-body');
@@ -80,10 +85,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;">Data tidak ditemukan</td></tr>`;
+            updatePaginationInfo(0);
             return;
         }
 
-        data.forEach(item => {
+        // Tentukan index awal dan akhir dari data per halaman
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const paginatedData = data.slice(startIndex, endIndex);
+
+        paginatedData.forEach(item => {
             const tr = document.createElement('tr');
             
             // Perhitungan & Parsing Nilai Rupiah
@@ -118,7 +129,47 @@ document.addEventListener('DOMContentLoaded', () => {
             
             tbody.appendChild(tr);
         });
+
+        updatePaginationInfo(data.length);
     }
+
+    function updatePaginationInfo(totalItems) {
+        const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+        
+        const pageInfo = document.getElementById('pageInfo');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+
+        if (pageInfo) {
+            pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
+        }
+
+        if (btnPrev) {
+            btnPrev.disabled = currentPage === 1;
+        }
+
+        if (btnNext) {
+            btnNext.disabled = currentPage === totalPages || totalPages === 0;
+        }
+    }
+
+    // ==========================================
+    // 5. EVENT LISTENERS
+    // ==========================================
+    document.getElementById('btnPrev')?.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            renderTable(rawData);
+        }
+    });
+
+    document.getElementById('btnNext')?.addEventListener('click', () => {
+        const totalPages = Math.ceil(rawData.length / rowsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderTable(rawData);
+        }
+    });
 
     // Memanggil inisialisasi awal saat DOM siap
     initDashboard();

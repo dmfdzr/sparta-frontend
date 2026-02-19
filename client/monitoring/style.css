@@ -116,7 +116,7 @@ header.app-header h1 {
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 1200px; /* Minimal width supaya tidak terlalu gepeng di desktop */
+    min-width: 1200px;
     font-size: 13px;
     white-space: nowrap;
 }
@@ -143,18 +143,58 @@ header.app-header h1 {
     border-bottom: none;
 }
 
-/* ==========================================================================
-   RESPONSIVE MOBILE STYLES
-   ========================================================================== */
+/* ================= PAGINATION STYLES ================= */
+.pagination-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+}
 
+.page-info {
+    font-size: 14px;
+    color: #475569;
+    font-weight: 500;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-pagination {
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    background-color: #fff;
+    color: var(--text-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-pagination:hover:not(:disabled) {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.btn-pagination:disabled {
+    background-color: #f8fafc;
+    color: #94a3b8;
+    cursor: not-allowed;
+    border-color: #e2e8f0;
+}
+
+/* ================= RESPONSIVE MOBILE STYLES ================= */
 @media screen and (max-width: 768px) {
-    /* CONTAINER & GLOBAL ADJUSTMENTS */
     .container {
         padding: 0 16px; 
         margin: 1.5rem auto;
     }
 
-    /* HEADER RESTRUCTURING */
     header.app-header {
         flex-direction: column;
         height: auto;
@@ -185,7 +225,6 @@ header.app-header h1 {
         box-sizing: border-box;
     }
 
-    /* USER INFO */
     .user-greeting-wrapper {
         padding: 0 16px;
     }
@@ -199,15 +238,23 @@ header.app-header h1 {
         text-overflow: ellipsis; 
         padding: 8px 16px;
     }
+
+    /* Tumpuk kontrol paginasi di layar sempit */
+    .pagination-wrapper {
+        flex-direction: column;
+        gap: 15px;
+    }
 }
 
-/* TWEAK TAMBAHAN UNTUK LAYAR SANGAT KECIL */
 @media screen and (max-width: 380px) {
     header.app-header h1 {
         font-size: 1.2rem;
     }
-    
     .user-info {
         font-size: 0.75rem;
+    }
+    .btn-pagination {
+        padding: 8px 12px;
+        font-size: 13px;
     }
 }
