@@ -3,35 +3,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. GLOBAL VARIABLES & AUTH
     // ==========================================
     let rawData = []; 
+    let filteredData = []; 
     
-    // Variabel Pagination
-    let currentPage = 1;
-    const rowsPerPage = 10;
+    // --- Chart Instances ---
+    let trendChartInstance = null;
+    let scopeChartInstance = null;
+    let statusChartInstance = null;
+    let kategoriChartInstance = null; // Instance baru
 
     // --- Cek Sesi ---
     const userRole = sessionStorage.getItem('userRole'); 
     const userCabang = sessionStorage.getItem('loggedInUserCabang'); 
-
+    
     if (!userRole) {
         window.location.href = '../../auth/index.html';
         return;
     }
-    
+
     // Tampilkan User Info
     const emailDisplay = sessionStorage.getItem('loggedInUserEmail') || 'User';
     document.getElementById('userNameDisplay').textContent = emailDisplay;
-    
-    const roleBadgeEl = document.getElementById('roleBadge');
-    if(roleBadgeEl) {
-        roleBadgeEl.textContent = `${userCabang || '-'} - ${userRole || '-'}`;
-    }
+    document.getElementById('roleBadge').textContent = `${userCabang} - ${userRole}`;
 
     // ==========================================
     // 2. HELPER FUNCTIONS
     // ==========================================
     
     const formatRupiah = (num) => {
-        if (isNaN(num)) return "Rp 0";
         return "Rp " + new Intl.NumberFormat("id-ID", {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
@@ -50,11 +48,46 @@ document.addEventListener('DOMContentLoaded', () => {
         return 0;
     };
 
+    const getYearFromDate = (dateStr) => {
+        if (!dateStr) return null;
+        const match = dateStr.match(/\d{4}/);
+        return match ? match[0] : null;
+    };
+
+    const getMonthFromDate = (dateStr) => {
+        if (!dateStr) return -1;
+        const dateObj = new Date(dateStr);
+        if (!isNaN(dateObj)) return dateObj.getMonth();
+        
+        const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+        const parts = dateStr.split(/[- ]/);
+        for (let part of parts) {
+            const idx = months.findIndex(m => part.includes(m) || m.toLowerCase() === part.toLowerCase());
+            if (idx !== -1) return idx;
+        }
+        return -1;
+    };
+
+    function animateValue(id, start, end, duration) {
+        const obj = document.getElementById(id);
+        if(!obj) return;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            if (progress < 1) window.requestAnimationFrame(step);
+        };
+        window.requestAnimationFrame(step);
+    }
+
     // ==========================================
     // 3. FETCH DATA & INIT
     // ==========================================
     async function initDashboard() {
         const API_URL = "https://sparta-backend-5hdj.onrender.com/api/opname/summary-data";
+        
+        document.getElementById('card-total-proyek').textContent = "...";
 
         try {
             const response = await fetch(API_URL);
@@ -62,151 +95,287 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.status === 'success' && Array.isArray(result.data)) {
                 rawData = result.data;
-                currentPage = 1; 
-                renderTable(rawData); 
+                populateFilters(rawData);
+                applyFilters(); 
             } else {
-                console.error("Data API kosong atau format salah.");
-                document.getElementById('table-body').innerHTML = `<tr><td colspan="5" style="text-align:center; color: red;">Format data API tidak sesuai</td></tr>`;
+                console.error("Data API kosong/format salah");
+                document.getElementById('card-total-proyek').textContent = "0";
             }
         } catch (error) {
             console.error("Error Fetching:", error);
-            document.getElementById('table-body').innerHTML = `<tr><td colspan="5" style="text-align:center; color: red;">Gagal mengambil data dari server. Periksa koneksi atau API Anda.</td></tr>`;
+            document.getElementById('card-total-proyek').textContent = "Err";
         }
     }
 
     // ==========================================
-    // 4. RENDER DATA TABLE & MODAL
+    // 4. FILTER LOGIC
     // ==========================================
-    function renderTable(data) {
-        const tbody = document.getElementById('table-body');
-        if(!tbody) return;
-        
-        tbody.innerHTML = '';
+    function populateFilters(data) {
+        const cabangSelect = document.getElementById('filterCabang');
+        const tahunSelect = document.getElementById('filterTahun');
 
-        if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Data tidak ditemukan</td></tr>`;
-            updatePaginationInfo(0);
-            return;
-        }
+        const uniqueCabang = [...new Set(data.map(item => item.Cabang))]
+            .filter(c => c && c.trim() !== "")
+            .sort();
 
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const paginatedData = data.slice(startIndex, endIndex);
+        cabangSelect.innerHTML = '<option value="ALL">Semua Cabang</option>';
 
-        paginatedData.forEach(item => {
-            const tr = document.createElement('tr');
-
-            // Set isi kolom tabel utama (hanya 5 kolom)
-            tr.innerHTML = `
-                <td>${item["Nama_Toko"] || '-'}</td>
-                <td>${item["Cabang"] || '-'}</td>
-                <td>${item["Kode_Toko"] || '-'}</td>
-                <td>${item["Lingkup_Pekerjaan"] || '-'}</td>
-                <td style="text-align:center;">
-                    <button class="btn-view">View</button>
-                </td>
-            `;
-            
-            // Tambahkan event click untuk membuka modal menggunakan data per baris
-            const btnView = tr.querySelector('.btn-view');
-            btnView.addEventListener('click', () => {
-                showDetailModal(item);
+        const isHO = userCabang === 'HEAD OFFICE';
+        if (!isHO) {
+            const opt = document.createElement('option');
+            opt.value = userCabang;
+            opt.textContent = userCabang;
+            cabangSelect.appendChild(opt);
+            cabangSelect.value = userCabang;
+            cabangSelect.disabled = true;
+        } else {
+            uniqueCabang.forEach(cab => {
+                const opt = document.createElement('option');
+                opt.value = cab;
+                opt.textContent = cab;
+                cabangSelect.appendChild(opt);
             });
-
-            tbody.appendChild(tr);
-        });
-
-        updatePaginationInfo(data.length);
-    }
-
-    function showDetailModal(item) {
-        // Kalkulasi ulang Cost/m2
-        const luasTerbangun = parseCurrency(item["Luas Terbangunan"]);
-        const grandTotal = parseCurrency(item["Grand Total Opname Final"]);
-        const denda = parseCurrency(item["Denda"]);
-        const kerjaTambah = parseCurrency(item["Kerja_Tambah"]);
-        const kerjaKurang = parseCurrency(item["Kerja_Kurang"]);
-        
-        let costM2 = 0;
-        if (luasTerbangun > 0) {
-            costM2 = grandTotal / luasTerbangun;
         }
 
-        const modal = document.getElementById('detailModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalBody = document.getElementById('modalBody');
+        const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item.Awal_SPK)))]
+            .filter(y => y)
+            .sort((a, b) => b - a);
 
-        modalTitle.textContent = `Detail: ${item["Nama_Toko"] || 'Toko'}`;
-
-        modalBody.innerHTML = `
-            <div class="detail-row"><span class="detail-label">Awal SPK</span><span class="detail-value">${item["Awal_SPK"] || '-'}</span></div>
-            <div class="detail-row"><span class="detail-label">Akhir SPK</span><span class="detail-value">${item["Akhir_SPK"] || '-'}</span></div>
-            <div class="detail-row"><span class="detail-label">Tambah SPK</span><span class="detail-value">${item["tambah_spk"] || '-'}</span></div>
-            <div class="detail-row"><span class="detail-label">Serah Terima</span><span class="detail-value">${item["tanggal_serah_terima"] || '-'}</span></div>
-            <div class="detail-row"><span class="detail-label">Keterlambatan</span><span class="detail-value">${item["Keterlambatan"] || '-'}</span></div>
-            <div class="detail-row"><span class="detail-label">Denda</span><span class="detail-value">${formatRupiah(denda)}</span></div>
-            <div class="detail-row"><span class="detail-label">Kerja Tambah</span><span class="detail-value">${formatRupiah(kerjaTambah)}</span></div>
-            <div class="detail-row"><span class="detail-label">Kerja Kurang</span><span class="detail-value">${formatRupiah(kerjaKurang)}</span></div>
-            <div class="detail-row"><span class="detail-label">Grand Total Opname Final</span><span class="detail-value">${formatRupiah(grandTotal)}</span></div>
-            <div class="detail-row"><span class="detail-label">Cost/m2</span><span class="detail-value" style="color:#0f766e;">${formatRupiah(costM2)}</span></div>
-        `;
-
-        modal.style.display = 'flex';
+        tahunSelect.innerHTML = '<option value="ALL">Semua Tahun</option>';
+        uniqueTahun.forEach(thn => {
+            const opt = document.createElement('option');
+            opt.value = thn;
+            opt.textContent = thn;
+            tahunSelect.appendChild(opt);
+        });
+        
+        if(uniqueTahun.length > 0) tahunSelect.value = uniqueTahun[0];
+        else tahunSelect.value = "ALL";
     }
 
-    // --- Modal Close Logic ---
-    const modal = document.getElementById('detailModal');
-    const closeBtn = document.querySelector('.close-modal');
+    function applyFilters() {
+        const selectedCabang = document.getElementById('filterCabang').value;
+        const selectedTahun = document.getElementById('filterTahun').value;
 
-    if(closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
+        filteredData = rawData.filter(item => {
+            const matchCabang = (selectedCabang === 'ALL') || (item.Cabang === selectedCabang);
+            const itemYear = getYearFromDate(item.Awal_SPK) || getYearFromDate(item.tanggal_opname_final);
+            const matchTahun = (selectedTahun === 'ALL') || (itemYear == selectedTahun);
+            return matchCabang && matchTahun;
+        });
+
+        renderKPI(filteredData);
+        renderCharts(filteredData);
+    }
+
+    const btnFilter = document.getElementById('btnApplyFilter');
+    if(btnFilter) {
+        btnFilter.addEventListener('click', (e) => {
+            e.preventDefault();
+            applyFilters();
         });
     }
 
-    // Klik di luar modal box untuk close
-    window.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
+    // ==========================================
+    // 5. RENDER KPI CARDS
+    // ==========================================
+    function renderKPI(data) {
+        let totalProyek = data.length;
+        let totalSPK = 0;
+        let totalOpname = 0;
+        let totalTambah = 0;
+        let totalKurang = 0;
+        let totalDenda = 0; // Var Baru
 
-    // ==========================================
-    // 5. PAGINATION LISTENERS
-    // ==========================================
-    function updatePaginationInfo(totalItems) {
-        const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+        data.forEach(item => {
+            totalSPK += parseCurrency(item["Nominal SPK"]);
+            totalOpname += parseCurrency(item["Grand Total Opname Final"]);
+            totalTambah += parseCurrency(item["Kerja_Tambah"]);
+            totalKurang += parseCurrency(item["Kerja_Kurang"]);
+            totalDenda += parseCurrency(item["Denda"]); // Hitung Denda
+        });
+
+        animateValue("card-total-proyek", 0, totalProyek, 800);
         
-        const pageInfo = document.getElementById('pageInfo');
-        const btnPrev = document.getElementById('btnPrev');
-        const btnNext = document.getElementById('btnNext');
+        const elSpk = document.getElementById("card-total-spk");
+        if(elSpk) elSpk.textContent = formatRupiah(totalSPK);
 
-        if (pageInfo) {
-            pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
-        }
-        if (btnPrev) {
-            btnPrev.disabled = currentPage === 1;
-        }
-        if (btnNext) {
-            btnNext.disabled = currentPage === totalPages || totalPages === 0;
-        }
+        const elOpname = document.getElementById("card-total-opname");
+        if(elOpname) elOpname.textContent = formatRupiah(totalOpname);
+
+        const elTambah = document.getElementById("card-total-tambah");
+        const elKurang = document.getElementById("card-total-kurang");
+        if(elTambah) elTambah.textContent = formatRupiah(totalTambah);
+        if(elKurang) elKurang.textContent = `(-${formatRupiah(totalKurang)})`;
+        
+        // Update Card Denda
+        const elDenda = document.getElementById("card-total-denda");
+        if(elDenda) elDenda.textContent = formatRupiah(totalDenda);
     }
 
-    document.getElementById('btnPrev')?.addEventListener('click', () => {
-        if (currentPage > 1) {
-            currentPage--;
-            renderTable(rawData);
-        }
-    });
+    // ==========================================
+    // 6. RENDER CHARTS
+    // ==========================================
+    function renderCharts(data) {
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#666';
 
-    document.getElementById('btnNext')?.addEventListener('click', () => {
-        const totalPages = Math.ceil(rawData.length / rowsPerPage);
-        if (currentPage < totalPages) {
-            currentPage++;
-            renderTable(rawData);
-        }
-    });
+        // 1. DATA PREP: Trend
+        const monthlySPK = new Array(12).fill(0);
+        const monthlyOpname = new Array(12).fill(0);
 
-    // Memanggil inisialisasi awal saat DOM siap
+        data.forEach(item => {
+            const monthIndex = getMonthFromDate(item.Awal_SPK);
+            if (monthIndex >= 0 && monthIndex < 12) {
+                monthlySPK[monthIndex] += parseCurrency(item["Nominal SPK"]);
+                monthlyOpname[monthIndex] += parseCurrency(item["Grand Total Opname Final"]);
+            }
+        });
+
+        const dataSPKMillion = monthlySPK.map(v => v / 1000000);
+        const dataOpnameMillion = monthlyOpname.map(v => v / 1000000);
+
+        // 2. DATA PREP: Lingkup Pekerjaan (Hanya Sipil & ME)
+        let scopeCounts = { 'Sipil': 0, 'ME': 0 };
+        data.forEach(item => {
+            const scope = (item.Lingkup_Pekerjaan || '').toLowerCase();
+            // Filter ketat sesuai request
+            if (scope.includes('sipil')) scopeCounts['Sipil']++;
+            else if (scope.includes('me') || scope.includes('mekanikal')) scopeCounts['ME']++;
+        });
+
+        // 3. DATA PREP: Status Dokumen (Hanya Done & Progress)
+        let statusCounts = { 'Done': 0, 'Progress': 0 };
+        data.forEach(item => {
+            const status = (item["Status Opname Final"] || '').toLowerCase();
+            // Filter ketat sesuai request
+            if (status.includes('done')) statusCounts['Done']++;
+            else if (status.includes('progress')) statusCounts['Progress']++;
+        });
+
+        // 4. DATA PREP: Kategori Toko (Ruko vs Non Ruko) - CHART BARU
+        let kategoriCounts = {};
+        data.forEach(item => {
+            let kat = item.Kategori || 'Tidak Diketahui';
+            if(kat.trim() === '') kat = 'Tidak Diketahui';
+            
+            if(!kategoriCounts[kat]) kategoriCounts[kat] = 0;
+            kategoriCounts[kat]++;
+        });
+        
+        // --- CHART RENDERING ---
+
+        // A. Trend Chart
+        const ctxTrend = document.getElementById('trendChart').getContext('2d');
+        if (trendChartInstance) trendChartInstance.destroy();
+        
+        trendChartInstance = new Chart(ctxTrend, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                datasets: [
+                    {
+                        label: 'Opname (Juta Rp)',
+                        data: dataOpnameMillion,
+                        backgroundColor: '#d62828',
+                        borderRadius: 4,
+                        order: 2
+                    },
+                    {
+                        label: 'SPK (Juta Rp)',
+                        data: dataSPKMillion,
+                        type: 'line',
+                        borderColor: '#1976d2',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 2,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { 
+                    y: { beginAtZero: true },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // B. Lingkup Pekerjaan Chart (Hanya Sipil & ME)
+        const ctxScope = document.getElementById('scopeChart').getContext('2d');
+        if (scopeChartInstance) scopeChartInstance.destroy();
+
+        scopeChartInstance = new Chart(ctxScope, {
+            type: 'doughnut',
+            data: {
+                labels: ['Sipil', 'ME'],
+                datasets: [{
+                    data: [scopeCounts['Sipil'], scopeCounts['ME']],
+                    backgroundColor: ['#d62828', '#1976d2'], // Merah & Biru
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // C. Status Chart (Hanya Done & Progress)
+        const ctxStatus = document.getElementById('statusChart').getContext('2d');
+        if (statusChartInstance) statusChartInstance.destroy();
+
+        statusChartInstance = new Chart(ctxStatus, {
+            type: 'bar',
+            indexAxis: 'y',
+            data: {
+                labels: ['Done', 'Progress'],
+                datasets: [{
+                    label: 'Jumlah Dokumen',
+                    data: [statusCounts['Done'], statusCounts['Progress']],
+                    backgroundColor: ['#38a169', '#1976d2'], // Hijau & Biru
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { grid: { display: false } } }
+            }
+        });
+
+        // D. Kategori Chart (Baru)
+        const ctxKategori = document.getElementById('kategoriChart').getContext('2d');
+        if (kategoriChartInstance) kategoriChartInstance.destroy();
+
+        const katLabels = Object.keys(kategoriCounts);
+        const katData = Object.values(kategoriCounts);
+        // Generate warna dinamis jika kategori banyak, atau fix jika sedikit
+        const katColors = ['#e53e3e', '#3182ce', '#38a169', '#d69e2e', '#805ad5'];
+
+        kategoriChartInstance = new Chart(ctxKategori, {
+            type: 'pie', // Atau 'bar' sesuai selera
+            data: {
+                labels: katLabels,
+                datasets: [{
+                    data: katData,
+                    backgroundColor: katColors.slice(0, katLabels.length),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
     initDashboard();
 });
