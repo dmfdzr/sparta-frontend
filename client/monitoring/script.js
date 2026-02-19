@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'bar',
             indexAxis: 'y',
             data: {
-                labels: ['Done', 'Progres'],
+                labels: ['Done', 'Progress'],
                 datasets: [{
                     label: 'Jumlah Dokumen',
                     data: [statusCounts['Done'], statusCounts['Progress']],
