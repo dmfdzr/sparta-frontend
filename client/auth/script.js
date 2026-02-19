@@ -87,11 +87,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
             } else {
                 // Handle Login Gagal
-                if (result.message === "Invalid credentials") {
-                    loginMessage.textContent = "Login gagal!";
+                const errorMessage = result.message ? result.message.toLowerCase() : "";
+
+                if (errorMessage.includes("not found") || errorMessage.includes("tidak ditemukan")) {
+                    loginMessage.textContent = "User belum terdaftar";
+                } else if (errorMessage.includes("invalid") || errorMessage.includes("salah") || errorMessage.includes("incorrect")) {
+                    loginMessage.textContent = "Email atau password salah";
                 } else {
+                    // Fallback jika error lain dari server
                     loginMessage.textContent = result.message || "Login gagal!";
                 }
+                
                 loginMessage.className = "login-message error";
                 logLoginAttempt(username, password, "Failed");
             }
