@@ -261,48 +261,142 @@ select:focus {
     margin-top: 15px;
 }
 
-/* RESPONSIVE */
-@media (max-width: 1024px) {
+/* ==========================================================================
+   RESPONSIVE MOBILE STYLES
+   ========================================================================== */
+
+@media screen and (max-width: 768px) {
+    /* 1. CONTAINER & GLOBAL ADJUSTMENTS */
+    .container {
+        padding: 0 16px; /* Margin kiri-kanan lebih tipis di HP */
+        margin: 1.5rem auto;
+    }
+
+    /* 2. HEADER RESTRUCTURING */
+    header.app-header {
+        flex-direction: column;
+        height: auto;
+        padding: 20px 16px;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .header-logo {
+        position: static; /* Hilangkan posisi absolut */
+        transform: none;
+        width: 100px; /* Logo lebih kecil */
+        margin-bottom: 5px;
+    }
+
+    header.app-header h1 {
+        font-size: 1.35rem; /* Font judul dikecilkan */
+        line-height: 1.4;
+    }
+
+    .btn-back-header {
+        position: static; /* Hilangkan posisi absolut */
+        transform: none;
+        width: 100%; /* Tombol jadi full width agar mudah di-tap */
+        justify-content: center;
+        padding: 12px;
+        margin-top: 5px;
+        box-sizing: border-box;
+    }
+
+    /* 3. USER INFO */
+    .user-greeting-wrapper {
+        padding: 0 16px;
+    }
+    
+    .user-info {
+        font-size: 0.85rem;
+        width: 100%;
+        box-sizing: border-box;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis; /* Jika teks kepanjangan diberi titik-titik */
+        padding: 8px 16px;
+    }
+
+    /* 4. CONTROLS / FILTER SECTION */
+    .controls {
+        flex-direction: column; /* Susun ke bawah */
+        align-items: stretch;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .control-group {
+        width: 100%;
+    }
+
+    .control-group label {
+        margin-bottom: 5px; /* Beri jarak antara label dan input */
+    }
+
+    select {
+        width: 100%; /* Input full width */
+        min-width: 0; /* Reset min-width desktop */
+        height: 44px; /* Tinggi standar touch target mobile */
+        box-sizing: border-box;
+    }
+
+    .btn-apply-filter {
+        width: 100%;
+        height: 44px;
+        margin-top: 5px;
+    }
+
+    /* 5. STATS CARDS (KPI) */
+    .stats-grid {
+        /* Paksa menjadi 1 kolom di HP agar tidak gepeng */
+        grid-template-columns: 1fr; 
+        gap: 15px;
+    }
+
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-value {
+        font-size: 1.35rem; /* Sesuaikan ukuran angka agar muat */
+    }
+
+    /* 6. CHARTS LAYOUT */
     .charts-wrapper {
-        grid-template-columns: 1fr 1fr;
-        grid-template-areas: 
-            "main main"
-            "pie status"
-            "kategori kategori";
+        display: flex; /* Ganti Grid desktop ke Flex Column */
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .chart-card {
+        width: 100%;
+        min-height: 300px; /* Tinggi minimum chart di HP */
+        padding: 15px;
+        box-sizing: border-box;
+    }
+    
+    /* Reset style khusus chart besar */
+    .chart-card.large {
+        min-height: 320px;
+    }
+    
+    .chart-header-title h3 {
+        font-size: 15px;
     }
 }
 
-@media (max-width: 768px) {
-    header.app-header {
-        flex-direction: column;
-        padding: 1rem;
-        gap: 1rem;
+/* TWEAK TAMBAHAN UNTUK LAYAR SANGAT KECIL (misal: iPhone SE / Android kecil) */
+@media screen and (max-width: 380px) {
+    header.app-header h1 {
+        font-size: 1.2rem;
     }
     
-    .header-logo {
-        position: static;
-        transform: none;
-        width: 100px;
+    .stat-value {
+        font-size: 1.2rem;
     }
     
-    .btn-back-header {
-        position: static;
-        transform: none;
-        width: 100%;
-        justify-content: center;
-    }
-
-    .controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .charts-wrapper {
-        grid-template-columns: 1fr;
-        grid-template-areas: 
-            "main"
-            "pie"
-            "status"
-            "kategori";
+    .user-info {
+        font-size: 0.75rem;
     }
 }
