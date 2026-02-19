@@ -17,6 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
             'menu-tambahspk', 'menu-gantt', 'menu-dokumentasi', 
             'menu-svdokumen', 'menu-sp'
         ],
+        'BRANCH BUILDING SUPPORT DOKUMENTASI' : [
+            'menu-spk', 'menu-pengawasan', 'menu-opname', 
+            'menu-tambahspk', 'menu-gantt', 'menu-dokumentasi', 
+            'menu-svdokumen', 'menu-sp'
+        ],
         'BRANCH BUILDING COORDINATOR': [
             'menu-dokumentasi', 'menu-svdokumen','menu-gantt', 'menu-opname', 'menu-sp'
         ],
