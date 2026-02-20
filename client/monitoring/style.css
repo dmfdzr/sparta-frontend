@@ -309,57 +309,72 @@ select:hover {
     font-weight: 500;
 }
 
-/* ================= CHARTS LAYOUT ================= */
-.charts-wrapper {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-areas: 
-        "main main main"
-        "pie status kategori";
-    gap: 24px;
-    opacity: 0;
-    animation: fadeInUp 0.8s ease-out 0.8s forwards;
-}
-
-.chart-card {
-    background: #fff;
-    border-radius: var(--radius);
-    padding: 24px;
-    box-shadow: var(--card-shadow);
-    display: flex;
-    flex-direction: column;
-    min-height: 320px;
-    transition: var(--transition-smooth);
-    border: 1px solid rgba(0,0,0,0.02);
-}
-
-.chart-card:hover {
-    box-shadow: var(--card-shadow-hover);
-}
-
-.chart-card.large {
-    grid-area: main;
-    min-height: 360px;
-}
-
-.chart-header-title h3 {
-    margin: 0;
-    font-size: 18px;
-    color: #2d3748;
-    font-weight: 700;
-}
-
-.chart-subtitle {
-    font-size: 13px;
-    color: #718096;
-    margin-top: 4px;
-}
-
-.chart-body {
-    flex: 1;
-    position: relative;
+/* ==========================================================================
+    MODAL STYLES
+   ========================================================================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    margin-top: 20px;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #64748b;
+}
+
+.modal-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.modal-stat-item {
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-stat-label {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.modal-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
 }
 
 /* ==========================================================================

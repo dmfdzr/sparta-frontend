@@ -26,6 +26,60 @@ document.addEventListener('DOMContentLoaded', () => {
         controlsDiv.style.display = 'none';
     }
 
+    const projectModal = document.getElementById('projectModal');
+    const closeModal = document.getElementById('closeModal');
+    const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
+
+    // Fungsi untuk menghitung status proyek
+    const showProjectDetails = () => {
+        const stats = {
+            'Approval RAB': 0,
+            'Proses PJU': 0,
+            'Approval SPK': 0,
+            'Ongoing': 0,
+            'Kerja Tambah Kurang': 0,
+            'Done': 0
+        };
+
+        filteredData.forEach(item => {
+            const hasSPK = item["Nominal SPK"] && parseCurrency(item["Nominal SPK"]) > 0;
+            const hasSerahTerima = item["Tgl Serah Terima"] && item["Tgl Serah Terima"] !== "";
+            const hasOpnameFinal = item["Grand Total Opname Final"] && parseCurrency(item["Grand Total Opname Final"]) > 0;
+
+            if (hasOpnameFinal) {
+                stats['Done']++;
+            } else if (hasSerahTerima) {
+                stats['Kerja Tambah Kurang']++;
+            } else if (hasSPK) {
+                // Ongoing jika SPK sudah ada tapi belum serah terima
+                stats['Ongoing']++;
+                // Anda juga bisa membagi ini untuk 'Approval SPK' sesuai logic spesifik
+            } else if (item["Status RAB"] === "Approved") {
+                stats['Approval RAB']++;
+            } else {
+                stats['Proses PJU']++;
+            }
+        });
+
+        // Update isi modal
+        const grid = document.getElementById('modalStatsGrid');
+        grid.innerHTML = Object.entries(stats).map(([label, value]) => `
+            <div class="modal-stat-item">
+                <span class="modal-stat-label">${label}</span>
+                <span class="modal-stat-value">${value}</span>
+            </div>
+        `).join('');
+
+        projectModal.style.display = 'flex';
+    };
+
+    // Event Listeners
+    totalProyekCard.addEventListener('click', showProjectDetails);
+    closeModal.addEventListener('click', () => projectModal.style.display = 'none');
+    window.addEventListener('click', (e) => {
+        if (e.target === projectModal) projectModal.style.display = 'none';
+    });
+
     // ==========================================
     // 2. HELPER FUNCTIONS
     // ==========================================
