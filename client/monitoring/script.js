@@ -26,62 +26,145 @@ document.addEventListener('DOMContentLoaded', () => {
         controlsDiv.style.display = 'none';
     }
 
+    // ==========================================
+    // 2. MODAL & DRILL-DOWN LOGIC
+    // ==========================================
     const projectModal = document.getElementById('projectModal');
     const closeModal = document.getElementById('closeModal');
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
 
-    // Fungsi untuk menghitung status proyek
+    // Variabel View List Toko
+    const modalSummaryView = document.getElementById('modalSummaryView');
+    const modalListView = document.getElementById('modalListView');
+    const storeListContainer = document.getElementById('storeListContainer');
+    const listStatusTitle = document.getElementById('listStatusTitle');
+    const btnBackToSummary = document.getElementById('btnBackToSummary');
+    const grid = document.getElementById('modalStatsGrid');
+
+    let currentGroupedProjects = {}; // Menyimpan data yang sudah dikelompokkan
+
+    // Fungsi untuk menghitung & mengelompokkan status proyek
     const showProjectDetails = () => {
-        const stats = {
-            'Approval RAB': 0,
-            'Proses PJU': 0,
-            'Approval SPK': 0,
-            'Ongoing': 0,
-            'Kerja Tambah Kurang': 0,
-            'Done': 0
+        // Reset View ke Summary setiap kali modal baru dibuka
+        if(modalSummaryView && modalListView) {
+            modalSummaryView.style.display = 'block';
+            modalListView.style.display = 'none';
+        }
+
+        currentGroupedProjects = {
+            'Approval RAB': [],
+            'Proses PJU': [],
+            'Approval SPK': [],
+            'Ongoing': [],
+            'Kerja Tambah Kurang': [],
+            'Done': []
         };
 
         filteredData.forEach(item => {
             const hasSPK = item["Nominal SPK"] && parseCurrency(item["Nominal SPK"]) > 0;
-            const hasSerahTerima = item["Tgl Serah Terima"] && item["Tgl Serah Terima"] !== "";
+            // Handle perbedaan penamaan key JSON (Tgl Serah Terima vs tanggal_serah_terima)
+            const hasSerahTerima = (item["tanggal_serah_terima"] && item["tanggal_serah_terima"] !== "") || 
+                                   (item["Tgl Serah Terima"] && item["Tgl Serah Terima"] !== "");
             const hasOpnameFinal = item["Grand Total Opname Final"] && parseCurrency(item["Grand Total Opname Final"]) > 0;
 
             if (hasOpnameFinal) {
-                stats['Done']++;
+                currentGroupedProjects['Done'].push(item);
             } else if (hasSerahTerima) {
-                stats['Kerja Tambah Kurang']++;
+                currentGroupedProjects['Kerja Tambah Kurang'].push(item);
             } else if (hasSPK) {
-                // Ongoing jika SPK sudah ada tapi belum serah terima
-                stats['Ongoing']++;
-                // Anda juga bisa membagi ini untuk 'Approval SPK' sesuai logic spesifik
+                currentGroupedProjects['Ongoing'].push(item);
             } else if (item["Status RAB"] === "Approved") {
-                stats['Approval RAB']++;
+                currentGroupedProjects['Approval RAB'].push(item);
             } else {
-                stats['Proses PJU']++;
+                currentGroupedProjects['Proses PJU'].push(item);
             }
         });
 
-        // Update isi modal
-        const grid = document.getElementById('modalStatsGrid');
-        grid.innerHTML = Object.entries(stats).map(([label, value]) => `
-            <div class="modal-stat-item">
-                <span class="modal-stat-label">${label}</span>
-                <span class="modal-stat-value">${value}</span>
-            </div>
-        `).join('');
+        // Update isi modal dengan Atribut 'data-status'
+        if(grid) {
+            grid.innerHTML = Object.entries(currentGroupedProjects).map(([label, items], index) => `
+                <div class="modal-stat-item" data-status="${label}" style="animation-delay: ${0.1 + (index * 0.05)}s; cursor: pointer;">
+                    <span class="modal-stat-label">${label}</span>
+                    <span class="modal-stat-value">${items.length}</span>
+                </div>
+            `).join('');
+        }
 
-        projectModal.style.display = 'flex';
+        if(projectModal) projectModal.style.display = 'flex';
     };
 
-    // Event Listeners
-    totalProyekCard.addEventListener('click', showProjectDetails);
-    closeModal.addEventListener('click', () => projectModal.style.display = 'none');
+    // Fungsi untuk menampilkan daftar toko ketika status diklik
+    const renderStoreList = (status) => {
+        const items = currentGroupedProjects[status] || [];
+        if(listStatusTitle) {
+            listStatusTitle.textContent = `Daftar Toko: ${status} (${items.length})`;
+        }
+        
+        if (!storeListContainer) return;
+
+        if (items.length === 0) {
+            storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada toko dalam status ini.</div>';
+        } else {
+            storeListContainer.innerHTML = items.map(item => {
+                // Tambahan informasi opsional (misal: tampilkan tgl awal SPK jika Ongoing)
+                let extraInfo = '';
+                if (status === 'Ongoing' && item["Awal_SPK"]) {
+                    extraInfo = ` | Mulai SPK: ${item["Awal_SPK"]}`;
+                }
+
+                return `
+                <div class="store-item">
+                    <div class="store-info">
+                        <strong>${item.Nama_Toko || 'Tanpa Nama'}</strong>
+                        <span>${item.Cabang || '-'} | ${item.Kode_Toko || '-'}${extraInfo}</span>
+                    </div>
+                    <div class="store-badge">${item.Kategori || '-'}</div>
+                </div>
+            `}).join('');
+        }
+
+        // Animasi pergantian view
+        if(modalSummaryView && modalListView) {
+            modalSummaryView.style.display = 'none';
+            modalListView.style.display = 'block';
+        }
+    };
+
+    // Event Listeners untuk interaksi Modal
+    if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
+    
+    // Event Delegation: Menangkap klik pada card stat di dalam modal
+    if(grid) {
+        grid.addEventListener('click', (e) => {
+            const statItem = e.target.closest('.modal-stat-item');
+            if (!statItem) return; // Jika klik di luar card, abaikan
+            
+            const status = statItem.getAttribute('data-status');
+            renderStoreList(status);
+        });
+    }
+
+    if(btnBackToSummary) {
+        btnBackToSummary.addEventListener('click', () => {
+            modalListView.style.display = 'none';
+            modalSummaryView.style.display = 'block';
+        });
+    }
+
+    if(closeModal) {
+        closeModal.addEventListener('click', () => {
+            if(projectModal) projectModal.style.display = 'none';
+        });
+    }
+    
     window.addEventListener('click', (e) => {
-        if (e.target === projectModal) projectModal.style.display = 'none';
+        if (e.target === projectModal) {
+            projectModal.style.display = 'none';
+        }
     });
 
     // ==========================================
-    // 2. HELPER FUNCTIONS
+    // 3. HELPER FUNCTIONS
     // ==========================================
     
     const formatRupiah = (num) => {
@@ -136,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. FETCH DATA & INIT
+    // 4. FETCH DATA & INIT
     // ==========================================
     async function initDashboard() {
         const API_URL = "https://sparta-backend-5hdj.onrender.com/api/opname/summary-data";
@@ -162,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 4. FILTER LOGIC
+    // 5. FILTER LOGIC
     // ==========================================
     function populateFilters(data) {
         const cabangSelect = document.getElementById('filterCabang');
@@ -231,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 5. RENDER KPI CARDS
+    // 6. RENDER KPI CARDS
     // ==========================================
     function renderKPI(data) {
         let totalProyek = data.length;
