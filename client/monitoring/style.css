@@ -42,6 +42,22 @@ body {
     100% { box-shadow: 0 0 0 0 rgba(214, 40, 40, 0); }
 }
 
+@keyframes fadeIn {
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to { opacity: 1; backdrop-filter: blur(4px); }
+}
+
+@keyframes popInBouncy {
+    0% { opacity: 0; transform: scale(0.8) translateY(30px); }
+    70% { transform: scale(1.05) translateY(-5px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes slideUpItem {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* ================= HEADER STYLE ================= */
 header.app-header {
     background: linear-gradient(135deg, #e53e3e 0%, #b91c1c 100%);
@@ -245,12 +261,19 @@ select:hover {
 .stat-card:nth-child(5) { animation-delay: 0.6s; border-left-color: #991b1b; } 
 .stat-card:nth-child(6) { animation-delay: 0.7s; border-left-color: #8b5cf6; } 
 
-.stat-card:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: var(--card-shadow-hover);
+.stat-card[style*="cursor: pointer"]:hover {
+    transform: translateY(-5px) scale(1.03);
+    border-color: #3b82f6;
+    box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-/* Subtle background glow effect on hover */
+.stat-card[style*="cursor: pointer"]:active {
+    transform: translateY(0) scale(0.97);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1); /* Transisi lebih cepat saat ditekan */
+}
+
+
 .stat-card::after {
     content: '';
     position: absolute;
@@ -319,20 +342,22 @@ select:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.6); /* Sedikit lebih gelap agar fokus */
     z-index: 1000;
-    backdrop-filter: blur(4px);
     align-items: center;
     justify-content: center;
+    animation: fadeIn 0.3s ease-out forwards; 
 }
 
 .modal-content {
     background: white;
-    padding: 24px;
+    padding: 28px;
     border-radius: 20px;
     width: 90%;
     max-width: 600px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    /* Animasi membal saat modal terbuka */
+    animation: popInBouncy 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
 }
 
 .modal-header {
@@ -343,11 +368,24 @@ select:hover {
 }
 
 .btn-close {
-    background: none;
+    background: #f1f5f9;
     border: none;
-    font-size: 28px;
+    font-size: 24px;
     cursor: pointer;
     color: #64748b;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-close:hover {
+    background: #fee2e2;
+    color: #ef4444;
+    transform: rotate(90deg); /* Animasi putar yang asik saat di-hover */
 }
 
 .modal-stats-grid {
@@ -363,7 +401,24 @@ select:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border: 1px solid #e2e8f0;
+    transition: var(--transition-smooth);
+    opacity: 0;
+    animation: slideUpItem 0.4s ease-out forwards;
 }
+
+.modal-stat-item:hover {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    transform: translateX(5px); /* Bergeser sedikit saat di-hover */
+}
+
+.modal-stat-item:nth-child(1) { animation-delay: 0.1s; }
+.modal-stat-item:nth-child(2) { animation-delay: 0.15s; }
+.modal-stat-item:nth-child(3) { animation-delay: 0.2s; }
+.modal-stat-item:nth-child(4) { animation-delay: 0.25s; }
+.modal-stat-item:nth-child(5) { animation-delay: 0.3s; }
+.modal-stat-item:nth-child(6) { animation-delay: 0.35s; }
 
 .modal-stat-label {
     font-size: 14px;
