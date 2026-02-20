@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Cek Sesi ---
     const userRole = sessionStorage.getItem('userRole'); 
     const userCabang = sessionStorage.getItem('loggedInUserCabang'); 
+    const isHO = userCabang === 'HEAD OFFICE'; // Deteksi apakah user adalah HEAD OFFICE
     
     if (!userRole) {
         window.location.href = '../../auth/index.html';
@@ -18,6 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const emailDisplay = sessionStorage.getItem('loggedInUserEmail') || 'User';
     document.getElementById('userNameDisplay').textContent = emailDisplay;
     document.getElementById('roleBadge').textContent = `${userCabang} - ${userRole}`;
+
+    // --- Sembunyikan Box Filter jika bukan HEAD OFFICE ---
+    const controlsDiv = document.querySelector('.controls');
+    if (!isHO && controlsDiv) {
+        controlsDiv.style.display = 'none';
+    }
 
     // ==========================================
     // 2. HELPER FUNCTIONS
@@ -48,13 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return match ? match[0] : null;
     };
 
-    // --- UPGRADE: Fungsi Animasi dengan Easing & Formatter ---
-    // Easing function: membuat animasi melambat secara elegan di detik terakhir
     const easeOutExpo = (x) => {
         return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
     };
 
-    // Tambahan parameter "formatter" agar bisa support Rupiah dan penambahan teks "Hari"
     function animateValue(id, start, end, duration, formatter = (val) => val) {
         const obj = document.getElementById(id);
         if(!obj) return;
@@ -71,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (timeProgress < 1) {
                 window.requestAnimationFrame(step);
             } else {
-                obj.innerHTML = formatter(end); // Memastikan nilai final akurat 100%
+                obj.innerHTML = formatter(end); 
             }
         };
         window.requestAnimationFrame(step);
@@ -114,17 +118,18 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(c => c && c.trim() !== "")
             .sort();
 
-        cabangSelect.innerHTML = '<option value="ALL">Semua Cabang</option>';
+        cabangSelect.innerHTML = ''; 
 
-        const isHO = userCabang === 'HEAD OFFICE';
         if (!isHO) {
+            // Jika bukan HO, set option satu-satunya ke cabang user tersebut (tersembunyi)
             const opt = document.createElement('option');
             opt.value = userCabang;
             opt.textContent = userCabang;
             cabangSelect.appendChild(opt);
             cabangSelect.value = userCabang;
-            cabangSelect.disabled = true;
         } else {
+            // Jika HO, tampilkan semua cabang
+            cabangSelect.innerHTML = '<option value="ALL">Semua Cabang</option>';
             uniqueCabang.forEach(cab => {
                 const opt = document.createElement('option');
                 opt.value = cab;
@@ -201,8 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const avgKeterlambatan = totalProyek > 0 ? Math.round(totalKeterlambatan / totalProyek) : 0;
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
 
-        // --- UPGRADE: Render Semua KPI dengan Animasi ---
-        const animDuration = 1500; // 1.5 detik agar efek easing lebih terasa
+        const animDuration = 1500; 
         
         animateValue("card-total-proyek", 0, totalProyek, animDuration);
         animateValue("card-total-spk", 0, totalSPK, animDuration, formatRupiah);
