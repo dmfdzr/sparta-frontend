@@ -93,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(projectModal) projectModal.style.display = 'flex';
     };
 
-    // Fungsi untuk menampilkan daftar toko ketika status diklik
     const renderStoreList = (status) => {
         const items = currentGroupedProjects[status] || [];
         if(listStatusTitle) {
@@ -106,16 +105,17 @@ document.addEventListener('DOMContentLoaded', () => {
             storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada toko dalam status ini.</div>';
         } else {
             storeListContainer.innerHTML = items.map(item => {
-                // Tambahan informasi opsional (misal: tampilkan tgl awal SPK jika Ongoing)
                 let extraInfo = '';
                 if (status === 'Ongoing' && item["Awal_SPK"]) {
                     extraInfo = ` | Mulai SPK: ${item["Awal_SPK"]}`;
                 }
 
+                const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
+
                 return `
                 <div class="store-item">
                     <div class="store-info">
-                        <strong>${item.Nama_Toko || 'Tanpa Nama'}</strong>
+                        <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
                         <span>${item.Cabang || '-'} | ${item.Kode_Toko || '-'}${extraInfo}</span>
                     </div>
                     <div class="store-badge">${item.Kategori || '-'}</div>
@@ -123,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `}).join('');
         }
 
-        // Animasi pergantian view
         if(modalSummaryView && modalListView) {
             modalSummaryView.style.display = 'none';
             modalListView.style.display = 'block';
