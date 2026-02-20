@@ -48,15 +48,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return match ? match[0] : null;
     };
 
-    function animateValue(id, start, end, duration) {
+    // --- UPGRADE: Fungsi Animasi dengan Easing & Formatter ---
+    // Easing function: membuat animasi melambat secara elegan di detik terakhir
+    const easeOutExpo = (x) => {
+        return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
+    };
+
+    // Tambahan parameter "formatter" agar bisa support Rupiah dan penambahan teks "Hari"
+    function animateValue(id, start, end, duration, formatter = (val) => val) {
         const obj = document.getElementById(id);
         if(!obj) return;
         let startTimestamp = null;
+        
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            obj.innerHTML = Math.floor(progress * (end - start) + start);
-            if (progress < 1) window.requestAnimationFrame(step);
+            const timeProgress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const easedProgress = easeOutExpo(timeProgress);
+            
+            const currentVal = Math.floor(easedProgress * (end - start) + start);
+            obj.innerHTML = formatter(currentVal);
+            
+            if (timeProgress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                obj.innerHTML = formatter(end); // Memastikan nilai final akurat 100%
+            }
         };
         window.requestAnimationFrame(step);
     }
@@ -165,44 +181,35 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalKeterlambatan = 0;
         let totalDenda = 0;
         let totalOpname = 0;
-        let totalLuasTerbangun = 0; // Ubah nama variabel agar sesuai
+        let totalLuasTerbangun = 0;
 
         data.forEach(item => {
-            // 1. Total Nilai SPK
             totalSPK += parseCurrency(item["Nominal SPK"]);
             
-            // 2. JHK Pekerjaan (Durasi + Tambah + Keterlambatan)
             const durasiSpk = parseFloat(item["Durasi SPK"]) || 0;
             const tambahSpk = parseFloat(item["tambah_spk"]) || 0;
             const keterlambatan = parseFloat(item["Keterlambatan"]) || 0;
             
             totalJHK += (durasiSpk + tambahSpk + keterlambatan);
-            
-            // 3. Akumulasi Keterlambatan
             totalKeterlambatan += keterlambatan;
-            
-            // 4. Total Denda
             totalDenda += parseCurrency(item["Denda"]);
             
-            // 5. Data untuk Cost /m2 (Ganti ke Luas Terbangunan)
             totalOpname += parseCurrency(item["Grand Total Opname Final"]);
             totalLuasTerbangun += parseFloat(item["Luas Terbangunan"]) || 0;
         });
 
-        // Hitung Rata-rata
         const avgKeterlambatan = totalProyek > 0 ? Math.round(totalKeterlambatan / totalProyek) : 0;
-        
-        // Rata-rata Cost /m2 dihitung dari Total Seluruh Opname / Total Seluruh Luas Terbangunan
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
 
-        // Render ke HTML
-        animateValue("card-total-proyek", 0, totalProyek, 800);
+        // --- UPGRADE: Render Semua KPI dengan Animasi ---
+        const animDuration = 1500; // 1.5 detik agar efek easing lebih terasa
         
-        document.getElementById("card-total-spk").textContent = formatRupiah(totalSPK);
-        document.getElementById("card-jhk").textContent = totalJHK + " Hari";
-        document.getElementById("card-avg-keterlambatan").textContent = avgKeterlambatan + " Hari";
-        document.getElementById("card-total-denda").textContent = formatRupiah(totalDenda);
-        document.getElementById("card-avg-cost-m2").textContent = formatRupiah(avgCostM2);
+        animateValue("card-total-proyek", 0, totalProyek, animDuration);
+        animateValue("card-total-spk", 0, totalSPK, animDuration, formatRupiah);
+        animateValue("card-jhk", 0, totalJHK, animDuration, (val) => val + " Hari");
+        animateValue("card-avg-keterlambatan", 0, avgKeterlambatan, animDuration, (val) => val + " Hari");
+        animateValue("card-total-denda", 0, totalDenda, animDuration, formatRupiah);
+        animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
     }
 
     initDashboard();
