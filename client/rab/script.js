@@ -484,6 +484,15 @@ const UI = {
         const manual = document.getElementById('lokasi_manual');
         const sep = document.getElementById('separator_renov');
         const suf = document.getElementById('suffix_renov');
+        
+        // --- TAMBAHAN: Elemen Dropdown Proyek ---
+        const proyekSelect = document.getElementById('proyek');
+        const renovasiOption = proyekSelect.querySelector('option[value="Renovasi"]');
+
+        // Set status awal opsi Renovasi saat halaman pertama kali dimuat
+        if (!toggle.checked) {
+            renovasiOption.disabled = true;
+        }
 
         toggle.addEventListener('change', () => {
             const isRenov = toggle.checked;
@@ -492,6 +501,31 @@ const UI = {
             manual.placeholder = isRenov ? "C0B4" : "0001";
             if (!isRenov) manual.value = manual.value.replace(/[^0-9]/g, '');
             UI.updateUlok();
+
+            // --- TAMBAHAN: Logika Dropdown Proyek ---
+            if (isRenov) {
+                // Aktifkan dan otomatis pilih Renovasi
+                renovasiOption.disabled = false;
+                proyekSelect.value = "Renovasi";
+                
+                // Kunci opsi lain (Reguler/Franchise) agar user tidak salah pilih
+                Array.from(proyekSelect.options).forEach(opt => {
+                    if (opt.value !== "Renovasi" && opt.value !== "") opt.disabled = true;
+                });
+            } else {
+                // Matikan opsi Renovasi
+                renovasiOption.disabled = true;
+                
+                // Reset dropdown jika sebelumnya terpilih Renovasi
+                if (proyekSelect.value === "Renovasi") {
+                    proyekSelect.value = "";
+                }
+                
+                // Buka kembali kunci untuk opsi Reguler/Franchise
+                Array.from(proyekSelect.options).forEach(opt => {
+                    if (opt.value !== "Renovasi") opt.disabled = false;
+                });
+            }
         });
 
         manual.addEventListener('input', function() {
