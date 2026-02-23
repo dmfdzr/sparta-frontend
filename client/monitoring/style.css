@@ -263,14 +263,25 @@ select:hover {
 
 .stat-card[style*="cursor: pointer"]:hover {
     transform: translateY(-5px) scale(1.03);
+}
+
+/* Efek "membal" saat ditekan */
+.stat-card[style*="cursor: pointer"]:active {
+    transform: translateY(0) scale(0.97);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Warna Hover Spesifik untuk Card Total Proyek (Biru) */
+#card-total-proyek-wrapper:hover {
     border-color: #3b82f6;
     box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.stat-card[style*="cursor: pointer"]:active {
-    transform: translateY(0) scale(0.97);
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1); /* Transisi lebih cepat saat ditekan */
+/* Warna Hover Spesifik untuk Card Total Nilai SPK (Oranye) */
+#card-total-spk-wrapper:hover {
+    border-color: #f97316;
+    box-shadow: 0 20px 25px -5px rgba(249, 115, 22, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .stat-card::after {
