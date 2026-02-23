@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Cek Sesi ---
     const userRole = sessionStorage.getItem('userRole'); 
     const userCabang = sessionStorage.getItem('loggedInUserCabang'); 
-    const isHO = userCabang === 'HEAD OFFICE'; // Deteksi apakah user adalah HEAD OFFICE
+    const isHO = userCabang === 'HEAD OFFICE'; 
     
     if (!userRole) {
         window.location.href = '../../auth/index.html';
@@ -32,8 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectModal = document.getElementById('projectModal');
     const closeModal = document.getElementById('closeModal');
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
+    const totalSpkCard = document.getElementById('card-total-spk-wrapper'); 
 
     // Variabel View List Toko
+    const modalMainTitle = document.getElementById('modalMainTitle'); 
     const modalSummaryView = document.getElementById('modalSummaryView');
     const modalListView = document.getElementById('modalListView');
     const storeListContainer = document.getElementById('storeListContainer');
@@ -41,28 +43,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBackToSummary = document.getElementById('btnBackToSummary');
     const grid = document.getElementById('modalStatsGrid');
 
-    let currentGroupedProjects = {}; // Menyimpan data yang sudah dikelompokkan
+    let currentGroupedProjects = {}; 
 
-    // Fungsi untuk menghitung & mengelompokkan status proyek
+    // --- FUNGSI 1: Modal untuk Total Proyek ---
     const showProjectDetails = () => {
-        // Reset View ke Summary setiap kali modal baru dibuka
+        if(modalMainTitle) modalMainTitle.textContent = "Detail Status Proyek"; 
+        if(btnBackToSummary) btnBackToSummary.style.display = 'flex'; 
+
         if(modalSummaryView && modalListView) {
             modalSummaryView.style.display = 'block';
             modalListView.style.display = 'none';
         }
 
         currentGroupedProjects = {
-            'Approval RAB': [],
-            'Proses PJU': [],
-            'Approval SPK': [],
-            'Ongoing': [],
-            'Kerja Tambah Kurang': [],
-            'Done': []
+            'Approval RAB': [], 'Proses PJU': [], 'Approval SPK': [],
+            'Ongoing': [], 'Kerja Tambah Kurang': [], 'Done': []
         };
 
         filteredData.forEach(item => {
             const hasSPK = item["Nominal SPK"] && parseCurrency(item["Nominal SPK"]) > 0;
-            // Handle perbedaan penamaan key JSON (Tgl Serah Terima vs tanggal_serah_terima)
             const hasSerahTerima = (item["tanggal_serah_terima"] && item["tanggal_serah_terima"] !== "") || 
                                    (item["Tgl Serah Terima"] && item["Tgl Serah Terima"] !== "");
             const hasOpnameFinal = item["Grand Total Opname Final"] && parseCurrency(item["Grand Total Opname Final"]) > 0;
@@ -80,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Update isi modal dengan Atribut 'data-status'
         if(grid) {
             grid.innerHTML = Object.entries(currentGroupedProjects).map(([label, items], index) => `
                 <div class="modal-stat-item" data-status="${label}" style="animation-delay: ${0.1 + (index * 0.05)}s; cursor: pointer;">
@@ -95,9 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderStoreList = (status) => {
         const items = currentGroupedProjects[status] || [];
-        if(listStatusTitle) {
-            listStatusTitle.textContent = `Daftar Toko: ${status} (${items.length})`;
-        }
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Toko: ${status} (${items.length})`;
         
         if (!storeListContainer) return;
 
@@ -106,10 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             storeListContainer.innerHTML = items.map(item => {
                 let extraInfo = '';
-                if (status === 'Ongoing' && item["Awal_SPK"]) {
-                    extraInfo = ` | Mulai SPK: ${item["Awal_SPK"]}`;
-                }
-
+                if (status === 'Ongoing' && item["Awal_SPK"]) extraInfo = ` | Mulai SPK: ${item["Awal_SPK"]}`;
                 const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
 
                 return `
@@ -129,14 +122,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- FUNGSI 2: Modal untuk Total Nilai SPK ---
+    const showSpkDetails = () => {
+        if (!filteredData || filteredData.length === 0) return;
+
+        if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai SPK";
+        if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
+
+        const spkItems = filteredData.filter(item => parseCurrency(item["Nominal SPK"]) > 0)
+            .sort((a, b) => parseCurrency(b["Nominal SPK"]) - parseCurrency(a["Nominal SPK"]));
+
+        if(listStatusTitle) {
+            listStatusTitle.textContent = `Daftar Proyek & Nilai SPK (${spkItems.length})`;
+        }
+
+        if (storeListContainer) {
+            if (spkItems.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data SPK.</div>';
+            } else {
+                storeListContainer.innerHTML = spkItems.map(item => {
+                    const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
+                    const nilaiSpk = formatRupiah(parseCurrency(item["Nominal SPK"]));
+                    const ulok = item["Nomor Ulok"] || '-';
+                    
+                    return `
+                    <div class="store-item">
+                        <div class="store-info">
+                            <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
+                            <span>Ulok: ${ulok} | ${item.Cabang || '-'}</span>
+                        </div>
+                        <div class="store-badge" style="background:#fff7ed; color:#c05621; border: 1px solid #fed7aa; font-size: 13px;">
+                            ${nilaiSpk}
+                        </div>
+                    </div>
+                `}).join('');
+            }
+        }
+
+        if (modalSummaryView && modalListView) {
+            modalSummaryView.style.display = 'none';
+            modalListView.style.display = 'block';
+        }
+
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
     // Event Listeners untuk interaksi Modal
     if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
+    if(totalSpkCard) totalSpkCard.addEventListener('click', showSpkDetails); 
     
     // Event Delegation: Menangkap klik pada card stat di dalam modal
     if(grid) {
         grid.addEventListener('click', (e) => {
             const statItem = e.target.closest('.modal-stat-item');
-            if (!statItem) return; // Jika klik di luar card, abaikan
+            if (!statItem) return; 
             
             const status = statItem.getAttribute('data-status');
             renderStoreList(status);
@@ -257,14 +296,12 @@ document.addEventListener('DOMContentLoaded', () => {
         cabangSelect.innerHTML = ''; 
 
         if (!isHO) {
-            // Jika bukan HO, set option satu-satunya ke cabang user tersebut (tersembunyi)
             const opt = document.createElement('option');
             opt.value = userCabang;
             opt.textContent = userCabang;
             cabangSelect.appendChild(opt);
             cabangSelect.value = userCabang;
         } else {
-            // Jika HO, tampilkan semua cabang
             cabangSelect.innerHTML = '<option value="ALL">Semua Cabang</option>';
             uniqueCabang.forEach(cab => {
                 const opt = document.createElement('option');

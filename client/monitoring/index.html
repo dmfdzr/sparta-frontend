@@ -57,7 +57,7 @@
                 </div>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card" id="card-total-spk-wrapper" style="cursor: pointer;">
                 <div class="stat-icon" style="background: #fff7ed; color: #c05621;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
@@ -115,13 +115,13 @@
             <div id="projectModal" class="modal-overlay">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2>Detail Status Proyek</h2>
+                        <h2 id="modalMainTitle">Detail Status Proyek</h2>
                         <button id="closeModal" class="btn-close">&times;</button>
                     </div>
                     <div class="modal-body">
                         <div id="modalSummaryView">
                             <div id="modalStatsGrid" class="modal-stats-grid">
-                                </div>
+                            </div>
                         </div>
                         <div id="modalListView" style="display: none;">
                             <button id="btnBackToSummary" class="btn-back-modal">
@@ -130,7 +130,7 @@
                             </button>
                             <h3 id="listStatusTitle" style="margin-top: 0; margin-bottom: 15px; font-size: 16px; color: #1e293b;">Daftar Toko</h3>
                             <div id="storeListContainer" class="store-list-container">
-                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
