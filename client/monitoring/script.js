@@ -29,18 +29,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 2. MODAL & DRILL-DOWN LOGIC
     // ==========================================
+    // ==========================================
+    // 2. MODAL & DRILL-DOWN LOGIC
+    // ==========================================
     const projectModal = document.getElementById('projectModal');
     const closeModal = document.getElementById('closeModal');
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
     const totalSpkCard = document.getElementById('card-total-spk-wrapper'); 
 
-    // Variabel View List Toko
+    // Variabel View List Toko & Detail
     const modalMainTitle = document.getElementById('modalMainTitle'); 
     const modalSummaryView = document.getElementById('modalSummaryView');
     const modalListView = document.getElementById('modalListView');
+    const modalStoreDetailView = document.getElementById('modalStoreDetailView'); // BARU
     const storeListContainer = document.getElementById('storeListContainer');
+    const storeDetailContainer = document.getElementById('storeDetailContainer'); // BARU
     const listStatusTitle = document.getElementById('listStatusTitle');
+    const detailStoreTitle = document.getElementById('detailStoreTitle'); // BARU
     const btnBackToSummary = document.getElementById('btnBackToSummary');
+    const btnBackToList = document.getElementById('btnBackToList'); // BARU
     const grid = document.getElementById('modalStatsGrid');
 
     let currentGroupedProjects = {}; 
@@ -50,9 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if(modalMainTitle) modalMainTitle.textContent = "Detail Status Proyek"; 
         if(btnBackToSummary) btnBackToSummary.style.display = 'flex'; 
 
-        if(modalSummaryView && modalListView) {
+        if(modalSummaryView && modalListView && modalStoreDetailView) {
             modalSummaryView.style.display = 'block';
             modalListView.style.display = 'none';
+            modalStoreDetailView.style.display = 'none'; // Reset view detail
         }
 
         currentGroupedProjects = {
@@ -104,9 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 let extraInfo = '';
                 if (status === 'Ongoing' && item["Awal_SPK"]) extraInfo = ` | Mulai SPK: ${item["Awal_SPK"]}`;
                 const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
+                
+                // BARU: Tambahkan data-index untuk di-passing ke halaman detail
+                const rawIndex = filteredData.indexOf(item);
 
                 return `
-                <div class="store-item">
+                <div class="store-item" data-index="${rawIndex}">
                     <div class="store-info">
                         <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
                         <span>${item.Cabang || '-'} | ${item.Kode_Toko || '-'}${extraInfo}</span>
@@ -116,8 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
             `}).join('');
         }
 
-        if(modalSummaryView && modalListView) {
+        if(modalSummaryView && modalListView && modalStoreDetailView) {
             modalSummaryView.style.display = 'none';
+            modalStoreDetailView.style.display = 'none';
             modalListView.style.display = 'block';
         }
     };
@@ -145,8 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const nilaiSpk = formatRupiah(parseCurrency(item["Nominal SPK"]));
                     const ulok = item["Nomor Ulok"] || '-';
                     
+                    // BARU: Tambahkan data-index
+                    const rawIndex = filteredData.indexOf(item);
+                    
                     return `
-                    <div class="store-item">
+                    <div class="store-item" data-index="${rawIndex}">
                         <div class="store-info">
                             <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
                             <span>Ulok: ${ulok} | ${item.Cabang || '-'}</span>
@@ -159,12 +174,51 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (modalSummaryView && modalListView) {
+        if (modalSummaryView && modalListView && modalStoreDetailView) {
             modalSummaryView.style.display = 'none';
+            modalStoreDetailView.style.display = 'none';
             modalListView.style.display = 'block';
         }
 
         if (projectModal) projectModal.style.display = 'flex';
+    };
+
+    // --- FUNGSI 3: Render Detail Toko Spesifik (BARU) ---
+    const renderStoreDetail = (index) => {
+        const item = filteredData[index];
+        if (!item) return;
+
+        if (detailStoreTitle) {
+            const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
+            detailStoreTitle.textContent = `Info: ${item.Nama_Toko || 'Tanpa Nama'} (${lingkup})`;
+        }
+
+        if (storeDetailContainer) {
+            storeDetailContainer.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${item.Cabang || '-'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Kode Toko / Ulok</span><span class="detail-value">${item.Kode_Toko || '-'} / ${item["Nomor Ulok"] || '-'}</span></div>
+                    
+                    <div class="detail-item"><span class="detail-label">Kategori</span><span class="detail-value">${item.Kategori || '-'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Kontraktor</span><span class="detail-value">${item.Kontraktor || '-'}</span></div>
+                    
+                    <div class="detail-item"><span class="detail-label">Awal & Akhir SPK</span><span class="detail-value">${item.Awal_SPK || '-'} s/d ${item.Akhir_SPK || '-'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Tanggal Serah Terima</span><span class="detail-value">${item.tanggal_serah_terima || item["Tgl Serah Terima"] || '-'}</span></div>
+
+                    <div class="detail-item"><span class="detail-label">Nominal SPK</span><span class="detail-value">${formatRupiah(parseCurrency(item["Nominal SPK"]))}</span></div>
+                    <div class="detail-item"><span class="detail-label">Kerja Tambah / Kurang</span><span class="detail-value" style="color:#d62828;">+ ${formatRupiah(parseCurrency(item.Kerja_Tambah))} <br> - ${formatRupiah(parseCurrency(item.Kerja_Kurang))}</span></div>
+                    
+                    <div class="detail-item"><span class="detail-label">Opname Final</span><span class="detail-value" style="color:#2f855a;">${formatRupiah(parseCurrency(item["Grand Total Opname Final"]))}</span></div>
+                    <div class="detail-item"><span class="detail-label">Denda Keterlambatan</span><span class="detail-value" style="color:#e53e3e;">${formatRupiah(parseCurrency(item.Denda))}</span></div>
+                </div>
+            `;
+        }
+
+        // Animasi perpindahan view
+        if (modalListView && modalStoreDetailView) {
+            modalListView.style.display = 'none';
+            modalStoreDetailView.style.display = 'block';
+        }
     };
 
     // Event Listeners untuk interaksi Modal
@@ -182,10 +236,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Event Delegation: Menangkap klik pada list toko (BARU)
+    if(storeListContainer) {
+        storeListContainer.addEventListener('click', (e) => {
+            const storeItem = e.target.closest('.store-item');
+            if (!storeItem) return;
+            
+            const itemIndex = storeItem.getAttribute('data-index');
+            if(itemIndex) renderStoreDetail(itemIndex);
+        });
+    }
+
+    // Navigasi Back
     if(btnBackToSummary) {
         btnBackToSummary.addEventListener('click', () => {
             modalListView.style.display = 'none';
             modalSummaryView.style.display = 'block';
+        });
+    }
+
+    if(btnBackToList) {
+        btnBackToList.addEventListener('click', () => {
+            modalStoreDetailView.style.display = 'none';
+            modalListView.style.display = 'block';
         });
     }
 

@@ -494,6 +494,7 @@ select:hover {
     align-items: center;
     transition: var(--transition-smooth);
     animation: fadeIn 0.3s ease-out forwards;
+    cursor: pointer;
 }
 
 .store-item:hover {
@@ -521,6 +522,64 @@ select:hover {
     border-radius: 6px;
     font-weight: 600;
     white-space: nowrap;
+}
+
+/* ================= MODAL DETAIL VIEW STYLES ================= */
+.store-item {
+    cursor: pointer; /* Pastikan cursor jadi tangan saat hover di list toko */
+}
+
+.store-detail-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.store-detail-container::-webkit-scrollbar {
+    width: 6px;
+}
+.store-detail-container::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #cbd5e0;
+}
+
+/* Hilangkan garis bawah pada 2 item terakhir agar rapi */
+.detail-item:nth-last-child(1),
+.detail-item:nth-last-child(2) {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 700;
+    word-break: break-word;
 }
 
 /* ==========================================================================
@@ -632,6 +691,17 @@ select:hover {
     
     .chart-card.large {
         min-height: 320px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .detail-grid {
+        grid-template-columns: 1fr; /* Jadi 1 kolom di HP */
+        gap: 12px;
+    }
+    .detail-item:nth-last-child(2) {
+        border-bottom: 1px dashed #cbd5e0;
+        padding-bottom: 12px;
     }
 }
 
