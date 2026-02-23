@@ -550,9 +550,30 @@ const PDFGenerator = {
         // ==========================================
         if (submissions && submissions.length > 0) {
             const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
+            
             submissions.forEach(it => {
-                const sel = toNumberVol_PDF(it.selisih);
+                // [FIX] Validasi Volume untuk IL
+                const vAkhir = toNumberVol_PDF(it.volume_akhir);
+                
+                // Coba ambil Volume Awal dari berbagai kemungkinan nama field
+                // Untuk item IL, jika tidak ada volume awal/RAB, kita anggap 0
+                let rawVolAwal = it.vol_rab;
+                if (rawVolAwal === undefined || rawVolAwal === null || rawVolAwal === "") {
+                    rawVolAwal = it.volume_awal; // Coba fallback ke properti lain
+                }
+                const vAwal = toNumberVol_PDF(rawVolAwal); 
+                
+                // Hitung selisih manual
+                let sel = vAkhir - vAwal;
+                
+                // Pembulatan 2 desimal untuk menghindari floating point issue
+                sel = Math.round((sel + Number.EPSILON) * 100) / 100;
+
+                // Jika hasil hitungan manual tidak 0, masukkan ke kategori
                 if (sel !== 0) {
+                    // Update properti selisih di object item agar konsisten
+                    it.selisih = String(sel).replace('.', ','); 
+                    
                     const type = sel < 0 ? "PEKERJAAN KURANG" : "PEKERJAAN TAMBAH";
                     groupsByType[type].push(it);
                 }
@@ -577,16 +598,31 @@ const PDFGenerator = {
                         const hMat = toNumberID_PDF(item.harga_material);
                         const hUpah = toNumberID_PDF(item.harga_upah);
                         const deltaNominal = sel * (hMat + hUpah);
+                        
                         const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
-                        return [idx + 1, namaPekerjaan, item.vol_rab, item.satuan, item.volume_akhir, `${item.selisih} ${item.satuan}`, formatRupiah(deltaNominal)];
+                        
+                        // Gunakan vol_rab (vAwal) yang sudah divalidasi tadi, atau 0 jika kosong
+                        let displayVolAwal = item.vol_rab;
+                        if (displayVolAwal === undefined || displayVolAwal === null || displayVolAwal === "") {
+                            displayVolAwal = "0";
+                        }
+
+                        return [idx + 1, namaPekerjaan, displayVolAwal, item.satuan, item.volume_akhir, `${item.selisih} ${item.satuan}`, formatRupiah(deltaNominal)];
                     });
 
                     doc.autoTable({
-                        head: [["NO.", "JENIS PEKERJAAN", "VOL RAB", "SATUAN", "VOLUME AKHIR", "SELISIH", "NILAI SELISIH (Rp)"]],
+                        head: [["NO.", "JENIS PEKERJAAN", "VOL AWAL", "SATUAN", "VOL AKHIR", "SELISIH", "NILAI SELISIH (Rp)"]],
                         body: rows, startY: lastY, margin: { left: margin, right: margin }, theme: "grid",
                         styles: { fontSize: 8, cellPadding: 3, lineWidth: 0.1 }, headStyles: { fillColor: [205, 234, 242], textColor: [0,0,0], fontSize: 8.5, fontStyle: "bold", halign: "center" },
-                        columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
-                        didParseCell: (data) => { if(data.section === 'body') { const originalItem = kItems[data.row.index]; if (originalItem && originalItem.is_il) { data.cell.styles.fillColor = [255, 249, 196]; } } }
+                        columnStyles: { 6: { halign: "right", fontStyle: "bold" }, 2: { halign: "center" }, 4: { halign: "center" }, 5: { halign: "center", fontStyle: "bold" } },
+                        didParseCell: (data) => { 
+                            if(data.section === 'body') { 
+                                const originalItem = kItems[data.row.index]; 
+                                if (originalItem && originalItem.is_il) { 
+                                    data.cell.styles.fillColor = [255, 249, 196]; // Highlight Kuning untuk IL
+                                } 
+                            } 
+                        }
                     });
                     lastY = doc.lastAutoTable.finalY + 10;
                 }
@@ -1006,7 +1042,7 @@ const Render = {
         // ... (Kode UI Pilih Lingkup tetap sama, tidak berubah) ...
         if (!AppState.selectedLingkup) {
             /* ... (Kode bagian Pilih Lingkup Biarkan Saja) ... */
-             container.innerHTML = `
+            container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
                     <div class="card text-center" style="max-width:600px; margin:0 auto;">
                         <h2 style="color:var(--primary);">Pilih Lingkup Pekerjaan</h2>
@@ -1059,7 +1095,6 @@ const Render = {
             } catch (err) {
                 console.warn("Gagal cek keterlambatan:", err);
             }
-
             // Mapping Items
             AppState.opnameItems = data.map((task, index) => {
                 const volRab = toNumInput(task.vol_rab);
@@ -1072,6 +1107,11 @@ const Render = {
                 
                 const alreadySubmitted = task.isSubmitted === true || !!task.item_id || ["PENDING", "APPROVED", "REJECTED"].includes(String(task.approval_status || "").toUpperCase());
                 
+                // --- LOGIKA PEMBERSIH CATATAN ---
+                let rawCatatan = task.catatan || "";
+                // Hapus teks di dalam kurung siku [...] seperti [REJECT 18/2/2026...]
+                let cleanCatatan = rawCatatan.replace(/\[.*?\]/g, "").trim();
+                
                 return { 
                     ...task, 
                     id: index + 1, 
@@ -1081,8 +1121,12 @@ const Render = {
                     volume_akhir: alreadySubmitted ? String(volAkhirNum) : "", 
                     selisih: (Math.round((selisihNum + Number.EPSILON) * 100) / 100).toFixed(2), 
                     total_harga,
-                    catatan: task.catatan || "",
-                    approval_status: task.approval_status || (alreadySubmitted ? "Pending" : "")
+                    // Gunakan catatan yang sudah dibersihkan
+                    catatan: cleanCatatan, 
+                    approval_status: task.approval_status || (alreadySubmitted ? "Pending" : ""),
+                    desain: task.desain || "-",
+                    kualitas: task.kualitas || "-",
+                    spesifikasi: task.spesifikasi || "-"
                 };
             });
 
@@ -1149,17 +1193,18 @@ const Render = {
                                 <span style="color:#666;">${AppState.selectedStore.nama_toko} (ULOK: ${AppState.selectedUlok})</span>
                             </div>
                         </div>
-
                         <div class="table-container" style="overflow-x:auto;">
                             <table style="width:100%; min-width:1400px; border-collapse:collapse;">
                                 <thead>
                                     <tr style="background:var(--primary); color:white;">
                                         <th style="padding:10px;">Kategori</th><th style="padding:10px;">Jenis Pekerjaan</th>
-                                        <th class="text-center">Vol RAB</th><th class="text-center">Sat</th>
-                                        <th class="text-right">H. Mat</th><th class="text-right">H. Upah</th>
-                                        <th class="text-center">Vol Akhir</th><th class="text-center">Selisih</th>
-                                        <th class="text-right">Total</th>
-                                        <th class="text-center">Foto</th><th style="padding:10px;">Catatan</th>
+                                        <th class="text-center">Volume RAB</th><th class="text-center">Satuan</th>
+                                        <th class="text-center">Harga Material</th><th class="text-center">Harga Upah</th>
+                                        <th class="text-center">Volume Akhir</th><th class="text-center">Selisih Volume</th>
+                                        <th class="text-center">Total Selisih</th><th class="text-center">Desain</th>
+                                        <th class="text-center">Kualitas</th><th class="text-center">Spesifikasi</th>
+                                        <th class="text-center">Foto</th>
+                                        <th style="padding:10px; min-width: 200px;">Catatan (Kontraktor)</th>
                                         <th class="text-center">Status</th><th class="text-center">Aksi</th>
                                     </tr>
                                 </thead>
@@ -1169,43 +1214,122 @@ const Render = {
                                         if (item.is_il) rowBg = '#fff9c4'; 
                                         else if (item.isSubmitted) rowBg = '#f0fff0';
                                         
-                                        const selisihVal = parseFloat(item.selisih);
+                                        const selisihVal = parseFloat(item.selisih) || 0;
                                         let selisihColor = 'black';
-                                        if (selisihVal < 0) selisihColor = 'red';
-                                        else if (selisihVal > 0) selisihColor = 'green';
+                                        if (selisihVal < 0) selisihColor = '#dc2626';
+                                        else if (selisihVal > 0) selisihColor = '#166534';
+
+                                        const isDisabled = item.isSubmitted ? 'disabled' : '';
+                                        const valDesain = item.desain || '-';
+                                        const valKualitas = item.kualitas || '-';
+                                        const valSpec = item.spesifikasi || '-';
+                                        const status = String(item.approval_status || '').toLowerCase();
+                                        const isRejected = status === 'rejected';
+                                        const canFix = isRejected;
 
                                         return `
                                         <tr style="border-bottom:1px solid #ddd; background:${rowBg}">
+                                            <td style="padding:10px; font-weight:600; color:#475569;">${item.kategori_pekerjaan}</td>
                                             <td style="padding:10px;">
-                                                ${item.kategori_pekerjaan}
-                                                ${item.is_il ? '<br><span class="badge" style="background:#ffeb3b; color:#000; font-size:9px;">Instruksi Lapangan</span>' : ''}
+                                                ${item.jenis_pekerjaan}
+                                                ${item.is_il ? '<br><span class="badge" style="background:#ffeb3b; color:#000; font-size:10px;">Instruksi Lapangan</span>' : ''}
                                             </td>
-                                            <td style="padding:10px;">${item.jenis_pekerjaan}</td>
-                                            <td class="text-center">${item.vol_rab}</td><td class="text-center">${item.satuan}</td>
-                                            <td class="text-right">${formatRupiah(item.harga_material)}</td><td class="text-right">${formatRupiah(item.harga_upah)}</td>
-                                            
+
+                                            <td class="text-center">${item.vol_rab}</td>
+                                            <td class="text-center">${item.satuan}</td>
+                                            <td class="text-right">${formatRupiah(item.harga_material)}</td>
+                                            <td class="text-right">${formatRupiah(item.harga_upah)}</td>
+
                                             <td class="text-center">
-                                                <input type="number" class="form-input vol-input" data-id="${item.id}" value="${item.volume_akhir}" 
-                                                style="width:80px; text-align:center;" ${item.isSubmitted?'disabled':''}>
+                                                <input type="number" step="0.01" class="form-input vol-input" 
+                                                    data-id="${item.id}" 
+                                                    value="${item.volume_akhir}" 
+                                                    placeholder="0"
+                                                    style="min-width:80px; text-align:center;" 
+                                                    ${isDisabled}>
                                             </td>
-                                            
+
                                             <td class="text-center font-bold" id="selisih-${item.id}" style="color:${selisihColor}">
-                                                ${(item.volume_akhir!=='') ? item.selisih : '-'}
+                                                ${item.selisih}
                                             </td>
-                                            
-                                            <td class="text-right font-bold" id="total-${item.id}" style="color:${item.total_harga<0?'red':'black'}">
+                                            <td class="text-right font-bold" id="total-${item.id}" style="color:${item.total_harga < 0 ? '#dc2626' : 'inherit'}">
                                                 ${formatRupiah(item.total_harga)}
                                             </td>
-                                            
+
                                             <td class="text-center">
-                                                ${item.foto_url ? `<a href="${item.foto_url}" target="_blank">Lihat</a>` : 
-                                                (!item.isSubmitted ? `<input type="file" class="file-input" data-id="${item.id}" id="f-${item.id}" hidden><label for="f-${item.id}" class="btn btn-sm btn-outline">Upload</label>`:'-')}
+                                                <select class="form-select design-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
+                                                    <option value="-" ${valDesain === '-' ? 'selected' : ''}>-</option>
+                                                    <option value="Sesuai" ${valDesain === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
+                                                    <option value="Tidak Sesuai" ${valDesain === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
+                                                </select>
                                             </td>
-                                            <td>${item.catatan||'-'}</td>
-                                            <td class="text-center"><span class="badge badge-success">${item.approval_status||'-'}</span></td>
+
                                             <td class="text-center">
-                                                ${!item.isSubmitted ? `<button class="btn btn-primary btn-sm save-btn" data-id="${item.id}">Simpan</button>` : 
-                                                item.approval_status==='REJECTED' ? `<button class="btn btn-warning btn-sm perbaiki-btn" data-id="${item.id}">Perbaiki</button>` : 'Saved'}
+                                                <select class="form-select quality-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
+                                                    <option value="-" ${valKualitas === '-' ? 'selected' : ''}>-</option>
+                                                    <option value="Baik" ${valKualitas === 'Baik' ? 'selected' : ''}>Baik</option>
+                                                    <option value="Tidak Baik" ${valKualitas === 'Tidak Baik' ? 'selected' : ''}>Tidak Baik</option>
+                                                </select>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <select class="form-select spec-select" data-id="${item.id}" style="font-size: 0.85rem; padding: 6px;" ${isDisabled}>
+                                                    <option value="-" ${valSpec === '-' ? 'selected' : ''}>-</option>
+                                                    <option value="Sesuai" ${valSpec === 'Sesuai' ? 'selected' : ''}>Sesuai</option>
+                                                    <option value="Tidak Sesuai" ${valSpec === 'Tidak Sesuai' ? 'selected' : ''}>Tidak Sesuai</option>
+                                                </select>
+                                            </td>
+
+                                            <td class="text-center">
+                                                ${item.foto_url ? 
+                                                    `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` : 
+                                                    `<label class="btn btn-outline" style="padding:4px 8px; font-size:12px; cursor:pointer;">
+                                                        Upload <input type="file" class="file-input" data-id="${item.id}" accept="image/*" style="display:none;" ${isDisabled}>
+                                                    </label>`
+                                                }
+                                            </td>
+                                            
+                                            <td style="padding: 8px;">
+                                                <div style="
+                                                    background: #f8fafc;
+                                                    border: 1px solid #e2e8f0;
+                                                    border-radius: 6px;
+                                                    padding: 8px 10px;
+                                                    font-size: 0.85rem;
+                                                    color: #334155;
+                                                    min-width: 200px; 
+                                                    max-height: 80px;
+                                                    overflow-y: auto;
+                                                    white-space: pre-wrap;
+                                                    line-height: 1.4;
+                                                ">
+                                                    ${item.catatan && item.catatan !== '-' ? item.catatan : '<span style="color:#94a3b8; font-style:italic;">Tidak ada catatan</span>'}
+                                                </div>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <span class="badge ${item.approval_status === 'Approved' ? 'badge-success' : (item.approval_status === 'Rejected' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.approval_status || 'Pending'}
+                                                </span>
+                                            </td>
+
+                                            <td class="text-center">
+                                                ${!item.isSubmitted ? 
+                                                    // KONDISI 1: Belum Submit -> Muncul Tombol Simpan
+                                                    `<button class="btn btn-primary save-btn" 
+                                                        data-id="${item.id}" 
+                                                        style="font-size:12px; padding:6px 12px;">Simpan</button>` 
+                                                    : 
+                                                    (status === 'rejected' ? 
+                                                        // KONDISI 2: Rejected -> Muncul Tombol Perbaiki
+                                                        `<button class="btn btn-secondary perbaiki-btn" 
+                                                            data-id="${item.id}" 
+                                                            style="font-size:12px; padding:6px 10px;">Perbaiki</button>` 
+                                                        : 
+                                                        // KONDISI 3: Pending / Approved -> Hilangkan Tombol (Tampil strip)
+                                                        `<span style="color:#94a3b8;">-</span>`
+                                                    )
+                                                }
                                             </td>
                                         </tr>
                                     `}).join('')}
@@ -1337,6 +1461,41 @@ const Render = {
                     }
                 });
 
+                // 1. Listener untuk Dropdown Desain
+                container.querySelectorAll('.design-select').forEach(sel => {
+                    sel.addEventListener('change', (e) => {
+                        const id = parseInt(e.target.getAttribute('data-id')); // Ambil ID item
+                        const val = e.target.value; // Ambil nilai yang dipilih (Sesuai/Tidak Sesuai)
+                        
+                        // Cari item yang sesuai di memori (AppState) dan update datanya
+                        const item = AppState.opnameItems.find(i => i.id === id);
+                        if(item) {
+                            item.desain = val; // Simpan ke memori
+                            console.log(`Item ${id} Desain diubah menjadi: ${val}`); // Cek di console
+                        }
+                    });
+                });
+
+                // 2. Listener untuk Dropdown Kualitas
+                container.querySelectorAll('.quality-select').forEach(sel => {
+                    sel.addEventListener('change', (e) => {
+                        const id = parseInt(e.target.getAttribute('data-id'));
+                        const val = e.target.value;
+                        const item = AppState.opnameItems.find(i => i.id === id);
+                        if(item) item.kualitas = val;
+                    });
+                });
+
+                // 3. Listener untuk Dropdown Spesifikasi
+                container.querySelectorAll('.spec-select').forEach(sel => {
+                    sel.addEventListener('change', (e) => {
+                        const id = parseInt(e.target.getAttribute('data-id'));
+                        const val = e.target.value;
+                        const item = AppState.opnameItems.find(i => i.id === id);
+                        if(item) item.spesifikasi = val;
+                    });
+                });
+
                 container.querySelectorAll('.save-btn').forEach(btn => {
                     btn.onclick = async () => {
                         /* Logic Simpan Sama */
@@ -1361,7 +1520,11 @@ const Render = {
                                 harga_upah: item.harga_upah,
                                 total_harga_akhir: item.total_harga,
                                 lingkup_pekerjaan: AppState.selectedLingkup,
-                                is_il: item.is_il
+                                is_il: item.is_il,
+                                desain: item.desain || '-',
+                                kualitas: item.kualitas || '-',
+                                spesifikasi: item.spesifikasi || '-',
+                                catatan: item.catatan || '-'
                             };
                             await fetch(`${API_BASE_URL}/api/opname/item/submit`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
                             item.isSubmitted=true; item.approval_status="Pending";
@@ -1413,6 +1576,7 @@ const Render = {
         }
 
         if (!AppState.selectedLingkup) {
+            // ... (Kode pemilihan lingkup biarkan sama seperti sebelumnya) ...
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
                     <div class="card text-center" style="max-width:600px; margin:0 auto;">
@@ -1478,7 +1642,11 @@ const Render = {
                     ...task, 
                     total_harga, 
                     vol_akhir_num: volAkhirNum, 
-                    harga_satuan: hargaMaterial + hargaUpah 
+                    harga_satuan: hargaMaterial + hargaUpah,
+                    // Pastikan field ini ada
+                    desain: task.desain || '-',
+                    kualitas: task.kualitas || '-',
+                    spesifikasi: task.spesifikasi || '-'
                 };
             });
 
@@ -1507,6 +1675,11 @@ const Render = {
                                         <th style="padding:12px;">Kategori</th>
                                         <th style="padding:12px;">Jenis Pekerjaan</th>
                                         <th class="text-center">Vol Akhir</th>
+                                        
+                                        <th class="text-center">Desain</th>
+                                        <th class="text-center">Kualitas</th>
+                                        <th class="text-center">Spesifikasi</th>
+                                        
                                         <th class="text-center">Status</th>
                                         <th class="text-center">Tgl Submit</th>
                                         <th class="text-center">PIC</th>
@@ -1515,7 +1688,6 @@ const Render = {
                                 </thead>
                                 <tbody>
                                     ${items.map((item, idx) => {
-                                        // --- LOGIKA BARU: Warna Kuning untuk IL ---
                                         const rowBg = item.is_il ? '#fff9c4' : 'transparent';
                                         
                                         return `
@@ -1528,6 +1700,23 @@ const Render = {
                                             <td class="text-center font-bold">
                                                 ${item.volume_akhir} ${item.satuan}
                                             </td>
+
+                                            <td class="text-center">
+                                                <span class="badge ${item.desain === 'Sesuai' ? 'badge-success' : (item.desain === 'Tidak Sesuai' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.desain}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge ${item.kualitas === 'Baik' ? 'badge-success' : (item.kualitas === 'Tidak Baik' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.kualitas}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge ${item.spesifikasi === 'Sesuai' ? 'badge-success' : (item.spesifikasi === 'Tidak Sesuai' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.spesifikasi}
+                                                </span>
+                                            </td>
+
                                             <td class="text-center">
                                                 <span class="badge badge-success" style="font-size:11px;">${item.approval_status || 'Approved'}</span>
                                             </td>
@@ -1634,12 +1823,16 @@ const Render = {
                         <div id="approval-message" style="display:none; padding:10px; border-radius:8px; margin-bottom:15px;"></div>
 
                         <div class="table-container">
-                            <table style="width:100%; min-width:1000px;">
-                                <thead>
+                            <table style="width:100%; min-width:1200px;"> <thead>
                                     <tr style="background:#f2f2f2;">
                                         <th style="padding:12px;">Kategori</th>
                                         <th style="padding:12px;">Jenis Pekerjaan</th>
                                         <th style="padding:12px; text-align:center;">Volume Akhir</th>
+                                        
+                                        <th class="text-center" style="width: 10%;">Desain</th>
+                                        <th class="text-center" style="width: 10%;">Kualitas</th>
+                                        <th class="text-center" style="width: 10%;">Spesifikasi</th>
+                                        
                                         <th style="padding:12px; text-align:center;">Foto</th>
                                         <th style="padding:12px;">PIC</th>
                                         <th style="padding:12px;">Waktu Submit</th>
@@ -1649,12 +1842,29 @@ const Render = {
                                 </thead>
                                 <tbody id="approval-tbody">
                                     ${pendingItems.length === 0 ? 
-                                        '<tr><td colspan="8" class="text-center" style="padding:20px;">Tidak ada opname yang menunggu persetujuan.</td></tr>' : 
+                                        '<tr><td colspan="11" class="text-center" style="padding:20px;">Tidak ada opname yang menunggu persetujuan.</td></tr>' : 
                                         pendingItems.map(item => `
                                         <tr id="row-${item.item_id}" style="border-bottom:1px solid #ddd;">
                                             <td>${item.kategori_pekerjaan}</td>
                                             <td>${item.jenis_pekerjaan}</td>
                                             <td class="text-center"><b>${item.volume_akhir}</b> ${item.satuan || ''}</td>
+                                            
+                                            <td class="text-center">
+                                                <span class="badge ${item.desain === 'Sesuai' ? 'badge-success' : (item.desain === 'Tidak Sesuai' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.desain || '-'}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge ${item.kualitas === 'Baik' ? 'badge-success' : (item.kualitas === 'Tidak Baik' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.kualitas || '-'}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge ${item.spesifikasi === 'Sesuai' ? 'badge-success' : (item.spesifikasi === 'Tidak Sesuai' ? 'badge-danger' : 'badge-neutral')}">
+                                                    ${item.spesifikasi || '-'}
+                                                </span>
+                                            </td>
+                                            
                                             <td class="text-center">
                                                 ${item.foto_url ? `<a href="${item.foto_url}" target="_blank" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Lihat</a>` : '<span style="color:#999;">-</span>'}
                                             </td>

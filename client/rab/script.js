@@ -22,8 +22,7 @@ const CONFIG = {
         "INSTALASI", "FIXTURE", "PEKERJAAN TAMBAHAN", "PEKERJAAN SBO"
     ],
     BRANCH_GROUPS: {
-        "BANDUNG 1": ["BANDUNG 1", "BANDUNG 2"],
-        "BANDUNG 2": ["BANDUNG 1", "BANDUNG 2"],
+        "BANDUNG": ["BANDUNG"],
         "LOMBOK": ["LOMBOK", "SUMBAWA"],
         "SUMBAWA": ["LOMBOK", "SUMBAWA"],
         "MEDAN": ["MEDAN", "ACEH"],
@@ -45,7 +44,7 @@ const CONFIG = {
         "BALARAJA": "TZ01", "SIDOARJO": "UZ01", "MEDAN": "WZ01", "BOGOR": "XZ01",
         "JEMBER": "YZ01", "BALI": "QZ01", "PALEMBANG": "PZ01", "KLATEN": "OZ01",
         "MAKASSAR": "RZ01", "PLUMBON": "VZ01", "PEKANBARU": "1AZ1", "JAMBI": "1DZ1",
-        "HEAD OFFICE": "Z001", "BANDUNG 1": "BZ01", "BANDUNG 2": "NZ01", "BEKASI": "CZ01",
+        "HEAD OFFICE": "Z001", "BANDUNG": "BZ01", "BEKASI": "CZ01",
         "CILACAP": "IZ01", "CILEUNGSI": "JZ01", "SEMARANG": "HZ01", "CIKOKOL": "KZ01",
         "LAMPUNG": "LZ01", "MALANG": "MZ01", "MANADO": "1YZ1", "BATAM": "2DZ1",
         "MADIUN": "2MZ1"
@@ -183,7 +182,7 @@ const TableManager = {
         if (!selectEl) return;
 
         const dataSource = (scope === "Sipil") ? State.categorizedPrices.categorizedSipilPrices :
-                           (scope === "ME") ? State.categorizedPrices.categorizedMePrices : {};
+                            (scope === "ME") ? State.categorizedPrices.categorizedMePrices : {};
         const itemsInCategory = dataSource ? (dataSource[category] || []) : [];
 
         // Get currently selected values to prevent duplicates
@@ -803,10 +802,6 @@ async function init() {
     // Logic for User Cabang Role
     if (userCabang === 'CIKOKOL') {
         const opt = document.createElement('option'); opt.value = "KZ01"; opt.textContent = "CIKOKOL (KZ01)"; locSelect.appendChild(opt);
-    } else if (userCabang === 'BANDUNG') {
-        [{n:"BANDUNG 1",c:"BZ01"}, {n:"BANDUNG 2",c:"NZ01"}].forEach(b => {
-            const opt = document.createElement('option'); opt.value = b.c; opt.textContent = `${b.n} (${b.c})`; locSelect.appendChild(opt);
-        });
     } else {
         const ulokCode = CONFIG.BRANCH_TO_ULOK[userCabang];
         if (ulokCode) {
