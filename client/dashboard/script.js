@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isHeadOffice && !isContractor) {
         console.log("User HEAD OFFICE (Internal) terdeteksi. Menambahkan menu khusus.");
         
-        allowedMenus.push('menu-userlog');
+        allowedMenus.push('menu-userlog', 'menu-resend');
     } 
 
     // Debugging
