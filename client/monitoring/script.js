@@ -156,12 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
                     const nilaiSpk = formatRupiah(parseCurrency(item["Nominal SPK"]));
                     const ulok = item["Nomor Ulok"] || '-';
-                    
-                    // BARU: Tambahkan data-index
-                    const rawIndex = filteredData.indexOf(item);
-                    
                     return `
-                    <div class="store-item" data-index="${rawIndex}">
+                    <div class="store-item" style="cursor: default;">
                         <div class="store-info">
                             <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
                             <span>Ulok: ${ulok} | ${item.Cabang || '-'}</span>
@@ -243,7 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!storeItem) return;
             
             const itemIndex = storeItem.getAttribute('data-index');
-            if(itemIndex) renderStoreDetail(itemIndex);
+            // KODE YANG DIUBAH: Pastikan data-index ada (!== null) sebelum memanggil render detail
+            if(itemIndex !== null) {
+                renderStoreDetail(itemIndex);
+            }
         });
     }
 
