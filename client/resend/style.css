@@ -1,6 +1,6 @@
 :root {
     --primary-color: #005a9e;
-    --background-color: #f4f7f6;
+    --background-color: #f8fafc; /* Disamakan dengan Opname background */
     --card-background: #ffffff;
     --text-color: #2d3748;
     --subtle-text-color: #718096;
@@ -10,104 +10,72 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--background-color);
     color: var(--text-color);
     margin: 0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* ================= ANIMATIONS (Sesuai Dashboard SPARTA) ================= */
-@keyframes logoSlideIn {
-    0% { opacity: 0; transform: translateX(-100px) rotate(-20deg); }
-    60% { opacity: 1; transform: translateX(10px) rotate(5deg); }
-    80% { transform: translateX(-5px) rotate(-2deg); }
-    100% { opacity: 1; transform: translateX(0) rotate(0deg); }
-}
-
-@keyframes logoPopOut {
-    0% { opacity: 0; transform: scale(0) rotate(-180deg); }
-    60% { opacity: 1; transform: scale(1.2) rotate(10deg); }
-    80% { transform: scale(0.9) rotate(-5deg); }
-    100% { opacity: 1; transform: scale(1) rotate(0deg); }
-}
-
-@keyframes fadeInSlide {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* ================= HEADER STYLES ================= */
-.main-header {
+/* ================= HEADER Sesuai OPNAME ================= */
+.app-header {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    text-align: center;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    color: white;
-    border-bottom: 1px solid var(--border-color);
     position: relative;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+    height: 80px;
+    z-index: 50;
 }
 
 .header-logo {
-    height: 75px;
-    animation: logoSlideIn 1.2s ease-out forwards;
-    opacity: 0;
-    margin-right: 1rem;
-}
-
-.building-logo {
-    height: 75px;
-    animation: logoPopOut 1.5s ease-out forwards;
-    opacity: 0;
-    margin-left: 1rem;
-}
-
-.main-header h1 {
-    font-size: 2rem;
-    font-weight: 600;
-    color: white;
-    animation: fadeInSlide 1s ease-out 0.5s forwards;
-    opacity: 0;
-    margin: 0;
-}
-
-/* Style tombol "Kembali" disamakan persis dengan tombol "Logout" */
-.btn-back-form {
+    width: 120px;
+    height: auto;
     position: absolute;
-    left: 30px; /* Di kiri, karena logout di kanan */
+    left: 25px;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    color: white;
-    padding: 0.6rem 1.2rem;
-    border-radius: 50px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-decoration: none;
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.header-logout {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     gap: 8px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
     backdrop-filter: blur(4px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.btn-back-form:hover {
-    background: #ffffff;
-    color: #b91c1c;
-    transform: translateY(-50%) scale(1.05);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-    border-color: #ffffff;
-}
-
-.btn-back-form:active {
-    transform: translateY(-50%) scale(0.95);
+.header-logout:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.02);
+    color: white;
 }
 
 /* ================= CONTENT & CARD STYLES ================= */
@@ -119,14 +87,15 @@ body {
 
 .card-custom {
     border: none;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Shadow Opname */
     background-color: var(--card-background);
     transition: box-shadow 0.3s ease;
+    border: 1px solid var(--border-color);
 }
 
 .card-custom:hover {
-    box-shadow: 0 15px 35px rgba(185, 28, 28, 0.08);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 /* ================= TAB STYLES ================= */
@@ -156,17 +125,17 @@ body {
 
 /* ================= INPUT STYLES ================= */
 .input-group-custom .form-control {
-    border-radius: 10px;
-    border: 1.5px solid var(--border-color);
-    padding: 0.8rem 1rem;
+    border-radius: 8px; /* Mengikuti radius Opname */
+    border: 1px solid #cbd5e1;
+    padding: 0.85rem 1rem;
     font-size: 1rem;
     color: var(--text-color);
-    transition: all 0.3s ease;
+    transition: all 0.2s;
 }
 
 .input-group-custom .form-control:focus {
-    border-color: var(--red-sparta-light);
-    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+    border-color: var(--red-sparta);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
     outline: none;
 }
 
@@ -178,21 +147,25 @@ body {
 
 /* ================= BUTTON STYLES ================= */
 .btn-custom {
-    background: linear-gradient(135deg, var(--red-sparta-light) 0%, var(--red-sparta) 100%);
+    background: var(--red-sparta);
     color: white;
     font-weight: 600;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px; /* Mengikuti radius Opname */
     font-size: 1.1rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.2);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .btn-custom:hover {
-    background: linear-gradient(135deg, #ef4444 0%, var(--red-sparta-light) 100%);
+    background: var(--red-sparta-light);
     transform: translateY(-2px);
-    box-shadow: 0 8px 15px rgba(220, 38, 38, 0.3);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
     color: white;
+}
+
+.btn-custom:active { 
+    transform: scale(0.98); 
 }
 
 .btn-custom:disabled {
@@ -203,47 +176,45 @@ body {
 
 /* ================= ALERT STYLES ================= */
 #alertBox {
-    border-radius: 12px;
+    border-radius: 8px;
     font-weight: 500;
     font-size: 0.95rem;
     border: 1px solid transparent;
 }
 
-/* ================= MOBILE RESPONSIVE ================= */
+/* ================= MOBILE RESPONSIVE (OPNAME) ================= */
 @media (max-width: 768px) {
-    .main-header {
+    .app-header {
         flex-direction: column;
         height: auto;
         padding: 1.5rem 1rem;
         gap: 1rem;
-        text-align: center;
+        justify-content: center;
     }
     
-    .header-logo, .building-logo {
-        height: 50px;
-        margin: 0;
-        transform: none !important;
-        opacity: 1 !important;
-        animation: none;
-    }
-
-    .main-header h1 {
-        font-size: 1.5rem;
-        margin: 0.5rem 0;
-        opacity: 1 !important;
-        animation: none;
-    }
-    
-    .btn-back-form {
+    .header-logo {
         position: static;
         transform: none;
-        margin-top: 1rem;
-        width: 100%;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.25);
+        width: 100px;
+        margin-bottom: 5px;
+        left: auto;
+        top: auto;
+    }
+
+    .app-header h1 {
+        font-size: 1.5rem;
+        margin: 0;
     }
     
-    .btn-back-form:hover {
+    .header-logout {
+        position: static;
         transform: none;
+        right: auto;
+        top: auto;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-top: 5px;
+        padding: 10px;
     }
 }
