@@ -289,6 +289,11 @@ select:hover {
     box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
+#card-avg-cost-m2-wrapper:hover {
+    border-color: #8b5cf6;
+    box-shadow: 0 20px 25px -5px rgba(139, 92, 246, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
 .stat-card::after {
     content: '';
     position: absolute;
