@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoring Dashboard - SPARTA</title>
+    <title>Monitoring Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="../../assets/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="style.css">
@@ -57,7 +57,7 @@
                 </div>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card" id="card-total-spk-wrapper" style="cursor: pointer;">
                 <div class="stat-icon" style="background: #fff7ed; color: #c05621;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
@@ -68,7 +68,7 @@
                 </div>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card" id="card-total-jhk-wrapper" style="cursor: pointer;">
                 <div class="stat-icon" style="background: #f0fff4; color: #2f855a;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                 </div>
@@ -81,7 +81,7 @@
 
             <div class="stat-card">
                 <div class="stat-icon" style="background: #fff5f5; color: #e53e3e;">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Rata-rata Keterlambatan</div>
@@ -92,7 +92,7 @@
 
             <div class="stat-card">
                 <div class="stat-icon" style="background: #fee2e2; color: #b91c1c;">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Total Denda</div>
@@ -115,13 +115,13 @@
             <div id="projectModal" class="modal-overlay">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2>Detail Status Proyek</h2>
+                        <h2 id="modalMainTitle">Detail Status Proyek</h2>
                         <button id="closeModal" class="btn-close">&times;</button>
                     </div>
                     <div class="modal-body">
                         <div id="modalSummaryView">
                             <div id="modalStatsGrid" class="modal-stats-grid">
-                                </div>
+                            </div>
                         </div>
                         <div id="modalListView" style="display: none;">
                             <button id="btnBackToSummary" class="btn-back-modal">
@@ -130,6 +130,15 @@
                             </button>
                             <h3 id="listStatusTitle" style="margin-top: 0; margin-bottom: 15px; font-size: 16px; color: #1e293b;">Daftar Toko</h3>
                             <div id="storeListContainer" class="store-list-container">
+                            </div>
+                        </div>
+                        <div id="modalStoreDetailView" style="display: none;">
+                            <button id="btnBackToList" class="btn-back-modal">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                                Kembali ke Daftar Toko
+                            </button>
+                            <h3 id="detailStoreTitle" style="margin-top: 0; margin-bottom: 15px; font-size: 16px; color: #1e293b;">Detail Toko</h3>
+                            <div id="storeDetailContainer" class="store-detail-container">
                                 </div>
                         </div>
                     </div>

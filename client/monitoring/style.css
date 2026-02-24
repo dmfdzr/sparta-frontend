@@ -263,16 +263,31 @@ select:hover {
 
 .stat-card[style*="cursor: pointer"]:hover {
     transform: translateY(-5px) scale(1.03);
+}
+
+/* Efek "membal" saat ditekan */
+.stat-card[style*="cursor: pointer"]:active {
+    transform: translateY(0) scale(0.97);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Warna Hover Spesifik untuk Card Total Proyek (Biru) */
+#card-total-proyek-wrapper:hover {
     border-color: #3b82f6;
     box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.stat-card[style*="cursor: pointer"]:active {
-    transform: translateY(0) scale(0.97);
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1); /* Transisi lebih cepat saat ditekan */
+/* Warna Hover Spesifik untuk Card Total Nilai SPK (Oranye) */
+#card-total-spk-wrapper:hover {
+    border-color: #f97316;
+    box-shadow: 0 20px 25px -5px rgba(249, 115, 22, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
+#card-total-jhk-wrapper:hover {
+    border-color: #10b981;
+    box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
 
 .stat-card::after {
     content: '';
@@ -342,7 +357,7 @@ select:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(15, 23, 42, 0.6); /* Sedikit lebih gelap agar fokus */
+    background: rgba(15, 23, 42, 0.6); 
     z-index: 1000;
     align-items: center;
     justify-content: center;
@@ -356,7 +371,6 @@ select:hover {
     width: 90%;
     max-width: 600px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    /* Animasi membal saat modal terbuka */
     animation: popInBouncy 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
 }
 
@@ -365,6 +379,12 @@ select:hover {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #1e293b;
 }
 
 .btn-close {
@@ -385,7 +405,7 @@ select:hover {
 .btn-close:hover {
     background: #fee2e2;
     color: #ef4444;
-    transform: rotate(90deg); /* Animasi putar yang asik saat di-hover */
+    transform: rotate(90deg); 
 }
 
 .modal-stats-grid {
@@ -411,7 +431,7 @@ select:hover {
 .modal-stat-item:hover {
     background: #eff6ff;
     border-color: #bfdbfe;
-    transform: translateX(5px); /* Bergeser sedikit saat di-hover */
+    transform: translateX(5px); 
 }
 
 .modal-stat-item:nth-child(1) { animation-delay: 0.1s; }
@@ -461,7 +481,6 @@ select:hover {
     padding-right: 5px;
 }
 
-/* Kustomisasi Scrollbar agar rapi */
 .store-list-container::-webkit-scrollbar {
     width: 6px;
 }
@@ -480,6 +499,7 @@ select:hover {
     align-items: center;
     transition: var(--transition-smooth);
     animation: fadeIn 0.3s ease-out forwards;
+    cursor: pointer;
 }
 
 .store-item:hover {
@@ -507,6 +527,64 @@ select:hover {
     border-radius: 6px;
     font-weight: 600;
     white-space: nowrap;
+}
+
+/* ================= MODAL DETAIL VIEW STYLES ================= */
+.store-item {
+    cursor: pointer; /* Pastikan cursor jadi tangan saat hover di list toko */
+}
+
+.store-detail-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.store-detail-container::-webkit-scrollbar {
+    width: 6px;
+}
+.store-detail-container::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #cbd5e0;
+}
+
+/* Hilangkan garis bawah pada 2 item terakhir agar rapi */
+.detail-item:nth-last-child(1),
+.detail-item:nth-last-child(2) {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 700;
+    word-break: break-word;
 }
 
 /* ==========================================================================
@@ -618,6 +696,17 @@ select:hover {
     
     .chart-card.large {
         min-height: 320px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .detail-grid {
+        grid-template-columns: 1fr; /* Jadi 1 kolom di HP */
+        gap: 12px;
+    }
+    .detail-item:nth-last-child(2) {
+        border-bottom: 1px dashed #cbd5e0;
+        padding-bottom: 12px;
     }
 }
 

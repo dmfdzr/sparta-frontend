@@ -651,7 +651,7 @@ const PDFGenerator = {
         });
 
         const totalTambahBulat = Math.floor(totalTambah / 10000) * 10000;
-        const totalKurangBulat = Math.ceil(totalKurang / 10000) * 10000;
+        const totalKurangBulat = Math.floor(totalKurang / 10000) * 10000;
         const ppnTambah = totalTambahBulat * 0.11;
         const ppnKurang = totalKurangBulat * 0.11;
         const totalTambahPPN = totalTambahBulat + ppnTambah;
