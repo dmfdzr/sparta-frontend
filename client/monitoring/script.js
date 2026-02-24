@@ -31,11 +31,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     const projectModal = document.getElementById('projectModal');
     const closeModal = document.getElementById('closeModal');
+    
+    // Deklarasi Card Wrappers
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
     const totalSpkCard = document.getElementById('card-total-spk-wrapper'); 
     const totalJhkCard = document.getElementById('card-total-jhk-wrapper'); 
     const avgCostM2Card = document.getElementById('card-avg-cost-m2-wrapper'); 
-    const avgKeterlambatanCard = document.getElementById('card-avg-keterlambatan-wrapper'); // BARU
+    const avgKeterlambatanCard = document.getElementById('card-avg-keterlambatan-wrapper');
+    const nilaiTokoCard = document.getElementById('card-nilai-toko-wrapper');
 
     // Variabel View List Toko & Detail
     const modalMainTitle = document.getElementById('modalMainTitle'); 
@@ -298,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
-    // --- FUNGSI 5: Modal untuk Keterlambatan (BARU) ---
+    // --- FUNGSI 5: Modal untuk Keterlambatan ---
     const showKeterlambatanDetails = () => {
         if (!filteredData || filteredData.length === 0) return;
         currentModalContext = 'KETERLAMBATAN'; 
@@ -306,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalMainTitle) modalMainTitle.textContent = "Detail Keterlambatan Proyek";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
 
-        // Filter toko yang punya Keterlambatan > 0, lalu urutkan
         const delayItems = filteredData.filter(item => {
             const telat = parseFloat(item["Keterlambatan"]) || 0;
             return telat > 0;
@@ -351,8 +353,54 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
+    // --- FUNGSI 6: Modal untuk Nilai Toko (BARU) ---
+    const showNilaiTokoDetails = () => {
+        if (!filteredData || filteredData.length === 0) return;
+        currentModalContext = 'NILAI_TOKO'; 
 
-    // --- FUNGSI 6: Render Detail Toko Spesifik (Diperbarui) ---
+        if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai Toko";
+        if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
+
+        const ntItems = filteredData.filter(item => parseCurrency(item["Nilai Toko"]) > 0)
+            .sort((a, b) => parseCurrency(b["Nilai Toko"]) - parseCurrency(a["Nilai Toko"]));
+
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Proyek & Nilai Toko (${ntItems.length})`;
+
+        if (storeListContainer) {
+            if (ntItems.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Nilai Toko.</div>';
+            } else {
+                storeListContainer.innerHTML = ntItems.map(item => {
+                    const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
+                    const ulok = item["Nomor Ulok"] || '-';
+                    const rawIndex = filteredData.indexOf(item);
+                    const nilaiToko = formatRupiah(parseCurrency(item["Nilai Toko"]));
+
+                    return `
+                    <div class="store-item" data-index="${rawIndex}">
+                        <div class="store-info">
+                            <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
+                            <span>Ulok: ${ulok} | ${item.Cabang || '-'}</span>
+                        </div>
+                        <div class="store-badge" style="background:#fef3c7; color:#d97706; border: 1px solid #fde68a; font-size: 13px;">
+                            ${nilaiToko}
+                        </div>
+                    </div>
+                `}).join('');
+            }
+        }
+
+        if (modalSummaryView && modalListView && modalStoreDetailView) {
+            modalSummaryView.style.display = 'none';
+            modalStoreDetailView.style.display = 'none';
+            modalListView.style.display = 'block';
+        }
+
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
+
+    // --- FUNGSI 7: Render Detail Toko Spesifik (Diperbarui dengan Nilai Toko) ---
     const renderStoreDetail = (index) => {
         const item = filteredData[index];
         if (!item) return;
@@ -410,7 +458,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             } else if (currentModalContext === 'KETERLAMBATAN') {
-                // Tampilan Detail khusus untuk Keterlambatan (BARU)
                 const akhirSpk = item["Akhir_SPK"] || '-';
                 const tambahSpk = item["tambah_spk"] || '0';
                 const tglSerahTerima = item["tanggal_serah_terima"] || item["Tgl Serah Terima"] || '-';
@@ -425,6 +472,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="detail-item"><span class="detail-label">Tambah SPK</span><span class="detail-value">${tambahSpk} Hari</span></div>
                         
                         <div class="detail-item"><span class="detail-label">Tanggal Serah Terima</span><span class="detail-value" style="color:#2f855a;">${tglSerahTerima}</span></div>
+                        <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${item.Cabang || '-'}</span></div>
+                    </div>
+                `;
+            } else if (currentModalContext === 'NILAI_TOKO') {
+                const opnameFinal = formatRupiah(parseCurrency(item["Grand Total Opname Final"]));
+                const nilaiToko = formatRupiah(parseCurrency(item["Nilai Toko"]));
+
+                storeDetailContainer.innerHTML = `
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="detail-label">Grand Total Opname Final</span><span class="detail-value" style="color:#2f855a; font-size: 16px;">${opnameFinal}</span></div>
+                        <div class="detail-item"><span class="detail-label">Nilai Toko</span><span class="detail-value" style="color:#d97706; font-size: 16px;">${nilaiToko}</span></div>
+                        
+                        <div class="detail-item"><span class="detail-label">Kode Toko / Ulok</span><span class="detail-value">${item.Kode_Toko || '-'} / ${item["Nomor Ulok"] || '-'}</span></div>
                         <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${item.Cabang || '-'}</span></div>
                     </div>
                 `;
@@ -456,12 +516,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Event Listeners untuk interaksi Modal
+    // Event Listeners untuk interaksi Modal Card
     if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
     if(totalSpkCard) totalSpkCard.addEventListener('click', showSpkDetails); 
     if(totalJhkCard) totalJhkCard.addEventListener('click', showJhkDetails); 
     if(avgCostM2Card) avgCostM2Card.addEventListener('click', showAvgCostM2Details); 
-    if(avgKeterlambatanCard) avgKeterlambatanCard.addEventListener('click', showKeterlambatanDetails); // EVENT KLIK BARU
+    if(avgKeterlambatanCard) avgKeterlambatanCard.addEventListener('click', showKeterlambatanDetails); 
+    if(nilaiTokoCard) nilaiTokoCard.addEventListener('click', showNilaiTokoDetails); // EVENT CARD BARU
     
     // Event Delegation: Menangkap klik pada card stat di dalam modal
     if(grid) {
@@ -673,9 +734,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalDenda = 0;
         let totalOpname = 0;
         let totalLuasTerbangun = 0;
+        let totalNilaiToko = 0; // Menampung Nilai Toko
 
         data.forEach(item => {
             totalSPK += parseCurrency(item["Nominal SPK"]);
+            totalNilaiToko += parseCurrency(item["Nilai Toko"]); 
             
             const durasiSpk = parseFloat(item["Durasi SPK"]) || 0;
             const tambahSpk = parseFloat(item["tambah_spk"]) || 0;
@@ -700,6 +763,11 @@ document.addEventListener('DOMContentLoaded', () => {
         animateValue("card-avg-keterlambatan", 0, avgKeterlambatan, animDuration, (val) => val + " Hari");
         animateValue("card-total-denda", 0, totalDenda, animDuration, formatRupiah);
         animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
+        
+        // Animasi untuk Card Nilai Toko yang baru
+        if(document.getElementById('card-nilai-toko')) {
+            animateValue("card-nilai-toko", 0, totalNilaiToko, animDuration, formatRupiah);
+        }
     }
 
     initDashboard();
