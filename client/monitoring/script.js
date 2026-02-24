@@ -69,20 +69,30 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         filteredData.forEach(item => {
-            const hasSPK = item["Nominal SPK"] && parseCurrency(item["Nominal SPK"]) > 0;
-            const hasSerahTerima = (item["tanggal_serah_terima"] && item["tanggal_serah_terima"] !== "") || 
-                                   (item["Tgl Serah Terima"] && item["Tgl Serah Terima"] !== "");
-            const hasOpnameFinal = item["Grand Total Opname Final"] && parseCurrency(item["Grand Total Opname Final"]) > 0;
+            // 1. Cek status isian setiap kolom (true jika ada isinya, false jika kosong)
+            const hasPenawaranFinal = item["Total Penawaran Final"] && String(item["Total Penawaran Final"]).trim() !== "";
+            const hasSPK = item["Nominal SPK"] && String(item["Nominal SPK"]).trim() !== "";
+            const hasSerahTerima = (item["tanggal_serah_terima"] && String(item["tanggal_serah_terima"]).trim() !== "") || 
+                                   (item["Tgl Serah Terima"] && String(item["Tgl Serah Terima"]).trim() !== "");
+            const hasOpnameFinal = item["tanggal_opname_final"] && String(item["tanggal_opname_final"]).trim() !== "";
 
+            // 2. Terapkan logika pengelompokan sesuai urutan prioritas
             if (hasOpnameFinal) {
+                // Done: kolom tanggal_opname_final sudah terisi
                 currentGroupedProjects['Done'].push(item);
-            } else if (hasSerahTerima) {
+            } 
+            else if (hasSerahTerima && !hasOpnameFinal) {
+                // Kerja Tambah Kurang: tanggal serah terima sudah terisi & tanggal opname final belum
                 currentGroupedProjects['Kerja Tambah Kurang'].push(item);
-            } else if (hasSPK) {
+            } 
+            else if (hasSPK && !hasSerahTerima) {
+                // Approval SPK & Ongoing: nilai SPK sudah terisi & tanggal serah terima belum
+                currentGroupedProjects['Approval SPK'].push(item);
                 currentGroupedProjects['Ongoing'].push(item);
-            } else if (item["Status RAB"] === "Approved") {
+            } 
+            else if (hasPenawaranFinal && !hasSPK) {
+                // Approval RAB & Proses PJU: penawaran final terisi & nominal SPK belum
                 currentGroupedProjects['Approval RAB'].push(item);
-            } else {
                 currentGroupedProjects['Proses PJU'].push(item);
             }
         });
@@ -95,7 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `).join('');
         }
-
         if(projectModal) projectModal.style.display = 'flex';
     };
 
