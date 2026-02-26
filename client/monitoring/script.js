@@ -54,7 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const grid = document.getElementById('modalStatsGrid');
 
     let currentGroupedProjects = {}; 
-    let currentModalContext = 'PROJECT'; 
+    let currentModalContext = 'PROJECT';
+    let currentSpkGroups = [];
 
     // --- FUNGSI 1: Modal untuk Total Proyek ---
     const showProjectDetails = () => {
@@ -148,30 +149,54 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!filteredData || filteredData.length === 0) return;
         currentModalContext = 'SPK'; 
 
-        if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai SPK";
+        if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai SPK (Grup by Ulok)";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
 
-        const spkItems = filteredData.filter(item => parseCurrency(item["Nominal SPK"]) > 0)
-            .sort((a, b) => parseCurrency(b["Nominal SPK"]) - parseCurrency(a["Nominal SPK"]));
+        // 1. Kelompokkan data berdasarkan Nomor Ulok
+        const groupedSPK = {};
+        filteredData.forEach(item => {
+            const spkVal = parseCurrency(item["Nominal SPK"]);
+            if (spkVal > 0) {
+                const ulok = item["Nomor Ulok"] || 'Tanpa Ulok';
+                if (!groupedSPK[ulok]) {
+                    groupedSPK[ulok] = {
+                        ulok: ulok,
+                        namaToko: item.Nama_Toko || 'Tanpa Nama',
+                        cabang: item.Cabang || '-',
+                        totalSPK: 0,
+                        items: [] 
+                    };
+                }
+                groupedSPK[ulok].totalSPK += spkVal;
+                groupedSPK[ulok].items.push(item); // Simpan rincian Sipil/ME
+            }
+        });
 
-        if(listStatusTitle) listStatusTitle.textContent = `Daftar Proyek & Nilai SPK (${spkItems.length})`;
+        // 2. Ubah object menjadi array & urutkan dari SPK terbesar
+        currentSpkGroups = Object.values(groupedSPK).sort((a, b) => b.totalSPK - a.totalSPK);
+
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Lokasi & Total SPK (${currentSpkGroups.length} Lokasi)`;
 
         if (storeListContainer) {
-            if (spkItems.length === 0) {
+            if (currentSpkGroups.length === 0) {
                 storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data SPK.</div>';
             } else {
-                storeListContainer.innerHTML = spkItems.map(item => {
-                    const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
-                    const nilaiSpk = formatRupiah(parseCurrency(item["Nominal SPK"]));
-                    const ulok = item["Nomor Ulok"] || '-';
+                storeListContainer.innerHTML = currentSpkGroups.map((group, index) => {
+                    const nilaiSpkTotal = formatRupiah(group.totalSPK);
+                    
+                    // Gabungkan teks lingkup (misal: "Sipil & ME")
+                    const lingkupArr = group.items.map(i => i.Lingkup_Pekerjaan).filter(Boolean);
+                    const lingkupText = lingkupArr.join(' & ') || '-';
+
+                    // Menggunakan data-spk-index agar event listner tahu ini mode SPK Group
                     return `
-                    <div class="store-item" style="cursor: default;">
+                    <div class="store-item" data-spk-index="${index}">
                         <div class="store-info">
-                            <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
-                            <span>Ulok: ${ulok} | ${item.Cabang || '-'}</span>
+                            <strong>${group.namaToko} <span style="font-weight: 500; color: #3b82f6;">(${lingkupText})</span></strong>
+                            <span>Ulok: ${group.ulok} | ${group.cabang}</span>
                         </div>
                         <div class="store-badge" style="background:#fff7ed; color:#c05621; border: 1px solid #fed7aa; font-size: 13px;">
-                            ${nilaiSpk}
+                            ${nilaiSpkTotal}
                         </div>
                     </div>
                 `}).join('');
@@ -400,6 +425,47 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
+    const renderSpkDetail = (groupIndex) => {
+        const group = currentSpkGroups[groupIndex];
+        if (!group) return;
+
+        if (detailStoreTitle) {
+            detailStoreTitle.textContent = `Rincian SPK: ${group.namaToko} (Ulok: ${group.ulok})`;
+        }
+
+        if (storeDetailContainer) {
+            const itemSipil = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('sipil'));
+            const itemME = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('me'));
+
+            const spkSipil = itemSipil ? parseCurrency(itemSipil["Nominal SPK"]) : 0;
+            const spkME = itemME ? parseCurrency(itemME["Nominal SPK"]) : 0;
+            const refItem = itemSipil || itemME || group.items[0];
+
+            storeDetailContainer.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Total Akumulasi SPK</span><span class="detail-value" style="color:#c05621; font-size: 16px;">${formatRupiah(group.totalSPK)}</span></div>
+                    <div class="detail-item"><span class="detail-label">Rincian Per Lingkup</span>
+                        <span class="detail-value" style="font-weight: 500; line-height: 1.5;">
+                            Sipil: <strong>${formatRupiah(spkSipil)}</strong> <br>
+                            ME: <strong>${formatRupiah(spkME)}</strong>
+                        </span>
+                    </div>
+                    
+                    <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${group.cabang}</span></div>
+                    <div class="detail-item"><span class="detail-label">Kode Toko / Ulok</span><span class="detail-value">${refItem.Kode_Toko || '-'} / ${group.ulok}</span></div>
+                    
+                    <div class="detail-item"><span class="detail-label">Kontraktor Sipil</span><span class="detail-value">${itemSipil ? itemSipil.Kontraktor || '-' : '-'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Kontraktor ME</span><span class="detail-value">${itemME ? itemME.Kontraktor || '-' : '-'}</span></div>
+                </div>
+            `;
+        }
+
+        if (modalListView && modalStoreDetailView) {
+            modalListView.style.display = 'none';
+            modalStoreDetailView.style.display = 'block';
+        }
+    };
+
 
     // --- FUNGSI 7: Render Detail Toko Spesifik (Diperbarui dengan Nilai Toko) ---
     const renderStoreDetail = (index) => {
@@ -544,6 +610,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const itemIndex = storeItem.getAttribute('data-index');
             if(itemIndex !== null) {
                 renderStoreDetail(itemIndex);
+            }
+
+            const spkIndex = storeItem.getAttribute('data-spk-index');
+            if (spkIndex !== null) {
+                renderSpkDetail(spkIndex);
             }
         });
     }
