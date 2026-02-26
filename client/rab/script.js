@@ -891,7 +891,7 @@ async function init() {
         const hr = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false }).format(now));
         if (hr < 6 || hr >= 20) {
             sessionStorage.clear();
-            alert("Sesi berakhir (06:00 - 21:00 WIB).");
+            alert("Sesi berakhir (06:00 - 20:00 WIB).");
             window.location.href = "/";
         }
     }, 300000);
