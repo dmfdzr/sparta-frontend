@@ -79,14 +79,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. Cek status isian setiap kolom
             const hasStatusRab = item["Status_Rab"] && String(item["Status_Rab"]).trim() !== "";
             const hasPenawaranFinal = item["Total Penawaran Final"] && String(item["Total Penawaran Final"]).trim() !== "";
+            const hasStatus = item["Status"] && String(item["Status"]).trim() !== ""; // Variabel untuk kolom Status
             const hasSPK = item["Nominal SPK"] && String(item["Nominal SPK"]).trim() !== "";
             const hasSerahTerima = (item["tanggal_serah_terima"] && String(item["tanggal_serah_terima"]).trim() !== "") || 
                                    (item["Tgl Serah Terima"] && String(item["Tgl Serah Terima"]).trim() !== "");
             const hasOpnameFinal = item["tanggal_opname_final"] && String(item["tanggal_opname_final"]).trim() !== "";
 
-            // 2. Terapkan logika pengelompokan (dari akhir ke awal)
+            // 2. Terapkan logika pengelompokan (dari akhir ke awal proyek)
             if (hasOpnameFinal) {
-                // Done: tanggal_opname_final sudah terisi
+                // Done: tanggal opname final sudah terisi
                 currentGroupedProjects['Done'].push(item);
             } 
             else if (hasSerahTerima && !hasOpnameFinal) {
@@ -94,12 +95,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentGroupedProjects['Kerja Tambah Kurang'].push(item);
             } 
             else if (hasSPK && !hasSerahTerima) {
-                // Approval SPK & Ongoing: nilai SPK sudah terisi & tanggal serah terima belum
-                currentGroupedProjects['Approval SPK'].push(item);
+                // Ongoing: nilai SPK sudah terisi & tanggal serah terima belum
                 currentGroupedProjects['Ongoing'].push(item);
             } 
+            else if (hasStatus && !hasSPK) {
+                // Approval SPK: kolom status sudah terisi & kolom nilai spk belum
+                currentGroupedProjects['Approval SPK'].push(item);
+            }
             else if (hasPenawaranFinal && !hasSPK) {
-                // Proses PJU: penawaran final terisi & nominal SPK belum
+                // Proses PJU: total penawaran final sudah terisi & nominal spk belum
                 currentGroupedProjects['Proses PJU'].push(item);
             }
             else if (hasStatusRab && !hasPenawaranFinal) {
