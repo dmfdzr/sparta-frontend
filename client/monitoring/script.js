@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentGroupedProjects = {}; 
     let currentModalContext = 'PROJECT';
     let currentSpkGroups = [];
+    let currentCostGroups = [];
 
     // --- FUNGSI 1: Modal untuk Total Proyek ---
     const showProjectDetails = () => {
@@ -275,42 +276,63 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!filteredData || filteredData.length === 0) return;
         currentModalContext = 'COST_M2'; 
 
-        if (modalMainTitle) modalMainTitle.textContent = "Detail Cost /m² per Proyek";
+        if (modalMainTitle) modalMainTitle.textContent = "Detail Cost /m² per Proyek (Grup by Ulok)";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
 
-        const costItems = filteredData.filter(item => {
+        // 1. Kelompokkan data Opname Final & Luas berdasarkan Ulok
+        const groupedCost = {};
+        filteredData.forEach(item => {
             const opname = parseCurrency(item["Grand Total Opname Final"]);
             const luas = parseFloat(item["Luas Terbangunan"]) || 0;
-            return opname > 0 && luas > 0;
-        }).sort((a, b) => {
-            const costA = parseCurrency(a["Grand Total Opname Final"]) / (parseFloat(a["Luas Terbangunan"]) || 1);
-            const costB = parseCurrency(b["Grand Total Opname Final"]) / (parseFloat(b["Luas Terbangunan"]) || 1);
-            return costB - costA;
+            const ulok = item["Nomor Ulok"] || 'Tanpa Ulok';
+
+            if (!groupedCost[ulok]) {
+                groupedCost[ulok] = {
+                    ulok: ulok,
+                    namaToko: item.Nama_Toko || 'Tanpa Nama',
+                    cabang: item.Cabang || '-',
+                    totalOpname: 0,
+                    luasTerbangun: luas > 0 ? luas : 0,
+                    items: []
+                };
+            }
+            
+            groupedCost[ulok].totalOpname += opname;
+            groupedCost[ulok].items.push(item);
+            
+            // Cegah luas = 0 jika di baris ME ternyata kosong tapi di Sipil ada
+            if (groupedCost[ulok].luasTerbangun === 0 && luas > 0) {
+                groupedCost[ulok].luasTerbangun = luas;
+            }
         });
 
-        if(listStatusTitle) listStatusTitle.textContent = `Daftar Proyek & Cost/m² (${costItems.length})`;
+        // 2. Hitung Cost/M2 per grup dan urutkan
+        currentCostGroups = Object.values(groupedCost)
+            .filter(group => group.totalOpname > 0 && group.luasTerbangun > 0)
+            .map(group => {
+                group.costPerM2 = group.totalOpname / group.luasTerbangun;
+                return group;
+            })
+            .sort((a, b) => b.costPerM2 - a.costPerM2);
+
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Lokasi & Cost/m² (${currentCostGroups.length} Lokasi)`;
 
         if (storeListContainer) {
-            if (costItems.length === 0) {
+            if (currentCostGroups.length === 0) {
                 storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Cost/m².</div>';
             } else {
-                storeListContainer.innerHTML = costItems.map(item => {
-                    const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
-                    const ulok = item["Nomor Ulok"] || '-';
-                    const rawIndex = filteredData.indexOf(item);
-                    
-                    const opname = parseCurrency(item["Grand Total Opname Final"]);
-                    const luas = parseFloat(item["Luas Terbangunan"]) || 1;
-                    const costPerM2 = formatRupiah(Math.round(opname / luas));
+                storeListContainer.innerHTML = currentCostGroups.map((group, index) => {
+                    const costPerM2Str = formatRupiah(Math.round(group.costPerM2));
 
+                    // Tampilan List tanpa nama lingkup
                     return `
-                    <div class="store-item" data-index="${rawIndex}">
+                    <div class="store-item" data-cost-index="${index}">
                         <div class="store-info">
-                            <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
-                            <span>Ulok: ${ulok} | ${item.Cabang || '-'}</span>
+                            <strong>${group.namaToko}</strong>
+                            <span>Ulok: ${group.ulok} | ${group.cabang}</span>
                         </div>
                         <div class="store-badge" style="background:#faf5ff; color:#805ad5; border: 1px solid #e9d8fd; font-size: 13px;">
-                            ${costPerM2} /m²
+                            ${costPerM2Str} /m²
                         </div>
                     </div>
                 `}).join('');
@@ -425,6 +447,67 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
+    // --- FUNGSI 7: Render Detail Toko Spesifik (Diperbarui dengan Nilai Toko) ---
+    const renderCostDetail = (groupIndex) => {
+        const group = currentCostGroups[groupIndex];
+        if (!group) return;
+
+        if (detailStoreTitle) {
+            detailStoreTitle.textContent = `Info: ${group.namaToko} (Ulok: ${group.ulok})`;
+        }
+
+        if (storeDetailContainer) {
+            // Pemisahan Opname Sipil & ME
+            const itemSipil = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('sipil'));
+            const itemME = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('me'));
+            const refItem = itemSipil || itemME || group.items[0];
+
+            const opnameSipil = itemSipil ? parseCurrency(itemSipil["Grand Total Opname Final"]) : 0;
+            const opnameME = itemME ? parseCurrency(itemME["Grand Total Opname Final"]) : 0;
+            const opnameFinal = formatRupiah(group.totalOpname);
+            const costPerM2 = formatRupiah(Math.round(group.costPerM2));
+
+            // Helper untuk merapikan angka luas dengan koma & titik
+            const formatArea = (val) => new Intl.NumberFormat('id-ID').format(val || 0);
+
+            const luasBangunan = formatArea(parseFloat(refItem["Luas Bangunan"]) || 0);
+            const luasTerbangun = formatArea(parseFloat(refItem["Luas Terbangunan"]) || 0);
+            const luasTerbuka = formatArea(parseFloat(refItem["Luas Area Terbuka"]) || 0);
+            const luasParkir = formatArea(parseFloat(refItem["Luas Area Parkir"]) || 0);
+            const luasSales = formatArea(parseFloat(refItem["Luas Area Sales"]) || 0);
+            const luasGudang = formatArea(parseFloat(refItem["Luas Gudang"]) || 0);
+
+            storeDetailContainer.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Grand Total Opname Final</span><span class="detail-value" style="color:#2f855a; font-size: 16px;">${opnameFinal}</span></div>
+                    <div class="detail-item"><span class="detail-label">Cost /m² (Luas Terbangun)</span><span class="detail-value" style="color:#805ad5; font-size: 16px;">${costPerM2}</span></div>
+                    
+                    <div class="detail-item"><span class="detail-label">Rincian Opname</span>
+                        <span class="detail-value" style="font-weight: 500; line-height: 1.5;">
+                            Sipil: <strong>${formatRupiah(opnameSipil)}</strong> <br>
+                            ME: <strong>${formatRupiah(opnameME)}</strong>
+                        </span>
+                    </div>
+                    <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${group.cabang}</span></div>
+
+                    <div class="detail-item"><span class="detail-label">Luas Bangunan</span><span class="detail-value">${luasBangunan} m²</span></div>
+                    <div class="detail-item"><span class="detail-label">Luas Terbangunan</span><span class="detail-value">${luasTerbangun} m²</span></div>
+                    
+                    <div class="detail-item"><span class="detail-label">Luas Area Terbuka</span><span class="detail-value">${luasTerbuka} m²</span></div>
+                    <div class="detail-item"><span class="detail-label">Luas Area Parkir</span><span class="detail-value">${luasParkir} m²</span></div>
+                    
+                    <div class="detail-item"><span class="detail-label">Luas Area Sales</span><span class="detail-value">${luasSales} m²</span></div>
+                    <div class="detail-item"><span class="detail-label">Luas Gudang</span><span class="detail-value">${luasGudang} m²</span></div>
+                </div>
+            `;
+        }
+
+        if (modalListView && modalStoreDetailView) {
+            modalListView.style.display = 'none';
+            modalStoreDetailView.style.display = 'block';
+        }
+    };
+
     const renderSpkDetail = (groupIndex) => {
         const group = currentSpkGroups[groupIndex];
         if (!group) return;
@@ -466,8 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-
-    // --- FUNGSI 7: Render Detail Toko Spesifik (Diperbarui dengan Nilai Toko) ---
     const renderStoreDetail = (index) => {
         const item = filteredData[index];
         if (!item) return;
@@ -615,6 +696,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const spkIndex = storeItem.getAttribute('data-spk-index');
             if (spkIndex !== null) {
                 renderSpkDetail(spkIndex);
+            }
+
+            const costIndex = storeItem.getAttribute('data-cost-index');
+            if (costIndex !== null) {
+                renderCostDetail(costIndex);
+                return;
             }
         });
     }
@@ -863,12 +950,16 @@ document.addEventListener('DOMContentLoaded', () => {
             totalJHK += (durasiSpk + tambahSpk + keterlambatan);
             totalKeterlambatan += keterlambatan;
             totalDenda += parseCurrency(item["Denda"]);
-            
             totalOpname += parseCurrency(item["Grand Total Opname Final"]);
             totalLuasTerbangun += parseFloat(item["Luas Terbangunan"]) || 0;
+            const ulok = item["Nomor Ulok"] || 'Tanpa Ulok-' + Math.random();
+            const luas = parseFloat(item["Luas Terbangunan"]) || 0;
+            if (!uniqueUlokLuas[ulok] && luas > 0) {
+                uniqueUlokLuas[ulok] = luas;
+                totalLuasTerbangun += luas; // Hanya ditambahkan sekali per ulok
+            }
         });
 
-        // RUMUS BARU: Bagi total hari keterlambatan dengan jumlah toko yang telat
         const avgKeterlambatan = countKeterlambatan > 0 ? Math.round(totalKeterlambatan / countKeterlambatan) : 0;
         
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
