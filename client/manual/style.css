@@ -50,7 +50,7 @@ body {
 /* Back Button di Header */
 .btn-back {
     position: absolute;
-    left: 2rem;
+    right: 2rem;
     background-color: rgba(255, 255, 255, 0.2);
     color: white;
     border: none;
