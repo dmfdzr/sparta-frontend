@@ -840,6 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let sumNilaiToko = 0; 
         let countNilaiToko = 0;
+        let countKeterlambatan = 0; // Variabel baru untuk menghitung jumlah toko yang telat
 
         data.forEach(item => {
             totalSPK += parseCurrency(item["Nominal SPK"]);
@@ -854,6 +855,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const tambahSpk = parseFloat(item["tambah_spk"]) || 0;
             const keterlambatan = parseFloat(item["Keterlambatan"]) || 0;
             
+            // Hitung toko yang benar-benar terlambat
+            if (keterlambatan > 0) {
+                countKeterlambatan++;
+            }
+            
             totalJHK += (durasiSpk + tambahSpk + keterlambatan);
             totalKeterlambatan += keterlambatan;
             totalDenda += parseCurrency(item["Denda"]);
@@ -862,7 +868,9 @@ document.addEventListener('DOMContentLoaded', () => {
             totalLuasTerbangun += parseFloat(item["Luas Terbangunan"]) || 0;
         });
 
-        const avgKeterlambatan = totalProyek > 0 ? Math.round(totalKeterlambatan / totalProyek) : 0;
+        // RUMUS BARU: Bagi total hari keterlambatan dengan jumlah toko yang telat
+        const avgKeterlambatan = countKeterlambatan > 0 ? Math.round(totalKeterlambatan / countKeterlambatan) : 0;
+        
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
         const avgNilaiToko = countNilaiToko > 0 ? (sumNilaiToko / countNilaiToko) : 0;
         const avgJHK = totalProyek > 0 ? Math.round(totalJHK / totalProyek) : 0;
