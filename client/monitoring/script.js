@@ -865,12 +865,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const avgKeterlambatan = totalProyek > 0 ? Math.round(totalKeterlambatan / totalProyek) : 0;
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
         const avgNilaiToko = countNilaiToko > 0 ? (sumNilaiToko / countNilaiToko) : 0;
+        const avgJHK = totalProyek > 0 ? Math.round(totalJHK / totalProyek) : 0;
 
         const animDuration = 1500; 
         
         animateValue("card-total-proyek", 0, totalProyek, animDuration);
         animateValue("card-total-spk", 0, totalSPK, animDuration, formatRupiah);
-        animateValue("card-jhk", 0, totalJHK, animDuration, (val) => val + " Hari");
+        animateValue("card-jhk", 0, avgJHK, animDuration, (val) => val + " Hari");
         animateValue("card-avg-keterlambatan", 0, avgKeterlambatan, animDuration, (val) => val + " Hari");
         animateValue("card-total-denda", 0, totalDenda, animDuration, formatRupiah);
         animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
