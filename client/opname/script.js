@@ -1163,10 +1163,11 @@ const Render = {
                 
                 // Hitung total awal
                 const totalVal = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
+                const totalPembulatan = Math.floor(totalVal / 10000) * 10000;
                 const ppn = totalVal * 0.11;
                 const denda = penaltyData.denda_nominal;
                 // Grand Total = (Total + PPN) - Denda
-                const grandTotal = (totalVal + ppn) - denda;
+                const grandTotal = (totalPembulatan + ppn) - denda;
 
                 let btnColor = '#6c757d'; 
                 if (isFinalized) btnColor = '#28a745'; 
@@ -1351,6 +1352,13 @@ const Render = {
                             </div>
                             
                             <div class="summary-row">
+                                <span class="summary-label">Pembulatan</span> 
+                                <span class="summary-value" id="summary-pembulatan" style="color:${totalPembulatan<0?'#dc2626':'inherit'}">
+                                    ${formatRupiah(totalPembulatan)}
+                                </span>
+                            </div>
+                            
+                            <div class="summary-row">
                                 <span class="summary-label">PPN (11%)</span> 
                                 <span class="summary-value" id="summary-ppn" style="color:${ppn<0?'#dc2626':'inherit'}">
                                     ${formatRupiah(ppn)}
@@ -1391,7 +1399,6 @@ const Render = {
                 // --- EVENT LISTENERS ---
                 container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
 
-                // [UPDATED] Recalculate Logic
                 container.querySelectorAll('.vol-input').forEach(input => {
                     input.oninput = (e) => {
                         const id = parseInt(e.target.dataset.id);
@@ -1420,18 +1427,24 @@ const Render = {
 
                         // Recalculate Grand Total With Penalty
                         const newTotalVal = AppState.opnameItems.reduce((sum, i) => sum + (i.total_harga || 0), 0);
-                        const newPpn = newTotalVal * 0.11;
-                        const penaltyVal = penaltyData.denda_nominal; // Ambil nilai denda statis
-                        const newGrandTotal = (newTotalVal + newPpn) - penaltyVal;
+                        const newPembulatan = Math.floor(newTotalVal / 10000) * 10000;
+                        const newPpn = newPembulatan * 0.11;
+                        const penaltyVal = penaltyData.denda_nominal;
+                        const newGrandTotal = (newPembulatan + newPpn) - penaltyVal;
 
                         // Update Summary DOM
                         const elSumTotal = document.getElementById('summary-total');
+                        const elSumPembulatan = document.getElementById('summary-pembulatan');
                         const elSumPpn = document.getElementById('summary-ppn');
                         const elSumGrand = document.getElementById('summary-grand');
 
                         if (elSumTotal) {
                             elSumTotal.innerText = formatRupiah(newTotalVal);
                             elSumTotal.style.color = newTotalVal < 0 ? 'red' : 'black';
+                        }
+                        if (elSumPembulatan) {
+                            elSumPembulatan.innerText = formatRupiah(newPembulatan);
+                            elSumPembulatan.style.color = newPembulatan < 0 ? 'red' : 'black';
                         }
                         if (elSumPpn) {
                             elSumPpn.innerText = formatRupiah(newPpn);
@@ -1444,11 +1457,8 @@ const Render = {
                     }
                 });
 
-                // (Kode File Upload & Save Button tidak berubah, tetap sama seperti sebelumnya...)
-                // ... Copy paste handler file upload & save btn dari script lama di sini ...
                 container.querySelectorAll('.file-input').forEach(inp => {
                     inp.onchange = async (e) => {
-                        /* Logic Upload Sama */
                         const f = e.target.files[0]; if(!f) return;
                         const id = parseInt(e.target.dataset.id);
                         const fd = new FormData(); fd.append("file", f);
@@ -1651,6 +1661,9 @@ const Render = {
             });
 
             const totalBiaya = items.reduce((sum, i) => sum + i.total_harga, 0);
+            const totalPembulatan = Math.floor(totalBiaya / 10000) * 10000;
+            const ppn = totalPembulatan * 0.11;
+            const grandTotal = totalPembulatan + ppn;
 
             const html = `
                 <div class="container" style="padding-top:20px;">
@@ -1736,9 +1749,24 @@ const Render = {
                         </div>
 
                         <div style="margin-top:20px; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
-                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto;">
-                                <span>Total Estimasi:</span> 
+                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto; margin-bottom:8px;">
+                                <span style="color:#64748b;">Total Estimasi:</span> 
                                 <strong>${formatRupiah(totalBiaya)}</strong>
+                            </div>
+                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto; margin-bottom:8px;">
+                                <span style="color:#64748b;">Pembulatan:</span> 
+                                <strong>${formatRupiah(totalPembulatan)}</strong>
+                            </div>
+                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto; margin-bottom:8px;">
+                                <span style="color:#64748b;">PPN (11%):</span> 
+                                <strong>${formatRupiah(ppn)}</strong>
+                            </div>
+                            
+                            <div style="border-top:2px dashed #cbd5e1; margin:10px 0 10px auto; max-width:400px;"></div>
+                            
+                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto; align-items:flex-end;">
+                                <span style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); text-transform:uppercase;">Grand Total:</span> 
+                                <strong style="font-size:1.5rem; color:var(--primary); line-height:1.2;">${formatRupiah(grandTotal)}</strong>
                             </div>
                         </div>
 
