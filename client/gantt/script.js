@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         insertData: `${API_BASE_URL}/gantt/insert`,
         dayInsert: `${API_BASE_URL}/gantt/day/insert`,
         dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`,
+        dayKecepatan: `${API_BASE_URL}/gantt/day/kecepatan`,
         dependencyInsert: `${API_BASE_URL}/gantt/dependency/insert`
     };
 
@@ -640,54 +641,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderPicDelayForm(container);
             }
         }
-    }
-
-    window.renderPicDelayForm = function (container) {
-        if (!currentTasks || currentTasks.length === 0) {
-            container.innerHTML = `
-                <div class="api-card warning">
-                    <h3 style="color: #c05621; margin:0;">Data Pekerjaan Kosong</h3>
-                    <p style="margin-top:5px;">Tidak ada item pekerjaan yang tersedia untuk proyek ini.</p>
-                </div>`;
-            return;
-        }
-
-        let html = '';
-        let optionsHtml = '<option value="">-- Pilih Tahapan --</option>';
-        if (dayGanttData) {
-            dayGanttData.forEach((d, idx) => {
-                const delayVal = parseInt(d.keterlambatan || 0);
-                const delayText = delayVal > 0 ? ` (+${delayVal} Hari)` : '';
-                optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${delayVal}">${d.Kategori} (${d.h_awal} - ${d.h_akhir})${delayText}</option>`;
-            });
-        }
-
-        const dur = currentProject.duration || '-';
-        html += `
-            <div class="api-card info" style="margin-bottom: 15px;">
-                <h3 style="color: #2b6cb0; margin:0; font-size: 15px;">ℹ️ Info Pengawasan</h3>
-                <p style="margin-top:5px; font-size:13px; color:#4a5568;">
-                    Hari pengawasan ditentukan otomatis berdasarkan durasi proyek (<strong>${dur} Hari</strong>). 
-                    Silakan input keterlambatan jika ada.
-                </p>
-            </div>
-
-            <div class="delay-control-card">
-                <div class="delay-title"><span>Input Keterlambatan</span></div>
-                <div class="delay-form-row">
-                    <div class="form-group" style="flex: 2;">
-                        <label>Pilih Tahapan</label>
-                        <select id="delayTaskSelect" class="form-control" onchange="onDelaySelectChange()">${optionsHtml}</select>
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label>Jml Hari</label>
-                        <input type="number" id="delayDaysInput" class="form-control" placeholder="0" min="0">
-                    </div>
-                    <button onclick="submitDelay()" class="btn-terapkan-delay">Simpan</button>
-                </div>
-            </div>`;
-
-        container.innerHTML = html;
     }
 
     // --- FORM KONTRAKTOR ---
@@ -1289,32 +1242,126 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==================== 11. ACTIONS: PIC ====================
+    window.renderPicDelayForm = function (container) {
+        if (!currentTasks || currentTasks.length === 0) {
+            container.innerHTML = `
+                <div class="api-card warning">
+                    <h3 style="color: #c05621; margin:0;">Data Pekerjaan Kosong</h3>
+                    <p style="margin-top:5px;">Tidak ada item pekerjaan yang tersedia untuk proyek ini.</p>
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        let optionsHtml = '<option value="">-- Pilih Tahapan --</option>';
+        if (dayGanttData) {
+            dayGanttData.forEach((d, idx) => {
+                const delayVal = parseInt(d.keterlambatan || 0);
+                const speedVal = parseInt(d.kecepatan || 0); // Ambil data kecepatan dari API jika ada
+                
+                let delayText = '';
+                if (delayVal > 0) delayText = ` (+${delayVal} Hari)`;
+                if (speedVal > 0) delayText = ` (-${speedVal} Hari)`;
+                
+                // Simpan data delay dan speed pada atribut option
+                optionsHtml += `<option value="${idx}" data-idx="${idx}" data-delay="${delayVal}" data-speed="${speedVal}">${d.Kategori} (${d.h_awal} - ${d.h_akhir})${delayText}</option>`;
+            });
+        }
+
+        const dur = currentProject.duration || '-';
+        html += `
+            <div class="api-card info" style="margin-bottom: 15px;">
+                <h3 style="color: #2b6cb0; margin:0; font-size: 15px;">ℹ️ Info Pengawasan</h3>
+                <p style="margin-top:5px; font-size:13px; color:#4a5568;">
+                    Hari pengawasan ditentukan otomatis berdasarkan durasi proyek (<strong>${dur} Hari</strong>). 
+                    Silakan input keterlambatan atau percepatan jika ada.
+                </p>
+            </div>
+
+            <div class="delay-control-card">
+                <div class="delay-title"><span>Input Deviasi Waktu (Terlambat / Lebih Cepat)</span></div>
+                <div class="delay-form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Pilih Tahapan</label>
+                        <select id="delayTaskSelect" class="form-control" onchange="onDelaySelectChange()">${optionsHtml}</select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Jenis Deviasi</label>
+                        <select id="delayTypeSelect" class="form-control" onchange="onDelaySelectChange()">
+                            <option value="keterlambatan">Terlambat (+)</option>
+                            <option value="kecepatan">Lebih Cepat (-)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Jml Hari</label>
+                        <input type="number" id="delayDaysInput" class="form-control" placeholder="0" min="0">
+                    </div>
+                    <button onclick="submitDelay()" class="btn-terapkan-delay">Simpan</button>
+                </div>
+            </div>`;
+
+        container.innerHTML = html;
+    }
+    
     window.onDelaySelectChange = function () {
         const sel = document.getElementById('delayTaskSelect');
+        const typeSel = document.getElementById('delayTypeSelect').value;
         const opt = sel.options[sel.selectedIndex];
-        document.getElementById('delayDaysInput').value = opt.getAttribute('data-delay') || 0;
+        
+        if (sel.selectedIndex === 0) {
+            document.getElementById('delayDaysInput').value = '';
+            return;
+        }
+        if (typeSel === 'keterlambatan') {
+            document.getElementById('delayDaysInput').value = opt.getAttribute('data-delay') || 0;
+        } else {
+            document.getElementById('delayDaysInput').value = opt.getAttribute('data-speed') || 0;
+        }
     }
 
     window.submitDelay = async function () {
         const sel = document.getElementById('delayTaskSelect');
+        const typeSel = document.getElementById('delayTypeSelect').value;
+        
+        if (sel.selectedIndex === 0) {
+            return alert("Pilih tahapan terlebih dahulu");
+        }
+        
         const idx = sel.options[sel.selectedIndex].getAttribute('data-idx');
         const days = document.getElementById('delayDaysInput').value;
 
         if (!dayGanttData || !dayGanttData[idx]) return alert("Data tidak valid");
         const item = dayGanttData[idx];
 
+        // Payload dasar
         const payload = {
             nomor_ulok: currentProject.ulokClean,
             lingkup_pekerjaan: currentProject.work.toUpperCase(),
             kategori: item.Kategori.toUpperCase(),
             h_awal: item.h_awal,
-            h_akhir: item.h_akhir,
-            keterlambatan: days
+            h_akhir: item.h_akhir
         };
 
+        let endpointToCall = '';
+
+        // Tentukan payload tambahan dan endpoint berdasarkan pilihan Jenis Deviasi
+        if (typeSel === 'keterlambatan') {
+            payload.keterlambatan = days;
+            endpointToCall = ENDPOINTS.dayKeterlambatan;
+        } else {
+            payload.kecepatan = days;
+            endpointToCall = ENDPOINTS.dayKecepatan;
+        }
+
         try {
-            await fetch(ENDPOINTS.dayKeterlambatan, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            alert("Keterlambatan diterapkan");
+            await fetch(endpointToCall, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            });
+            
+            const messageAction = typeSel === 'keterlambatan' ? 'Keterlambatan' : 'Kecepatan (Kemajuan)';
+            alert(`Data ${messageAction} berhasil diterapkan.`);
             changeUlok();
         } catch (err) {
             alert("Error: " + err.message);
