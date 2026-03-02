@@ -5,8 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Daftar master lingkup pekerjaan. Bisa diekspansi sesuai kebutuhan SPARTA.
     const lingkupOptions = {
-        rab: ['Renovasi Sipil', 'Sipil', 'MEP', 'Sipil & MEP'],
-        spk: ['Sipil', 'Renovasi Sipil', 'MEP', 'Sipil & MEP']
+        rab: ['Sipil', 'ME'],
+        spk: ['Sipil', 'ME']
     };
 
     /**
