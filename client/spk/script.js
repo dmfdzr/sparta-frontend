@@ -71,8 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         PEKANBARU: "1AZ1",
         JAMBI: "1DZ1",
         "HEAD OFFICE": "Z001",
-        "BANDUNG 1": "BZ01",
-        "BANDUNG 2": "NZ01",
+        "BANDUNG RAYA": "BZ01",
         BEKASI: "CZ01",
         CILACAP: "IZ01",
         CILEUNGSI: "JZ01",
@@ -88,8 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let approvedRabData = [];
 
     const branchGroups = {
-        "BANDUNG 1": ["BANDUNG 1", "BANDUNG 2"],
-        "BANDUNG 2": ["BANDUNG 1", "BANDUNG 2"],
+        "BANDUNG RAYA": ["BANDUNG RAYA"],
         LOMBOK: ["LOMBOK", "SUMBAWA"],
         SUMBAWA: ["LOMBOK", "SUMBAWA"],
         MEDAN: ["MEDAN", "ACEH"],
