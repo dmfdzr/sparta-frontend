@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentGroupedProjects = {
             'Approval RAB': [], 'Proses PJU': [], 'Approval SPK': [],
-            'Ongoing': [], 'Kerja Tambah Kurang': [], 'Done': []
+            'Ongoing': [], 'Proses Kerja Tambah Kurang': [], 'Done': []
         };
 
         filteredData.forEach(item => {
