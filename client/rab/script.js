@@ -157,13 +157,25 @@ const Calculator = {
 
         if (elements.grand) elements.grand.textContent = Formatter.toRupiah(total);
 
-        // Round down to nearest 10,000
+        // --- CEK CABANG UNTUK PPN ---
+        const cabangSelect = document.getElementById("cabang");
+        const cabangName = cabangSelect ? cabangSelect.value.toUpperCase() : "";
+        const isBatam = cabangName === "BATAM";
+        const ppnRate = isBatam ? 0 : 0.11;
         const pembulatan = Math.floor(total / 10000) * 10000;
-        const ppn = pembulatan * 0.11;
+        const ppn = pembulatan * ppnRate;
         const finalTotal = pembulatan + ppn;
 
         if (elements.rounding) elements.rounding.textContent = Formatter.toRupiah(pembulatan);
-        if (elements.ppn) elements.ppn.textContent = Formatter.toRupiah(ppn);
+        
+        if (elements.ppn) {
+            elements.ppn.textContent = Formatter.toRupiah(ppn);
+            const ppnLabel = elements.ppn.previousElementSibling;
+            if (ppnLabel) {
+                ppnLabel.textContent = isBatam ? "PPN (0%):" : "PPN (11%):";
+            }
+        }
+        
         if (elements.final) elements.final.textContent = Formatter.toRupiah(finalTotal);
     }
 };
@@ -872,6 +884,7 @@ async function init() {
 
     document.getElementById("cabang").addEventListener("change", () => {
         if (document.getElementById("lingkup_pekerjaan").value) API.fetchPrices();
+        Calculator.calculateGrandTotal();
     });
 
     // Submit
