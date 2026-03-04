@@ -22,7 +22,6 @@ const CONFIG = {
         "INSTALASI", "FIXTURE", "PEKERJAAN TAMBAHAN", "PEKERJAAN SBO"
     ],
     BRANCH_GROUPS: {
-        "BANDUNG RAYA": ["BANDUNG RAYA"],
         "LOMBOK": ["LOMBOK", "SUMBAWA"],
         "SUMBAWA": ["LOMBOK", "SUMBAWA"],
         "MEDAN": ["MEDAN", "ACEH"],
@@ -48,7 +47,7 @@ const CONFIG = {
         "HEAD OFFICE": "Z001", "BANDUNG RAYA": "BZ01", "BEKASI": "CZ01",
         "CILACAP": "IZ01", "CILEUNGSI": "JZ01", "SEMARANG": "HZ01", "CIKOKOL": "KZ01",
         "LAMPUNG": "LZ01", "MALANG": "MZ01", "MANADO": "1YZ1", "BATAM": "2DZ1",
-        "MADIUN": "2MZ1"
+        "MADIUN": "2MZ1", "CIKOKOL BINTAN": "KZ01"
     }
 };
 
