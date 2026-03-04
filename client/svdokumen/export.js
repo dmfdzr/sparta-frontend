@@ -45,7 +45,9 @@ function downloadCSV(docs) {
     const a = document.createElement('a');
     a.href = url;
     a.download = 'export_dokumen.csv';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
 
