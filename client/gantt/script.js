@@ -52,13 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
         ulokList: APP_MODE === 'kontraktor'
             ? `${API_BASE_URL}/get_ulok_by_email?email=${encodeURIComponent(loggedInUserEmail)}`
             : `${API_BASE_URL}/get_ulok_by_cabang_pic?cabang=${encodeURIComponent(loggedInUserCabang)}`,
-
         ganttData: `${API_BASE_URL}/get_gantt_data`,
         insertData: `${API_BASE_URL}/gantt/insert`,
         dayInsert: `${API_BASE_URL}/gantt/day/insert`,
         dayKeterlambatan: `${API_BASE_URL}/gantt/day/keterlambatan`,
         dayKecepatan: `${API_BASE_URL}/gantt/day/kecepatan`,
-        dependencyInsert: `${API_BASE_URL}/gantt/dependency/insert`
+        dependencyInsert: `${API_BASE_URL}/gantt/dependency/insert`,
+        cabangList: `https://sparta-backend.onrender.com/api/cabang-list`
     };
 
     // ==================== 3. STATE MANAGEMENT ====================
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            initUI();
+            await initUI();
 
         } catch (error) {
             console.error(error);
@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function initUI() {
+    async function initUI() {
         const ulokSelect = document.getElementById("ulokSelect");
         const cabangGroup = document.getElementById("cabangFilterGroup");
         const cabangSelect = document.getElementById("cabangSelect");
@@ -267,9 +267,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 ulokSelect.appendChild(option);
             });
         }
+
         if (isHeadOffice) {
             if (cabangGroup) cabangGroup.style.display = 'flex';
-            const uniqueBranches = [...new Set(projects.map(p => p.cabang).filter(c => c))].sort();
+            
+            let uniqueBranches = [];
+            
+            try {
+                const res = await fetch(ENDPOINTS.cabangList);
+                const data = await res.json();
+                
+                if (Array.isArray(data)) {
+                    uniqueBranches = data.map(c => c.Cabang || c.cabang || c.nama_cabang || c);
+                } else if (data.data && Array.isArray(data.data)) {
+                    uniqueBranches = data.data.map(c => c.Cabang || c.cabang || c.nama_cabang || c);
+                }
+                uniqueBranches = [...new Set(uniqueBranches.filter(c => typeof c === 'string'))].sort();
+            } catch (err) {
+                console.warn("Gagal fetch API cabang, menggunakan fallback data lokal:", err);
+                uniqueBranches = [...new Set(projects.map(p => p.cabang).filter(c => c))].sort();
+            }
             
             if (cabangSelect) {
                 cabangSelect.innerHTML = '<option value="ALL">-- Semua Cabang --</option>';
@@ -288,7 +305,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Render awal untuk dropdown Ulok
         renderUlokOptions("ALL");
 
         ulokSelect.addEventListener('change', () => {
