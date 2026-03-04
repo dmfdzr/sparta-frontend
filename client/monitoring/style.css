@@ -260,6 +260,7 @@ select:hover {
 .stat-card:nth-child(4) { animation-delay: 0.5s; border-left-color: #ef4444; } 
 .stat-card:nth-child(5) { animation-delay: 0.6s; border-left-color: #991b1b; } 
 .stat-card:nth-child(6) { animation-delay: 0.7s; border-left-color: #8b5cf6; } 
+.stat-card:nth-child(7) { animation-delay: 0.8s; border-left-color: #f59e0b; }
 
 .stat-card[style*="cursor: pointer"]:hover {
     transform: translateY(-5px) scale(1.03);
@@ -287,6 +288,21 @@ select:hover {
 #card-total-jhk-wrapper:hover {
     border-color: #10b981;
     box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+#card-avg-cost-m2-wrapper:hover {
+    border-color: #8b5cf6;
+    box-shadow: 0 20px 25px -5px rgba(139, 92, 246, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+#card-avg-keterlambatan-wrapper:hover {
+    border-color: #ef4444;
+    box-shadow: 0 20px 25px -5px rgba(239, 68, 68, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+#card-nilai-toko-wrapper:hover {
+    border-color: #d97706;
+    box-shadow: 0 20px 25px -5px rgba(217, 119, 6, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .stat-card::after {

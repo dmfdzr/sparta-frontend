@@ -354,7 +354,7 @@ function renderViewResults(container) {
         </div>
 
         <div id="resultsWrapper" style="display:none; position: relative; min-height: 100px;">
-             <div id="loadingTable" class="loading-overlay" style="display:none; position: absolute; background: rgba(255,255,255,0.9);">
+            <div id="loadingTable" class="loading-overlay" style="display:none; position: absolute; background: rgba(255,255,255,0.9);">
                 <div class="spinner" style="width: 40px; height: 40px; border-width: 4px;"></div>
                 <div style="margin-top: 10px; font-weight: 500;">Memuat data…</div>
             </div>
@@ -379,6 +379,16 @@ function renderViewResults(container) {
             fCabang.innerHTML = ops.map(v => `<option value="${v}">${v}</option>`).join('');
             if (ops.length) loadUlokFilter();
         } catch (e) { alert(e.message); }
+
+        setInterval(() => {
+            const now = new Date();
+            const hr = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false }).format(now));
+            if (hr < 6 || hr >= 20) {
+                sessionStorage.clear();
+                alert("Sesi berakhir (06:00 - 20:00 WIB).");
+                window.location.href = "/";
+            }
+        }, 300000);
     })();
 
     async function loadUlokFilter() {

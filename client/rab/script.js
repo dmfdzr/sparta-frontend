@@ -22,11 +22,11 @@ const CONFIG = {
         "INSTALASI", "FIXTURE", "PEKERJAAN TAMBAHAN", "PEKERJAAN SBO"
     ],
     BRANCH_GROUPS: {
-        "BANDUNG": ["BANDUNG"],
         "LOMBOK": ["LOMBOK", "SUMBAWA"],
         "SUMBAWA": ["LOMBOK", "SUMBAWA"],
         "MEDAN": ["MEDAN", "ACEH"],
         "ACEH": ["MEDAN", "ACEH"],
+        "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
         "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
         "BENGKULU": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
         "BANGKA": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
@@ -40,14 +40,14 @@ const CONFIG = {
     BRANCH_TO_ULOK: {
         "LUWU": "2VZ1", "KARAWANG": "1JZ1", "REMBANG": "2AZ1", "BANJARMASIN": "1GZ1",
         "PARUNG": "1MZ1", "TEGAL": "2PZ1", "GORONTALO": "2SZ1", "PONTIANAK": "1PZ1",
-        "LOMBOK": "1SZ1", "KOTABUMI": "1VZ1", "SERANG": "2GZ1", "CIANJUR": "2JZ1",
+        "LOMBOK": "1SZ1", "LAMPUNG_KOTABUMI": "LZ01", "SERANG": "2GZ1", "CIANJUR": "2JZ1",
         "BALARAJA": "TZ01", "SIDOARJO": "UZ01", "MEDAN": "WZ01", "BOGOR": "XZ01",
         "JEMBER": "YZ01", "BALI": "QZ01", "PALEMBANG": "PZ01", "KLATEN": "OZ01",
         "MAKASSAR": "RZ01", "PLUMBON": "VZ01", "PEKANBARU": "1AZ1", "JAMBI": "1DZ1",
-        "HEAD OFFICE": "Z001", "BANDUNG": "BZ01", "BEKASI": "CZ01",
+        "HEAD OFFICE": "Z001", "BANDUNG RAYA": "BZ01", "BEKASI": "CZ01",
         "CILACAP": "IZ01", "CILEUNGSI": "JZ01", "SEMARANG": "HZ01", "CIKOKOL": "KZ01",
         "LAMPUNG": "LZ01", "MALANG": "MZ01", "MANADO": "1YZ1", "BATAM": "2DZ1",
-        "MADIUN": "2MZ1"
+        "MADIUN": "2MZ1", "CIKOKOL BINTAN": "KZ01"
     }
 };
 
@@ -156,13 +156,25 @@ const Calculator = {
 
         if (elements.grand) elements.grand.textContent = Formatter.toRupiah(total);
 
-        // Round down to nearest 10,000
+        // --- CEK CABANG UNTUK PPN ---
+        const cabangSelect = document.getElementById("cabang");
+        const cabangName = cabangSelect ? cabangSelect.value.toUpperCase() : "";
+        const isBatam = cabangName === "BATAM";
+        const ppnRate = isBatam ? 0 : 0.11;
         const pembulatan = Math.floor(total / 10000) * 10000;
-        const ppn = pembulatan * 0.11;
+        const ppn = pembulatan * ppnRate;
         const finalTotal = pembulatan + ppn;
 
         if (elements.rounding) elements.rounding.textContent = Formatter.toRupiah(pembulatan);
-        if (elements.ppn) elements.ppn.textContent = Formatter.toRupiah(ppn);
+        
+        if (elements.ppn) {
+            elements.ppn.textContent = Formatter.toRupiah(ppn);
+            const ppnLabel = elements.ppn.previousElementSibling;
+            if (ppnLabel) {
+                ppnLabel.textContent = isBatam ? "PPN (0%):" : "PPN (11%):";
+            }
+        }
+        
         if (elements.final) elements.final.textContent = Formatter.toRupiah(finalTotal);
     }
 };
@@ -491,7 +503,7 @@ const UI = {
 
         // Set status awal opsi Renovasi saat halaman pertama kali dimuat
         if (!toggle.checked) {
-            renovasiOption.disabled = true;
+            renovasiOption.disabled = false;
         }
 
         toggle.addEventListener('change', () => {
@@ -871,6 +883,7 @@ async function init() {
 
     document.getElementById("cabang").addEventListener("change", () => {
         if (document.getElementById("lingkup_pekerjaan").value) API.fetchPrices();
+        Calculator.calculateGrandTotal();
     });
 
     // Submit
@@ -888,9 +901,9 @@ async function init() {
     setInterval(() => {
         const now = new Date();
         const hr = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false }).format(now));
-        if (hr < 6 || hr >= 18) {
+        if (hr < 6 || hr >= 20) {
             sessionStorage.clear();
-            alert("Sesi berakhir (06:00 - 18:00 WIB).");
+            alert("Sesi berakhir (06:00 - 20:00 WIB).");
             window.location.href = "/";
         }
     }, 300000);

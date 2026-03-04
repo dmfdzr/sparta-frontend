@@ -359,17 +359,23 @@ const PDFGenerator = {
             doc.setTextColor(0, 0, 0);
         };
 
+        // --- CEK CABANG BATAM UNTUK PDF ---
+        const cabangPdfTxt = selectedStore.cabang || selectedStore.nama_cabang || selectedStore.kota || "";
+        const userPdfCabang = sessionStorage.getItem("loggedInUserCabang") || "";
+        const isBatamPdf = cabangPdfTxt.toUpperCase() === "BATAM" || userPdfCabang.toUpperCase() === "BATAM";
+        const ppnRatePdf = isBatamPdf ? 0 : 0.11;
+
         // --- HELPER: Print Summary Box ---
         const printSummaryBox = (label, totalReal, startY) => {
             const totalPembulatan = Math.floor(totalReal / 10000) * 10000;
-            const ppn = totalPembulatan * 0.11;
+            const ppn = totalPembulatan * ppnRatePdf;
             const grandTotal = totalPembulatan + ppn;
 
             doc.autoTable({
                 body: [
                     [label, formatRupiah(totalReal)],
                     ["PEMBULATAN", formatRupiah(totalPembulatan)],
-                    ["PPN 11%", formatRupiah(ppn)],
+                    [`PPN ${isBatamPdf ? '0' : '11'}%`, formatRupiah(ppn)],
                     [`GRAND TOTAL ${label.replace("TOTAL ", "")}`, formatRupiah(grandTotal)]
                 ],
                 startY: startY,
@@ -652,8 +658,8 @@ const PDFGenerator = {
 
         const totalTambahBulat = Math.floor(totalTambah / 10000) * 10000;
         const totalKurangBulat = Math.floor(totalKurang / 10000) * 10000;
-        const ppnTambah = totalTambahBulat * 0.11;
-        const ppnKurang = totalKurangBulat * 0.11;
+        const ppnTambah = totalTambahBulat * ppnRatePdf;
+        const ppnKurang = totalKurangBulat * ppnRatePdf;
         const totalTambahPPN = totalTambahBulat + ppnTambah;
         const totalKurangPPN = totalKurangBulat + ppnKurang;
         
@@ -1160,13 +1166,27 @@ const Render = {
 
             const renderTable = () => {
                 const items = AppState.opnameItems;
+
+                const cabangTxt = (AppState.selectedStore && (AppState.selectedStore.cabang || AppState.selectedStore.nama_cabang || AppState.selectedStore.kota)) || "";
+                const userCabang = sessionStorage.getItem("loggedInUserCabang") || "";
+                const isBatam = cabangTxt.toUpperCase() === "BATAM" || userCabang.toUpperCase() === "BATAM";
+                const ppnRate = isBatam ? 0 : 0.11;
                 
                 // Hitung total awal
-                const totalVal = items.reduce((sum, i) => sum + (i.total_harga || 0), 0);
-                const ppn = totalVal * 0.11;
-                const denda = penaltyData.denda_nominal;
-                // Grand Total = (Total + PPN) - Denda
-                const grandTotal = (totalVal + ppn) - denda;
+                const totalVal = Math.round(items.reduce((sum, i) => {
+                    const vol = i.volume_akhir !== "" ? Number(String(i.volume_akhir).replace(',', '.')) || 0 : Number(String(i.vol_rab).replace(',', '.')) || 0;
+                    return sum + (vol * (i.harga_material + i.harga_upah));
+                }, 0));
+
+                // Pembulatan (kelipatan 10.000 ke bawah)
+                const totalPembulatan = Math.floor(totalVal / 10000) * 10000;
+                
+                // PPN dinamis (0% atau 11%)
+                const ppn = Math.round(totalPembulatan * ppnRate);
+                const denda = penaltyData.denda_nominal || 0;
+                
+                // Grand Total = (Pembulatan + PPN) - Denda
+                const grandTotal = (totalPembulatan + ppn) - denda;
 
                 let btnColor = '#6c757d'; 
                 if (isFinalized) btnColor = '#28a745'; 
@@ -1351,7 +1371,14 @@ const Render = {
                             </div>
                             
                             <div class="summary-row">
-                                <span class="summary-label">PPN (11%)</span> 
+                                <span class="summary-label">Pembulatan</span> 
+                                <span class="summary-value" id="summary-pembulatan" style="color:${totalPembulatan<0?'#dc2626':'inherit'}">
+                                    ${formatRupiah(totalPembulatan)}
+                                </span>
+                            </div>
+                            
+                            <div class="summary-row">
+                                <span class="summary-label">PPN (${isBatam ? '0' : '11'}%)</span> 
                                 <span class="summary-value" id="summary-ppn" style="color:${ppn<0?'#dc2626':'inherit'}">
                                     ${formatRupiah(ppn)}
                                 </span>
@@ -1391,7 +1418,6 @@ const Render = {
                 // --- EVENT LISTENERS ---
                 container.querySelector('#btn-back-main').onclick = () => { AppState.selectedLingkup = null; Render.opnameForm(container); };
 
-                // [UPDATED] Recalculate Logic
                 container.querySelectorAll('.vol-input').forEach(input => {
                     input.oninput = (e) => {
                         const id = parseInt(e.target.dataset.id);
@@ -1419,36 +1445,42 @@ const Render = {
                         }
 
                         // Recalculate Grand Total With Penalty
-                        const newTotalVal = AppState.opnameItems.reduce((sum, i) => sum + (i.total_harga || 0), 0);
-                        const newPpn = newTotalVal * 0.11;
-                        const penaltyVal = penaltyData.denda_nominal; // Ambil nilai denda statis
-                        const newGrandTotal = (newTotalVal + newPpn) - penaltyVal;
+                        const newTotalVal = Math.round(AppState.opnameItems.reduce((sum, i) => {
+                            const vol = i.volume_akhir !== "" ? Number(String(i.volume_akhir).replace(',', '.')) || 0 : Number(String(i.vol_rab).replace(',', '.')) || 0;
+                            return sum + (vol * (i.harga_material + i.harga_upah));
+                        }, 0));
+                        const newPembulatan = Math.floor(newTotalVal / 10000) * 10000;
+                        const newPpn = Math.round(newPembulatan * ppnRate);
+                        const penaltyVal = penaltyData.denda_nominal || 0; 
+                        const newGrandTotal = (newPembulatan + newPpn) - penaltyVal;
 
                         // Update Summary DOM
                         const elSumTotal = document.getElementById('summary-total');
+                        const elSumPembulatan = document.getElementById('summary-pembulatan');
                         const elSumPpn = document.getElementById('summary-ppn');
                         const elSumGrand = document.getElementById('summary-grand');
 
                         if (elSumTotal) {
                             elSumTotal.innerText = formatRupiah(newTotalVal);
-                            elSumTotal.style.color = newTotalVal < 0 ? 'red' : 'black';
+                            elSumTotal.style.color = newTotalVal < 0 ? '#dc2626' : 'black';
+                        }
+                        if (elSumPembulatan) {
+                            elSumPembulatan.innerText = formatRupiah(newPembulatan);
+                            elSumPembulatan.style.color = newPembulatan < 0 ? '#dc2626' : 'black';
                         }
                         if (elSumPpn) {
                             elSumPpn.innerText = formatRupiah(newPpn);
-                            elSumPpn.style.color = newPpn < 0 ? 'red' : 'black';
+                            elSumPpn.style.color = newPpn < 0 ? '#dc2626' : 'black';
                         }
                         if (elSumGrand) {
                             elSumGrand.innerText = formatRupiah(newGrandTotal);
-                            elSumGrand.style.color = newGrandTotal < 0 ? 'red' : 'black';
+                            elSumGrand.style.color = newGrandTotal < 0 ? '#dc2626' : 'black';
                         }
                     }
                 });
 
-                // (Kode File Upload & Save Button tidak berubah, tetap sama seperti sebelumnya...)
-                // ... Copy paste handler file upload & save btn dari script lama di sini ...
                 container.querySelectorAll('.file-input').forEach(inp => {
                     inp.onchange = async (e) => {
-                        /* Logic Upload Sama */
                         const f = e.target.files[0]; if(!f) return;
                         const id = parseInt(e.target.dataset.id);
                         const fd = new FormData(); fd.append("file", f);
@@ -1650,7 +1682,16 @@ const Render = {
                 };
             });
 
-            const totalBiaya = items.reduce((sum, i) => sum + i.total_harga, 0);
+            // --- CEK CABANG BATAM ---
+            const cabangTxt = (AppState.selectedStore && (AppState.selectedStore.cabang || AppState.selectedStore.nama_cabang || AppState.selectedStore.kota)) || "";
+            const userCabang = sessionStorage.getItem("loggedInUserCabang") || "";
+            const isBatam = cabangTxt.toUpperCase() === "BATAM" || userCabang.toUpperCase() === "BATAM";
+            const ppnRate = isBatam ? 0 : 0.11;
+
+            const totalBiaya = Math.round(items.reduce((sum, i) => sum + i.total_harga, 0));
+            const totalPembulatan = Math.floor(totalBiaya / 10000) * 10000;
+            const ppn = Math.round(totalPembulatan * ppnRate);
+            const grandTotal = totalPembulatan + ppn;
 
             const html = `
                 <div class="container" style="padding-top:20px;">
@@ -1736,9 +1777,24 @@ const Render = {
                         </div>
 
                         <div style="margin-top:20px; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
-                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto;">
-                                <span>Total Estimasi:</span> 
+                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto; margin-bottom:8px;">
+                                <span style="color:#64748b;">Total Estimasi:</span> 
                                 <strong>${formatRupiah(totalBiaya)}</strong>
+                            </div>
+                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto; margin-bottom:8px;">
+                                <span style="color:#64748b;">Pembulatan:</span> 
+                                <strong>${formatRupiah(totalPembulatan)}</strong>
+                            </div>
+                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto; margin-bottom:8px;">
+                                <span style="color:#64748b;">PPN (${isBatam ? '0' : '11'}%):</span> 
+                                <strong>${formatRupiah(ppn)}</strong>
+                            </div>
+                            
+                            <div style="border-top:2px dashed #cbd5e1; margin:10px 0 10px auto; max-width:400px;"></div>
+                            
+                            <div class="d-flex justify-between" style="max-width:400px; margin-left:auto; align-items:flex-end;">
+                                <span style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); text-transform:uppercase;">Grand Total:</span> 
+                                <strong style="font-size:1.5rem; color:var(--primary); line-height:1.2;">${formatRupiah(grandTotal)}</strong>
                             </div>
                         </div>
 
@@ -2019,5 +2075,14 @@ const Render = {
 
 /* ======================== INIT ======================== */
 window.addEventListener('DOMContentLoaded', () => {
+    setInterval(() => {
+        const now = new Date();
+        const hr = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: "Asia/Jakarta", hour: '2-digit', hour12: false }).format(now));
+        if (hr < 6 || hr >= 20) {
+            sessionStorage.clear();
+            alert("Sesi berakhir (06:00 - 20:00 WIB).");
+            window.location.href = "/";
+        }
+    }, 300000);
     Auth.init();
 });

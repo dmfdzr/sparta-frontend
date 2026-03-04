@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Manual</title>
+    <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="main-header">
+        <img src="../assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo"/>
+        <h1>SPARTA</h1>
+        <img src="../assets/Building-Logo.png" alt="Building & Maintenance Logo" class="building-logo"/>
+        <button id="back-button" class="btn-back">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Kembali
+        </button>
+    </header>
+
+    <main class="container">
+        <div class="welcome-message">
+            <h2>Panduan Penggunaan Aplikasi</h2>
+            <p>System for Property Administration, Reporting, Tracking & Approval</p>
+        </div>
+
+        <div class="manual-wrapper">
+            <section class="manual-section">
+                <h2 class="section-title">1. Panduan Akses & Login</h2>
+                <div class="manual-card">
+                    <ul>
+                        <li>Buka tautan aplikasi SPARTA dan pilih menu <strong>Dashboard</strong> pada <i>Landing Page</i>.</li>
+                        <li><strong>Pengguna Kontraktor:</strong> Login menggunakan email yang telah didaftarkan. Gunakan <strong>Nama Cabang</strong> dengan huruf kapital sebagai password (Contoh: <code>CIKOKOL</code>).</li>
+                        <li><strong>Pengguna Internal (SAT):</strong> Login menggunakan email SAT (Alfamart). Gunakan <strong>Nama Cabang</strong> dengan huruf kapital sebagai password.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="manual-section">
+                <h2 class="section-title">2. Panduan untuk Kontraktor</h2>
+                
+                <div class="manual-card accordion">
+                    <div class="accordion-header">
+                        <h3>A. Penawaran Final Kontraktor</h3>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-content">
+                        <ol>
+                            <li>Pilih menu <strong>Penawaran Final Kontraktor</strong>.</li>
+                            <li>Isi detail item pekerjaan, volume, dan harga satuan secara teliti.</li>
+                            <li>Setelah semua item terisi, klik tombol <strong>Kirim</strong> di bagian bawah halaman.</li>
+                            <li>Penawaran akan masuk ke proses <i>Approval</i> oleh Koordinator dan Manajer secara sistem. Jika ditolak, formulir akan dikembalikan untuk direvisi.</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="manual-card accordion">
+                    <div class="accordion-header">
+                        <h3>B. Dokumen Final RAB Termaterai</h3>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-content">
+                        <ol>
+                            <li>Pilih menu <strong>Dokumen Final RAB Termaterai</strong>, lalu klik <strong>Buka Form</strong>.</li>
+                            <li>Pilih Cabang, Nomor Ulok, dan Lingkup Kerja.</li>
+                            <li>Unggah (<i>upload</i>) Cover SPH dan RAB Final yang sudah disetujui Manajer dalam format PDF.</li>
+                            <li>Klik <strong>Simpan</strong>.</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="manual-card accordion">
+                    <div class="accordion-header">
+                        <h3>C. Persetujuan Opname & Gantt Chart</h3>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-content">
+                        <ul>
+                            <li><strong>Opname:</strong> Buka menu Opname -> Persetujuan Opname. Periksa volume aktual dan foto, berikan catatan, lalu klik <strong>Approve</strong> atau <strong>Reject</strong>.</li>
+                            <li><strong>Gantt Chart:</strong> Pilih menu Gantt Chart untuk melihat <i>timeline</i> pekerjaan proyek secara <i>View Only</i>. Data akan terbarui otomatis dari laporan pengawasan.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="manual-section">
+                <h2 class="section-title">3. Panduan untuk Internal (SAT)</h2>
+
+                <div class="manual-card accordion">
+                    <div class="accordion-header">
+                        <h3>A. Pembuatan & Tambahan SPK</h3>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-content">
+                        <ul>
+                            <li><strong>Pembuatan SPK:</strong> Pilih menu <strong>Surat Perintah Kerja</strong>. Isi data-data formulir, lalu klik Kirim untuk Persetujuan Branch Manager.</li>
+                            <li><strong>Tambahan Hari SPK:</strong> Pilih menu <strong>Tambahan Surat Perintah Kerja</strong>. Masukkan alasan perpanjangan (misal: cuaca) dan wajib unggah dokumen PDF pendukung.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="manual-card accordion">
+                    <div class="accordion-header">
+                        <h3>B. Pengawasan & Serah Terima</h3>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-content">
+                        <ul>
+                            <li><strong>Penugasan PIC:</strong> Pada menu <strong>PIC Pengawasan</strong>, pilih nama Building Support. Sistem akan mengirim email tugas harian.</li>
+                            <li><strong>Laporan Harian:</strong> PIC wajib klik link dari email untuk mengisi status tepat waktu/terlambat dan mengunggah foto.</li>
+                            <li><strong>Serah Terima:</strong> Pada hari terakhir proyek, PIC mengisi link Serah Terima. Evaluasi setiap area, tentukan Terima/Tidak Diterima, dan unggah foto.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="manual-card accordion">
+                    <div class="accordion-header">
+                        <h3>C. Opname & Instruksi Lapangan</h3>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-content">
+                        <ul>
+                            <li><strong>Input Opname:</strong> Pilih menu Opname -> Input Opname Harian. Masukkan volume aktual dan foto. Dokumen final yang di-Approve bisa di-download PDF-nya.</li>
+                            <li><strong>Instruksi Lapangan:</strong> Scroll ke bagian paling bawah di menu Opname, klik tombol Instruksi Lapangan, lalu isi form untuk diajukan persetujuannya.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="manual-card accordion">
+                    <div class="accordion-header">
+                        <h3>D. Dokumentasi Bangunan Toko Baru</h3>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-content">
+                        <ol>
+                            <li>Pilih menu <strong>Dokumentasi Bangunan Toko Baru</strong>.</li>
+                            <li>Lengkapi info toko, klik Lanjut ke Foto.</li>
+                            <li>Unggah foto berdasarkan urutan indikator hijau pada denah. Jika area di luar jangkauan, pilih "Tidak Bisa Difoto".</li>
+                            <li>Sistem akan mengirim dokumen ke Tim HO untuk divalidasi.</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>

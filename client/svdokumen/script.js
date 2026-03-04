@@ -1040,21 +1040,16 @@ function handleExportData() {
 
     // 3. Map data dari filteredDocuments (sesuai filter user)
     const rows = filteredDocuments.map((doc, index) => {
-        // Hitung ulang status agar akurat (sama seperti di renderTable)
         const statusCheck = checkDocumentCompleteness(doc.file_links);
         const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
         const folderUrl = doc.folder_link || doc.folder_drive || doc.folder_url || "-";
-
-        // Ambil timestamp dan editor sesuai logic renderTable
         const timestamp = doc.timestamp || "-";
         const editor = doc.last_edit || doc.pic_name || "-";
-
-        // Bungkus data dengan kutip (") untuk menangani koma dalam teks
         return [
             index + 1,
-            `"${(doc.kode_toko || "").replace(/"/g, '""')}"`,
-            `"${(doc.nama_toko || "").replace(/"/g, '""')}"`,
-            `"${(doc.cabang || "").replace(/"/g, '""')}"`,
+            `"${String(doc.kode_toko || "").replace(/"/g, '""')}"`,
+            `"${String(doc.nama_toko || "").replace(/"/g, '""')}"`,
+            `"${String(doc.cabang || "").replace(/"/g, '""')}"`,
             `"${statusText}"`,
             `"${statusCheck.missingCount} Item"`,
             `"${timestamp}"`,
