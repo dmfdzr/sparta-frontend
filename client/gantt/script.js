@@ -215,18 +215,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     storeName = parts[parts.length - 1].replace(/\(ME\)|\(Sipil\)/gi, '').trim();
                     if (parts.length >= 3) projectName = parts[1].replace(/$$ME$$|$$Sipil$$/gi, "").trim();
                 }
-
                 if (label.toUpperCase().includes("RENOVASI") || ulok.includes("-R")) projectName = "Renovasi";
-
                 return {
                     ulok: value,
                     ulokClean: ulok,
                     store: storeName,
-                    work: lingkup || 'Sipil',
+                    work: lingkup || '-',
                     projectType: projectName,
                     startDate: new Date().toISOString().split("T")[0],
                     alamat: "",
-                    cabang: "",
+                    cabang: item.cabang || item.Cabang || "", 
                     kategoriLokasi: ""
                 };
             });
@@ -246,15 +244,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initUI() {
         const ulokSelect = document.getElementById("ulokSelect");
-        ulokSelect.innerHTML = '<option value="">-- Pilih Proyek --</option>';
+        const cabangGroup = document.getElementById("cabangFilterGroup");
+        const cabangSelect = document.getElementById("cabangSelect");
 
-        projects.forEach(project => {
-            projectTasks[project.ulok] = []; 
-            const option = document.createElement("option");
-            option.value = project.ulok;
-            option.textContent = `${project.ulok} | ${project.store} (${project.work})`;
-            ulokSelect.appendChild(option);
-        });
+        const isHeadOffice = loggedInUserCabang === 'HEAD OFFICE' && APP_MODE === 'pic';
+
+        function renderUlokOptions(filterCabang = "ALL") {
+            ulokSelect.innerHTML = '<option value="">-- Pilih Proyek --</option>';
+            
+            const filteredProjects = (isHeadOffice && filterCabang !== "ALL") 
+                ? projects.filter(p => (p.cabang || "").toUpperCase() === filterCabang.toUpperCase())
+                : projects;
+
+            filteredProjects.forEach(project => {
+                if(!projectTasks[project.ulok]) projectTasks[project.ulok] = []; 
+                const option = document.createElement("option");
+                option.value = project.ulok;
+                
+                const branchLabel = (isHeadOffice && filterCabang === "ALL" && project.cabang) ? ` [${project.cabang}]` : "";
+                option.textContent = `${project.ulok}${branchLabel} | ${project.store} (${project.work})`;
+                
+                ulokSelect.appendChild(option);
+            });
+        }
+        if (isHeadOffice) {
+            if (cabangGroup) cabangGroup.style.display = 'flex';
+            const uniqueBranches = [...new Set(projects.map(p => p.cabang).filter(c => c))].sort();
+            
+            if (cabangSelect) {
+                cabangSelect.innerHTML = '<option value="ALL">-- Semua Cabang --</option>';
+                uniqueBranches.forEach(c => {
+                    const opt = document.createElement("option");
+                    opt.value = c;
+                    opt.textContent = c;
+                    cabangSelect.appendChild(opt);
+                });
+
+                cabangSelect.addEventListener('change', (e) => {
+                    renderUlokOptions(e.target.value);
+                    ulokSelect.value = "";
+                    changeUlok();
+                });
+            }
+        }
+
+        // Render awal untuk dropdown Ulok
+        renderUlokOptions("ALL");
 
         ulokSelect.addEventListener('change', () => {
             isInitializing = false;
@@ -285,6 +320,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (targetProject) {
+                if (isHeadOffice && targetProject.cabang) {
+                    cabangSelect.value = targetProject.cabang;
+                    renderUlokOptions(targetProject.cabang);
+                }
                 ulokSelect.value = targetProject.ulok;
                 foundMatch = true;
                 changeUlok();
@@ -304,6 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     return normalizedUlokClean === normalizedAutoUlok;
                 });
                 if (partialMatch) {
+                    if (isHeadOffice && partialMatch.cabang) {
+                        cabangSelect.value = partialMatch.cabang;
+                        renderUlokOptions(partialMatch.cabang);
+                    }
                     ulokSelect.value = partialMatch.ulok;
                     foundMatch = true;
                     changeUlok();
@@ -639,7 +682,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin-top:5px;">Kontraktor belum mengunci jadwal. Anda dapat melihat chart (jika ada) di bawah.</p>
                     </div>`;
             } else {
-                renderPicDelayForm(container);
+                const isHeadOfficeUser = loggedInUserCabang === 'HEAD OFFICE';
+                const projectCabang = (currentProject.cabang || "").toUpperCase();
+                
+                if (isHeadOfficeUser && projectCabang !== 'HEAD OFFICE' && projectCabang !== '') {
+                    container.innerHTML = `
+                        <div class="api-card info" style="border-left-color: #805ad5; background-color: #faf5ff;">
+                            <h3 style="color: #553c9a; margin:0; font-size: 15px;">👁️ Mode Pantau Cabang</h3>
+                            <p style="margin-top:5px; font-size:13px; color:#4a5568;">
+                                Anda sedang memantau proyek dari cabang <strong>${projectCabang}</strong>.<br>
+                                Hak akses penerapan <em>Kecepatan / Keterlambatan</em> hanya dapat dilakukan oleh PIC dari cabang bersangkutan.
+                            </p>
+                        </div>`;
+                } else {
+                    renderPicDelayForm(container);
+                }
             }
         }
     }
@@ -1576,6 +1633,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rab.Nama_Toko) currentProject.store = rab.Nama_Toko;
         if (rab.Durasi_Pekerjaan) currentProject.duration = rab.Durasi_Pekerjaan;
         if (rab.Kategori_Lokasi) currentProject.kategoriLokasi = rab.Kategori_Lokasi;
+        if (rab.Cabang) currentProject.cabang = rab.Cabang; 
+        
         calculateSupervisionDays();
     }
 
