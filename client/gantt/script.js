@@ -48,11 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==================== 2. CONFIGURATION ====================
     const API_BASE_URL = "https://sparta-backend-5hdj.onrender.com/api";
 
-    const picCabangParam = loggedInUserCabang === 'HEAD OFFICE' ? '' : encodeURIComponent(loggedInUserCabang);
     const ENDPOINTS = {
         ulokList: APP_MODE === 'kontraktor'
             ? `${API_BASE_URL}/get_ulok_by_email?email=${encodeURIComponent(loggedInUserEmail)}`
-            : `${API_BASE_URL}/get_ulok_by_cabang_pic?cabang=${picCabangParam}`,
+            : `${API_BASE_URL}/get_ulok_by_cabang_pic?cabang=${encodeURIComponent(loggedInUserCabang)}`,
         ganttData: `${API_BASE_URL}/get_gantt_data`,
         insertData: `${API_BASE_URL}/gantt/insert`,
         dayInsert: `${API_BASE_URL}/gantt/day/insert`,
@@ -192,6 +191,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==================== 6. CORE: INIT & LOAD PROJECTS ====================
+    function mapApiDataToProjects(apiData) {
+        return apiData.map(item => {
+            const label = item.label;
+            const value = item.value;
+            const { ulok, lingkup } = extractUlokAndLingkup(value);
+
+            let projectName = "Reguler";
+            let storeName = "Tidak Diketahui";
+
+            const parts = label.split(" - ");
+            if (parts.length >= 2) {
+                storeName = parts[parts.length - 1].replace(/\(ME\)|\(Sipil\)/gi, '').trim();
+                if (parts.length >= 3) projectName = parts[1].replace(/\(ME\)|\(Sipil\)/gi, "").trim();
+            }
+            if (label.toUpperCase().includes("RENOVASI") || ulok.includes("-R")) projectName = "Renovasi";
+            
+            return {
+                ulok: value,
+                ulokClean: ulok,
+                store: storeName,
+                work: lingkup || '-',
+                projectType: projectName,
+                startDate: new Date().toISOString().split("T")[0],
+                alamat: "",
+                cabang: item.cabang || item.Cabang || "", 
+                kategoriLokasi: ""
+            };
+        });
+    }
+
     async function loadDataAndInit() {
         try {
             showLoadingMessage();
@@ -203,34 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const apiData = await response.json();
             if (!Array.isArray(apiData)) throw new Error("Format data API tidak valid");
 
-            projects = apiData.map(item => {
-                const label = item.label;
-                const value = item.value;
-                const { ulok, lingkup } = extractUlokAndLingkup(value);
-
-                let projectName = "Reguler";
-                let storeName = "Tidak Diketahui";
-
-                const parts = label.split(" - ");
-                if (parts.length >= 2) {
-                    storeName = parts[parts.length - 1].replace(/\(ME\)|\(Sipil\)/gi, '').trim();
-                    if (parts.length >= 3) projectName = parts[1].replace(/$$ME$$|$$Sipil$$/gi, "").trim();
-                }
-                if (label.toUpperCase().includes("RENOVASI") || ulok.includes("-R")) projectName = "Renovasi";
-                return {
-                    ulok: value,
-                    ulokClean: ulok,
-                    store: storeName,
-                    work: lingkup || '-',
-                    projectType: projectName,
-                    startDate: new Date().toISOString().split("T")[0],
-                    alamat: "",
-                    cabang: item.cabang || item.Cabang || "", 
-                    kategoriLokasi: ""
-                };
-            });
-
-            if (projects.length === 0) {
+            projects = mapApiDataToProjects(apiData);
+            if (projects.length === 0 && loggedInUserCabang !== 'HEAD OFFICE') {
                 document.getElementById("ganttChart").innerHTML = `<div style="text-align:center; padding:40px;">Tidak ada data proyek ditemukan untuk akun ini.</div>`;
                 return;
             }
@@ -298,8 +301,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     cabangSelect.appendChild(opt);
                 });
 
-                cabangSelect.addEventListener('change', (e) => {
-                    renderUlokOptions(e.target.value);
+                cabangSelect.addEventListener('change', async (e) => {
+                    const selectedCabang = e.target.value;
+                    const targetCabang = selectedCabang === "ALL" ? "HEAD OFFICE" : selectedCabang;
+                    
+                    ulokSelect.innerHTML = '<option value="">Memuat Proyek...</option>';
+                    
+                    try {
+                        const url = `${API_BASE_URL}/get_ulok_by_cabang_pic?cabang=${encodeURIComponent(targetCabang)}`;
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error("Gagal mengambil data proyek cabang");
+                        
+                        const apiData = await response.json();
+                        projects = mapApiDataToProjects(apiData);
+                        
+                        renderUlokOptions("ALL"); 
+                    } catch(err) {
+                        console.error(err);
+                        ulokSelect.innerHTML = '<option value="">Gagal memuat proyek</option>';
+                    }
+                    
                     ulokSelect.value = "";
                     changeUlok();
                 });
