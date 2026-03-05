@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } 
             else if (hasSerahTerima && !hasOpnameFinal) {
                 // Kerja Tambah Kurang: tanggal serah terima sudah terisi & tanggal opname final belum
-                currentGroupedProjects['Kerja Tambah Kurang'].push(item);
+                currentGroupedProjects['Proses Kerja Tambah Kurang'].push(item);
             } 
             else if (hasSPK && !hasSerahTerima) {
                 // Ongoing: nilai SPK sudah terisi & tanggal serah terima belum
