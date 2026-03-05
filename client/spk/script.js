@@ -45,67 +45,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const namaTokoInput = document.getElementById("nama_toko");
 
     const branchToUlokMap = {
-        "WHC IMAM BONJOL": "7AZ1",
-        LUWU: "2VZ1",
-        KARAWANG: "1JZ1",
-        REMBANG: "2AZ1",
-        BANJARMASIN: "1GZ1",
-        PARUNG: "1MZ1",
-        TEGAL: "2PZ1",
-        GORONTALO: "2SZ1",
-        PONTIANAK: "1PZ1",
-        LOMBOK: "1SZ1",
-        KOTABUMI: "1VZ1",
-        SERANG: "2GZ1",
-        CIANJUR: "2JZ1",
-        BALARAJA: "TZ01",
-        SIDOARJO: "UZ01",
-        MEDAN: "WZ01",
-        BOGOR: "XZ01",
-        JEMBER: "YZ01",
-        BALI: "QZ01",
-        PALEMBANG: "PZ01",
-        KLATEN: "OZ01",
-        MAKASSAR: "RZ01",
-        PLUMBON: "VZ01",
-        PEKANBARU: "1AZ1",
-        JAMBI: "1DZ1",
-        "HEAD OFFICE": "Z001",
-        "BANDUNG RAYA": "BZ01",
-        BEKASI: "CZ01",
-        CILACAP: "IZ01",
-        CILEUNGSI: "JZ01",
-        SEMARANG: "HZ01",
-        CIKOKOL: "KZ01",
-        LAMPUNG: "LZ01",
-        MALANG: "MZ01",
-        MANADO: "1YZ1",
-        BATAM: "2DZ1",
-        MADIUN: "2MZ1",
+        "WHC IMAM BONJOL": "7AZ1", LUWU: "2VZ1", KARAWANG: "1JZ1", REMBANG: "2AZ1", BANJARMASIN: "1GZ1",
+        PARUNG: "1MZ1", TEGAL: "2PZ1", GORONTALO: "2SZ1", PONTIANAK: "1PZ1", LOMBOK: "1SZ1", SERANG: "2GZ1",
+        CIANJUR: "2JZ1", BALARAJA: "TZ01", SIDOARJO: "UZ01", MEDAN: "WZ01", BOGOR: "XZ01", JEMBER: "YZ01",
+        BALI: "QZ01", PALEMBANG: "PZ01", KLATEN: "OZ01", MAKASSAR: "RZ01", PLUMBON: "VZ01", PEKANBARU: "1AZ1",
+        JAMBI: "1DZ1", "HEAD OFFICE": "Z001", "BANDUNG RAYA": "BZ01", BEKASI: "CZ01", CILACAP: "IZ01",
+        CILEUNGSI: "JZ01", SEMARANG: "HZ01", CIKOKOL: "KZ01", LAMPUNG: "LZ01", MALANG: "MZ01", MANADO: "1YZ1",
+        BATAM: "2DZ1", MADIUN: "2MZ1",
     };
 
     let approvedRabData = [];
 
     const branchGroups = {
         LOMBOK: ["LOMBOK", "SUMBAWA"],
-        SUMBAWA: ["LOMBOK", "SUMBAWA"],
         MEDAN: ["MEDAN", "ACEH"],
-        ACEH: ["MEDAN", "ACEH"],
+        LAMPUNG: ["LAMPUNG", "LAMPUNG_KOTABUMI"],
         PALEMBANG: ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        BENGKULU: ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        BANGKA: ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        BELITUNG: ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
         SIDOARJO: ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        "SIDOARJO BPN_SMD": [
-        "SIDOARJO",
-        "SIDOARJO BPN_SMD",
-        "MANOKWARI",
-        "NTT",
-        "SORONG",
-        ],
-        MANOKWARI: ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        NTT: ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        SORONG: ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
     };
 
     // --- Helper Functions ---
@@ -563,6 +519,20 @@ document.addEventListener('DOMContentLoaded', () => {
             '<option value="">-- Pilih RAB terlebih dahulu --</option>';
         const userCabang = sessionStorage.getItem("loggedInUserCabang");
         setCabangCode(userCabang);
+        }
+    });
+
+    cabangSelect.addEventListener("change", async (e) => {
+        const selectedCabang = e.target.value;
+        
+        if (selectedCabang) {
+            setCabangCode(selectedCabang);
+            showMessage(`Memuat kontraktor untuk cabang ${selectedCabang}...`, "info");
+            await fetchKontraktor(selectedCabang);
+            showMessage("", "none");
+        } else {
+            setCabangCode("");
+            kontraktorSelect.innerHTML = '<option value="">-- Pilih Cabang terlebih dahulu --</option>';
         }
     });
 
