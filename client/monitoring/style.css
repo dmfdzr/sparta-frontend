@@ -363,6 +363,54 @@ select:hover {
     font-weight: 500;
 }
 
+#card-total-proyek-wrapper {
+    grid-column: 1 / -1;
+}
+
+/* Desain Grid Mini Stats di dalam Card */
+.mini-project-stats {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr); /* Tampil 6 kolom menyamping di Desktop */
+    gap: 12px;
+    width: 100%;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.mini-stat-item {
+    background: var(--bg-color);
+    padding: 12px 8px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+}
+
+.mini-stat-item:hover {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    transform: translateY(-2px);
+}
+
+.mini-stat-label {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mini-stat-value {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--secondary-color);
+}
+
 /* ==========================================================================
     MODAL STYLES
    ========================================================================== */
@@ -723,6 +771,9 @@ select:hover {
     .detail-item:nth-last-child(2) {
         border-bottom: 1px dashed #cbd5e0;
         padding-bottom: 12px;
+    }
+    .mini-project-stats {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 

@@ -1029,7 +1029,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let sumNilaiToko = 0; 
         let countNilaiToko = 0;
-        let countKeterlambatan = 0; // Variabel baru untuk menghitung jumlah toko yang telat
+        let countKeterlambatan = 0; 
+
+        // VARIABEL BARU UNTUK MENGHITUNG STATUS DI DEPAN CARD
+        let miniStats = {
+            'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0,
+            'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0
+        };
 
         data.forEach(item => {
             totalSPK += parseCurrency(item["Nominal SPK"]);
@@ -1044,7 +1050,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const tambahSpk = parseFloat(item["tambah_spk"]) || 0;
             const keterlambatan = parseFloat(item["Keterlambatan"]) || 0;
             
-            // Hitung toko yang benar-benar terlambat
             if (keterlambatan > 0) {
                 countKeterlambatan++;
             }
@@ -1053,17 +1058,43 @@ document.addEventListener('DOMContentLoaded', () => {
             totalKeterlambatan += keterlambatan;
             totalDenda += parseCurrency(item["Denda"]);
             totalOpname += parseCurrency(item["Grand Total Opname Final"]);
-            totalLuasTerbangun += parseFloat(item["Luas Terbangunan"]) || 0;
+            
             const ulok = item["Nomor Ulok"] || 'Tanpa Ulok-' + Math.random();
             const luas = parseFloat(item["Luas Terbangunan"]) || 0;
             if (!uniqueUlokLuas[ulok] && luas > 0) {
                 uniqueUlokLuas[ulok] = luas;
-                totalLuasTerbangun += luas; // Hanya ditambahkan sekali per ulok
+                totalLuasTerbangun += luas; 
             }
+
+            // --- LOGIKA PENGELOMPOKAN STATUS UNTUK CARD DEPAN ---
+            const hasStatusRab = item["Status_Rab"] && String(item["Status_Rab"]).trim() !== "";
+            const hasPenawaranFinal = item["Total Penawaran Final"] && String(item["Total Penawaran Final"]).trim() !== "";
+            const hasStatus = item["Status"] && String(item["Status"]).trim() !== "";
+            const hasSPK = item["Nominal SPK"] && String(item["Nominal SPK"]).trim() !== "";
+            const hasSerahTerima = (item["tanggal_serah_terima"] && String(item["tanggal_serah_terima"]).trim() !== "") || 
+                                   (item["Tgl Serah Terima"] && String(item["Tgl Serah Terima"]).trim() !== "");
+            const hasOpnameFinal = item["tanggal_opname_final"] && String(item["tanggal_opname_final"]).trim() !== "";
+
+            if (hasOpnameFinal) miniStats['Done']++;
+            else if (hasSerahTerima && !hasOpnameFinal) miniStats['Proses Kerja Tambah Kurang']++;
+            else if (hasSPK && !hasSerahTerima) miniStats['Ongoing']++;
+            else if (hasStatus && !hasSPK) miniStats['Approval SPK']++;
+            else if (hasPenawaranFinal && !hasSPK) miniStats['Proses PJU']++;
+            else if (hasStatusRab && !hasPenawaranFinal) miniStats['Approval RAB']++;
         });
 
+        // --- RENDER MINI STATS KE HTML DALAM CARD ---
+        const miniContainer = document.getElementById('mini-project-stats');
+        if (miniContainer) {
+            miniContainer.innerHTML = Object.entries(miniStats).map(([label, count]) => `
+                <div class="mini-stat-item">
+                    <span class="mini-stat-label">${label}</span>
+                    <span class="mini-stat-value">${count}</span>
+                </div>
+            `).join('');
+        }
+
         const avgKeterlambatan = countKeterlambatan > 0 ? Math.round(totalKeterlambatan / countKeterlambatan) : 0;
-        
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
         const avgNilaiToko = countNilaiToko > 0 ? (sumNilaiToko / countNilaiToko) : 0;
         const avgJHK = totalProyek > 0 ? Math.round(totalJHK / totalProyek) : 0;
