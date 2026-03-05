@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form opname proyek toko.' },
         'menu-dokumentasi': { href: '../../ftdokumen/', title: 'Dokumentasi Bangunan Toko Baru', desc: 'Form dokumentasi foto bangunan.' },
         'menu-tambahspk': { href: '../../tambahspk/', title: 'Tambahan Surat Perintah Kerja', desc: 'Form pertambahan hari surat perintah kerja.' },
-        // 'menu-svdokumen': { href: '../../svdokumen/', title: 'Penyimpanan Dokumen Toko', desc: 'Form penyimpanan dokumen.' },
+        'menu-svdokumen': { href: '../../svdokumen/', title: 'Penyimpanan Dokumen Toko', desc: 'Form penyimpanan dokumen.' },
         'menu-gantt': { href: '../../gantt/', title: 'Gantt Chart', desc: 'Progress pekerjaan toko.' },
         'menu-userlog': { href: '../../userlog/', title: 'User Log', desc: 'Log aktivitas pengguna.' },
         'menu-resend': { href: '../../resend/', title: 'Resend Email', desc: 'Resend email approval.' },
@@ -28,15 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
             href: '../../dashboard/', 
             title: 'Surat Peringatan', 
             desc: 'Form surat peringatan.',
-            onClick: (e) => { 
-                e.preventDefault(); 
-                alert('Fitur sedang dalam pengembangan.'); 
-            }
-        },
-        'menu-svdokumen': { 
-            href: '../../dashboard/', 
-            title: 'Penyimpanan Dokumen Toko', 
-            desc: 'Form penyimpanan dokumen.',
             onClick: (e) => { 
                 e.preventDefault(); 
                 alert('Fitur sedang dalam pengembangan.'); 
