@@ -52,7 +52,7 @@
                 </div>
             </div>
 
-            <div class="stats-grid" id="main-stats-grid">
+            <div class="stats-grid">
                 <div class="stat-card" id="card-total-proyek-wrapper" style="cursor: pointer; flex-direction: row; align-items: center; justify-content: space-between; gap: 15px;">
                     <div style="display: flex; align-items: center; gap: 15px; flex-shrink: 0;">
                         <div class="stat-icon" style="background: #eff6ff; color: #2563eb;">
@@ -152,74 +152,6 @@
                         <div class="stat-label">Rata-rata Kontraktor</div>
                         <div class="stat-value" id="card-nilai-kontraktor">0</div>
                         <div class="stat-sub">Skor per Kontraktor</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stats-grid" id="kontraktor-stats-grid" style="display: none;">
-                <div class="stat-card kontraktor-card" data-status="Approval RAB" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #eff6ff; color: #2563eb;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Approval RAB</div>
-                        <div class="stat-value" id="stat-approval-rab">0</div>
-                        <div class="stat-sub">Menunggu Persetujuan</div>
-                    </div>
-                </div>
-
-                <div class="stat-card kontraktor-card" data-status="Proses PJU" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #e0e7ff; color: #4338ca;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Proses PJU</div>
-                        <div class="stat-value" id="stat-proses-pju">0</div>
-                        <div class="stat-sub">Dokumen Finalisasi</div>
-                    </div>
-                </div>
-
-                <div class="stat-card kontraktor-card" data-status="Approval SPK" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #fff7ed; color: #c05621;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Approval SPK</div>
-                        <div class="stat-value" id="stat-approval-spk">0</div>
-                        <div class="stat-sub">Menunggu Penerbitan</div>
-                    </div>
-                </div>
-
-                <div class="stat-card kontraktor-card" data-status="Ongoing" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #f0fff4; color: #2f855a;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Ongoing</div>
-                        <div class="stat-value" id="stat-ongoing">0</div>
-                        <div class="stat-sub">Sedang Berjalan</div>
-                    </div>
-                </div>
-
-                <div class="stat-card kontraktor-card" data-status="Proses Kerja Tambah Kurang" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #fff5f5; color: #e53e3e;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Kerja Tambah Kurang</div>
-                        <div class="stat-value" id="stat-ktk">0</div>
-                        <div class="stat-sub">Penyelesaian Opname</div>
-                    </div>
-                </div>
-
-                <div class="stat-card kontraktor-card" data-status="Done" style="cursor: pointer;">
-                    <div class="stat-icon" style="background: #fee2e2; color: #b91c1c;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-label">Done</div>
-                        <div class="stat-value" id="stat-done">0</div>
-                        <div class="stat-sub">Selesai 100%</div>
                     </div>
                 </div>
             </div>
