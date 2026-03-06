@@ -18,8 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let filteredData = []; 
     
     const userRole = sessionStorage.getItem('userRole'); 
-    const userCabang = sessionStorage.getItem('loggedInUserCabang'); 
-    const isHO = userCabang === 'HEAD OFFICE'; 
+    // Pastikan fallback string kosong jika userCabang undefined agar tidak error .toUpperCase()
+    const userCabang = sessionStorage.getItem('loggedInUserCabang') || ''; 
+    const isHO = userCabang.toUpperCase() === 'HEAD OFFICE'; 
     
     if (!userRole) {
         alert("Sesi Anda telah habis. Silakan login kembali.");
@@ -84,16 +85,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 3. LOGIC MONITORING PANE (SISI KANAN SEKARANG)
+    // 3. LOGIC MONITORING PANE
     // ==========================================
+    const dashboardLayout = document.getElementById('dashboard-layout');
     const monitoringSection = document.getElementById('monitoring-section');
     
-    if (isHO && !isContractor) {
-        monitoringSection.style.display = 'flex'; // Pakai flex krn flex-direction column di main
+    // PERUBAHAN: Semua role selain KONTRAKTOR bisa melihat Monitoring
+    if (!isContractor) {
+        monitoringSection.style.display = 'flex'; 
         initDashboardData(); 
     } else {
         monitoringSection.style.display = 'none';
-        // Sembunyikan tombol toggle menu jika bukan HO (opsional)
         if(toggleBtn) toggleBtn.style.display = 'none';
     }
 
@@ -151,10 +153,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateFilters(data) {
         const cabangSelect = document.getElementById('filterCabang');
         const tahunSelect = document.getElementById('filterTahun');
-        const uniqueCabang = [...new Set(data.map(item => item.Cabang))].filter(c => c && c.trim() !== "").sort();
 
-        cabangSelect.innerHTML = '<option value="ALL">Semua Cabang</option>';
-        uniqueCabang.forEach(cab => { cabangSelect.innerHTML += `<option value="${cab}">${cab}</option>`; });
+        // PERUBAHAN: Jika bukan HO, sembunyikan dropdown Cabang
+        if (!isHO) {
+            cabangSelect.style.display = 'none';
+        } else {
+            cabangSelect.style.display = 'inline-block';
+            const uniqueCabang = [...new Set(data.map(item => item.Cabang))].filter(c => c && c.trim() !== "").sort();
+            cabangSelect.innerHTML = '<option value="ALL">Semua Cabang</option>';
+            uniqueCabang.forEach(cab => { cabangSelect.innerHTML += `<option value="${cab}">${cab}</option>`; });
+        }
 
         const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item["Timestamp"])))].filter(y => y).sort((a, b) => b - a);
         tahunSelect.innerHTML = '<option value="ALL">Semua Tahun</option>';
@@ -163,13 +171,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyFilters() {
-        const selectedCabang = document.getElementById('filterCabang').value;
+        // PERUBAHAN: Jika HO, ambil dari dropdown. Jika bukan, otomatis pakai cabang user.
+        const selectedCabang = isHO ? document.getElementById('filterCabang').value : userCabang;
         const selectedTahun = document.getElementById('filterTahun').value;
         
         filteredData = rawData.filter(item => {
-            const matchCabang = (selectedCabang === 'ALL') || (item.Cabang === selectedCabang);
+            // Evaluasi filter cabang dengan toUpperCase agar aman (misal "BOGOR" vs "Bogor")
+            const matchCabang = (selectedCabang === 'ALL') || 
+                                (item.Cabang && item.Cabang.toUpperCase() === selectedCabang.toUpperCase());
             const itemYear = getYearFromDate(item["Timestamp"]);
             const matchTahun = (selectedTahun === 'ALL') || (itemYear == selectedTahun);
+            
             return matchCabang && matchTahun;
         });
         renderKPI(filteredData);
