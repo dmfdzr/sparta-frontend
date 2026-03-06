@@ -369,25 +369,27 @@ select:hover {
 
 /* Desain Grid Mini Stats di dalam Card */
 .mini-project-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 Kolom, 2 Baris */
-    gap: 6px 8px; /* Jarak dibuat lebih rapat */
-    width: 100%;
+    display: flex; /* Menggunakan flex agar ukuran bisa fit-content */
+    flex-wrap: wrap; /* Otomatis turun baris jika kepanjangan */
+    gap: 8px; /* Jarak antar kotak */
     margin-top: 0;
     padding-top: 0;
     border-top: none;
-    border-left: 1px dashed var(--border-color); /* Garis pemisah pindah ke kiri */
+    border-left: 1px dashed var(--border-color);
     padding-left: 16px;
     flex-grow: 1;
+    justify-content: flex-start; /* Mulai berjejer dari sisi kiri */
+    align-content: center;
 }
 
 .mini-stat-item {
     background: var(--bg-color);
-    padding: 4px 2px; /* Super pipih agar tinggi card normal */
+    padding: 6px 10px; /* Padding disesuaikan agar rapi */
     border-radius: 6px;
     text-align: center;
     border: 1px solid var(--border-color);
     transition: var(--transition-smooth);
+    flex: 0 0 auto;
 }
 
 .mini-stat-item:hover {
@@ -767,15 +769,17 @@ select:hover {
 
     #card-total-proyek-wrapper {
         grid-column: span 1 !important;
-        flex-direction: column !important; /* Susun ke bawah lagi khusus di HP */
+        flex-direction: column !important; 
         align-items: stretch !important;
     }
     
     .mini-project-stats {
-        grid-template-columns: repeat(3, 1fr); 
-        border-left: none; /* Hilangkan garis vertikal */
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        border-left: none; 
         padding-left: 0;
-        border-top: 1px dashed var(--border-color); /* Kembalikan garis atas */
+        border-top: 1px dashed var(--border-color); 
         margin-top: 16px;
         padding-top: 16px;
     }
@@ -783,7 +787,7 @@ select:hover {
 
 @media screen and (max-width: 480px) {
     .detail-grid {
-        grid-template-columns: 1fr; /* Jadi 1 kolom di HP */
+        grid-template-columns: 1fr;
         gap: 12px;
     }
     .detail-item:nth-last-child(2) {
