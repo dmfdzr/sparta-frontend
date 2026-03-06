@@ -1,5 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
+    // 0. LOGIC SIDEBAR TOGGLE
+    // ==========================================
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('app-sidebar');
+
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+    }
+
+    // ==========================================
     // 1. GLOBAL VARIABLES & AUTH & ROLE
     // ==========================================
     let rawData = []; 
@@ -19,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isContractor = currentRole === 'KONTRAKTOR';
 
     // ==========================================
-    // 2. RENDER MENU (SISI KANAN - DARI DASHBOARD)
+    // 2. RENDER MENU (SISI KIRI SEKARANG)
     // ==========================================
     const MENU_CATALOG = {
         'menu-rab': { href: '../../rab/', title: 'RAB Kontraktor', desc: 'Penawaran final kontraktor.', icon: '/assets/icons/rab.png' },
@@ -72,24 +84,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 3. LOGIC MONITORING PANE
+    // 3. LOGIC MONITORING PANE (SISI KANAN SEKARANG)
     // ==========================================
-    const dashboardLayout = document.getElementById('dashboard-layout');
     const monitoringSection = document.getElementById('monitoring-section');
     
     if (isHO && !isContractor) {
-        monitoringSection.style.display = 'block';
+        monitoringSection.style.display = 'flex'; // Pakai flex krn flex-direction column di main
         initDashboardData(); 
     } else {
         monitoringSection.style.display = 'none';
-        dashboardLayout.classList.add('center-menu');
+        // Sembunyikan tombol toggle menu jika bukan HO (opsional)
+        if(toggleBtn) toggleBtn.style.display = 'none';
     }
 
     // Modal Variables & Selectors
     const projectModal = document.getElementById('projectModal');
     const closeModal = document.getElementById('closeModal');
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
-    const totalPenawaranCard = document.getElementById('card-total-penawaran-wrapper'); // NEW
+    const totalPenawaranCard = document.getElementById('card-total-penawaran-wrapper'); 
     const totalSpkCard = document.getElementById('card-total-spk-wrapper'); 
     const totalJhkCard = document.getElementById('card-total-jhk-wrapper'); 
     const avgCostM2Card = document.getElementById('card-avg-cost-m2-wrapper'); 
@@ -111,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentGroupedProjects = {}; 
     let currentModalContext = 'PROJECT';
-    let currentPenawaranGroups = []; // NEW
+    let currentPenawaranGroups = []; 
     let currentSpkGroups = [];
     let currentCostGroups = [];
     let currentKontraktorGroups = [];
@@ -174,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let miniStats = { 'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0, 'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0 };
 
         data.forEach(item => {
-            totalPenawaran += parseCurrency(item["Total Penawaran Final"]); // NEW
+            totalPenawaran += parseCurrency(item["Total Penawaran Final"]); 
             totalSPK += parseCurrency(item["Nominal SPK"]);
             
             const nt = parseScore(item["Nilai Toko"]);
@@ -233,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const animDuration = 1500; 
         animateValue("card-total-proyek", 0, totalProyek, animDuration);
-        if(document.getElementById('card-total-penawaran')) animateValue("card-total-penawaran", 0, totalPenawaran, animDuration, formatRupiah); // NEW
+        if(document.getElementById('card-total-penawaran')) animateValue("card-total-penawaran", 0, totalPenawaran, animDuration, formatRupiah); 
         animateValue("card-total-spk", 0, totalSPK, animDuration, formatRupiah);
         animateValue("card-jhk", 0, avgJHK, animDuration, (val) => val + " Hari");
         animateValue("card-avg-keterlambatan", 0, avgKeterlambatan, animDuration, (val) => val + " Hari");
@@ -270,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if(grid) {
             grid.innerHTML = Object.entries(currentGroupedProjects).map(([label, items], index) => `
-                <div class="modal-stat-item" data-status="${label}" style="animation-delay: ${0.1 + (index * 0.05)}s; cursor: pointer;">
+                <div class="modal-stat-item" data-status="${label}">
                     <span class="modal-stat-label">${label}</span><span class="modal-stat-value">${items.length}</span>
                 </div>
             `).join('');
@@ -301,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(modalSummaryView && modalListView && modalStoreDetailView) { modalSummaryView.style.display = 'none'; modalStoreDetailView.style.display = 'none'; modalListView.style.display = 'block'; }
     };
 
-    // --- NEW: FUNGSI TOTAL PENAWARAN ---
     const showPenawaranDetails = () => {
         if (!filteredData || filteredData.length === 0) return;
         currentModalContext = 'PENAWARAN'; 
@@ -458,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if(grid) {
             grid.innerHTML = summaryData.map((item, index) => `
-                <div class="modal-stat-item" data-cost-type="${item.type}" style="animation-delay: ${0.1 + (index * 0.05)}s; cursor: pointer;">
+                <div class="modal-stat-item" data-cost-type="${item.type}">
                     <span class="modal-stat-label">Cost/m² (${item.label})</span><span class="modal-stat-value" style="color: #805ad5;">${item.value}</span>
                 </div>`).join('');
         }
@@ -700,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EVENT LISTENERS ---
     if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
-    if(totalPenawaranCard) totalPenawaranCard.addEventListener('click', showPenawaranDetails); // NEW
+    if(totalPenawaranCard) totalPenawaranCard.addEventListener('click', showPenawaranDetails); 
     if(totalSpkCard) totalSpkCard.addEventListener('click', showSpkDetails); 
     if(totalJhkCard) totalJhkCard.addEventListener('click', showJhkDetails); 
     if(avgCostM2Card) avgCostM2Card.addEventListener('click', showAvgCostM2Details); 
@@ -713,7 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(storeListContainer) storeListContainer.addEventListener('click', (e) => {
         const storeItem = e.target.closest('.store-item'); if (!storeItem) return;
         const itemIndex = storeItem.getAttribute('data-index'); if(itemIndex !== null) return renderStoreDetail(itemIndex);
-        const penawaranIndex = storeItem.getAttribute('data-penawaran-index'); if(penawaranIndex !== null) return renderPenawaranDetail(penawaranIndex); // NEW
+        const penawaranIndex = storeItem.getAttribute('data-penawaran-index'); if(penawaranIndex !== null) return renderPenawaranDetail(penawaranIndex); 
         const spkIndex = storeItem.getAttribute('data-spk-index'); if (spkIndex !== null) return renderSpkDetail(spkIndex);
         const costIndex = storeItem.getAttribute('data-cost-index'); if (costIndex !== null) return renderCostDetail(costIndex);
         const kontraktorIndex = storeItem.getAttribute('data-kontraktor-index'); if (kontraktorIndex !== null) return renderKontraktorDetail(kontraktorIndex);
