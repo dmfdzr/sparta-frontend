@@ -369,8 +369,8 @@ select:hover {
 
 /* Desain Grid Mini Stats di dalam Card */
 .mini-project-stats {
-    display: flex; /* Menggunakan flex agar ukuran bisa fit-content */
-    flex-wrap: wrap; /* Otomatis turun baris jika kepanjangan */
+    display: grid; /* Menggunakan grid untuk layout 3x2 yang pasti */
+    grid-template-columns: repeat(3, 1fr); /* Paksa menjadi 3 kolom rata */
     gap: 8px; /* Jarak antar kotak */
     margin-top: 0;
     padding-top: 0;
@@ -378,18 +378,17 @@ select:hover {
     border-left: 1px dashed var(--border-color);
     padding-left: 16px;
     flex-grow: 1;
-    justify-content: flex-start; /* Mulai berjejer dari sisi kiri */
     align-content: center;
 }
 
 .mini-stat-item {
     background: var(--bg-color);
-    padding: 6px 10px; /* Padding disesuaikan agar rapi */
+    padding: 6px 4px; /* Padding dirapikan agar proporsional */
     border-radius: 6px;
     text-align: center;
     border: 1px solid var(--border-color);
     transition: var(--transition-smooth);
-    flex: 0 0 auto;
+    /* Aturan flex: 0 0 auto dihapus karena sudah memakai grid */
 }
 
 .mini-stat-item:hover {
@@ -774,9 +773,9 @@ select:hover {
     }
     
     .mini-project-stats {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
+        display: grid; /* Ubah dari flex menjadi grid */
+        grid-template-columns: repeat(3, 1fr); /* Tetap 3 kolom di HP */
+        gap: 8px;
         border-left: none; 
         padding-left: 0;
         border-top: 1px dashed var(--border-color); 
