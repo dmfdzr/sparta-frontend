@@ -18,8 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let filteredData = []; 
     
     const userRole = sessionStorage.getItem('userRole'); 
-    // Pastikan fallback string kosong jika userCabang undefined agar tidak error .toUpperCase()
     const userCabang = sessionStorage.getItem('loggedInUserCabang') || ''; 
+    const userEmail = sessionStorage.getItem('loggedInUserEmail') || ''; // Identifikasi Email Kontraktor
     const isHO = userCabang.toUpperCase() === 'HEAD OFFICE'; 
     
     if (!userRole) {
@@ -85,23 +85,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 3. LOGIC MONITORING PANE
+    // 3. LOGIC MONITORING PANE VIEW
     // ==========================================
-    const dashboardLayout = document.getElementById('dashboard-layout');
     const monitoringSection = document.getElementById('monitoring-section');
+    const mainStatsGrid = document.getElementById('main-stats-grid');
+    const kontraktorStatsGrid = document.getElementById('kontraktor-stats-grid');
     
-    // PERUBAHAN: Semua role selain KONTRAKTOR bisa melihat Monitoring
-    if (!isContractor) {
-        monitoringSection.style.display = 'flex'; 
-        initDashboardData(); 
+    // Tampilkan panel monitoring untuk semua role (termasuk KONTRAKTOR)
+    monitoringSection.style.display = 'flex'; 
+
+    if (isContractor) {
+        // Kontraktor hanya melihat grid kontraktor
+        mainStatsGrid.style.display = 'none';
+        kontraktorStatsGrid.style.display = 'grid';
     } else {
-        monitoringSection.style.display = 'none';
-        if(toggleBtn) toggleBtn.style.display = 'none';
+        // Internal melihat grid utama
+        mainStatsGrid.style.display = 'grid';
+        kontraktorStatsGrid.style.display = 'none';
     }
 
     // Modal Variables & Selectors
     const projectModal = document.getElementById('projectModal');
     const closeModal = document.getElementById('closeModal');
+    
+    // Card HO/Branch
     const totalProyekCard = document.getElementById('card-total-proyek-wrapper');
     const totalPenawaranCard = document.getElementById('card-total-penawaran-wrapper'); 
     const totalSpkCard = document.getElementById('card-total-spk-wrapper'); 
@@ -133,7 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FETCH & FILTER LOGIC ---
     async function initDashboardData() {
         const API_URL = "https://sparta-backend-5hdj.onrender.com/api/opname/summary-data";
-        document.getElementById('card-total-proyek').textContent = "...";
+        if(document.getElementById('card-total-proyek')) document.getElementById('card-total-proyek').textContent = "...";
+        
         try {
             const response = await fetch(API_URL);
             const result = await response.json();
@@ -141,12 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 rawData = result.data;
                 populateFilters(rawData);
                 applyFilters(); 
-            } else {
-                document.getElementById('card-total-proyek').textContent = "0";
             }
         } catch (error) {
             console.error("Error Fetching:", error);
-            document.getElementById('card-total-proyek').textContent = "Err";
+            if(document.getElementById('card-total-proyek')) document.getElementById('card-total-proyek').textContent = "Err";
         }
     }
 
@@ -154,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const cabangSelect = document.getElementById('filterCabang');
         const tahunSelect = document.getElementById('filterTahun');
 
-        // PERUBAHAN: Jika bukan HO, sembunyikan dropdown Cabang
         if (!isHO) {
             cabangSelect.style.display = 'none';
         } else {
@@ -171,18 +176,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyFilters() {
-        // PERUBAHAN: Jika HO, ambil dari dropdown. Jika bukan, otomatis pakai cabang user.
+        // Kontraktor & Cabang dikunci ke Cabang miliknya, HO bebas milih
         const selectedCabang = isHO ? document.getElementById('filterCabang').value : userCabang;
         const selectedTahun = document.getElementById('filterTahun').value;
         
         filteredData = rawData.filter(item => {
-            // Evaluasi filter cabang dengan toUpperCase agar aman (misal "BOGOR" vs "Bogor")
             const matchCabang = (selectedCabang === 'ALL') || 
                                 (item.Cabang && item.Cabang.toUpperCase() === selectedCabang.toUpperCase());
             const itemYear = getYearFromDate(item["Timestamp"]);
             const matchTahun = (selectedTahun === 'ALL') || (itemYear == selectedTahun);
             
-            return matchCabang && matchTahun;
+            // Logika baru khusus KONTRAKTOR (Cek via Email)
+            let matchKontraktor = true;
+            if (isContractor) {
+                matchKontraktor = item.Kontraktor && (item.Kontraktor.toUpperCase() === userEmail.toUpperCase());
+            }
+
+            return matchCabang && matchTahun && matchKontraktor;
         });
         renderKPI(filteredData);
     }
@@ -196,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const groupedKontraktorData = {};
         
         let miniStats = { 'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0, 'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0 };
+        currentGroupedProjects = { 'Approval RAB': [], 'Proses PJU': [], 'Approval SPK': [], 'Ongoing': [], 'Proses Kerja Tambah Kurang': [], 'Done': [] };
 
         data.forEach(item => {
             totalPenawaran += parseCurrency(item["Total Penawaran Final"]); 
@@ -225,12 +236,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasSerahTerima = (item["tanggal_serah_terima"] && String(item["tanggal_serah_terima"]).trim() !== "") || (item["Tgl Serah Terima"] && String(item["Tgl Serah Terima"]).trim() !== "");
             const hasOpnameFinal = item["tanggal_opname_final"] && String(item["tanggal_opname_final"]).trim() !== "";
 
-            if (hasOpnameFinal) miniStats['Done']++;
-            else if (hasSerahTerima && !hasOpnameFinal) miniStats['Proses Kerja Tambah Kurang']++;
-            else if (hasSPK && !hasSerahTerima) miniStats['Ongoing']++;
-            else if (hasStatus && !hasSPK) miniStats['Approval SPK']++;
-            else if (hasPenawaranFinal && !hasSPK) miniStats['Proses PJU']++;
-            else if (hasStatusRab && !hasPenawaranFinal) miniStats['Approval RAB']++;
+            // Pengelompokan status otomatis langsung dimasukkan ke group modal list
+            if (hasOpnameFinal) { miniStats['Done']++; currentGroupedProjects['Done'].push(item); }
+            else if (hasSerahTerima && !hasOpnameFinal) { miniStats['Proses Kerja Tambah Kurang']++; currentGroupedProjects['Proses Kerja Tambah Kurang'].push(item); }
+            else if (hasSPK && !hasSerahTerima) { miniStats['Ongoing']++; currentGroupedProjects['Ongoing'].push(item); }
+            else if (hasStatus && !hasSPK) { miniStats['Approval SPK']++; currentGroupedProjects['Approval SPK'].push(item); }
+            else if (hasPenawaranFinal && !hasSPK) { miniStats['Proses PJU']++; currentGroupedProjects['Proses PJU'].push(item); }
+            else if (hasStatusRab && !hasPenawaranFinal) { miniStats['Approval RAB']++; currentGroupedProjects['Approval RAB'].push(item); }
 
             const kontraktor = item["Kontraktor"] && item["Kontraktor"].trim() !== "" ? item["Kontraktor"] : 'Tanpa Kontraktor';
             if (nt > 0) {
@@ -239,13 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 groupedKontraktorData[kontraktor].count++;
             }
         });
-
-        const miniContainer = document.getElementById('mini-project-stats');
-        if (miniContainer) {
-            miniContainer.innerHTML = Object.entries(miniStats).map(([label, count]) => `
-                <div class="mini-stat-item"><span class="mini-stat-label">${label}</span><span class="mini-stat-value">${count}</span></div>
-            `).join('');
-        }
 
         const avgKeterlambatan = countKeterlambatan > 0 ? Math.round(totalKeterlambatan / countKeterlambatan) : 0;
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
@@ -256,15 +261,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const avgNilaiKontraktor = countKontraktorGroups > 0 ? (sumAvgKontraktor / countKontraktorGroups) : 0;
 
         const animDuration = 1500; 
-        animateValue("card-total-proyek", 0, totalProyek, animDuration);
-        if(document.getElementById('card-total-penawaran')) animateValue("card-total-penawaran", 0, totalPenawaran, animDuration, formatRupiah); 
-        animateValue("card-total-spk", 0, totalSPK, animDuration, formatRupiah);
-        animateValue("card-jhk", 0, avgJHK, animDuration, (val) => val + " Hari");
-        animateValue("card-avg-keterlambatan", 0, avgKeterlambatan, animDuration, (val) => val + " Hari");
-        animateValue("card-total-denda", 0, totalDenda, animDuration, formatRupiah);
-        animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
-        if(document.getElementById('card-nilai-toko')) animateValue("card-nilai-toko", 0, avgNilaiToko, animDuration, formatScore, true);
-        if(document.getElementById('card-nilai-kontraktor')) animateValue("card-nilai-kontraktor", 0, avgNilaiKontraktor, animDuration, formatScore, true);
+
+        if (isContractor) {
+            // Render 6 stat card untuk kontraktor
+            animateValue("stat-approval-rab", 0, miniStats['Approval RAB'], animDuration);
+            animateValue("stat-proses-pju", 0, miniStats['Proses PJU'], animDuration);
+            animateValue("stat-approval-spk", 0, miniStats['Approval SPK'], animDuration);
+            animateValue("stat-ongoing", 0, miniStats['Ongoing'], animDuration);
+            animateValue("stat-ktk", 0, miniStats['Proses Kerja Tambah Kurang'], animDuration);
+            animateValue("stat-done", 0, miniStats['Done'], animDuration);
+        } else {
+            // Render 9 card & mini stats normal untuk internal
+            const miniContainer = document.getElementById('mini-project-stats');
+            if (miniContainer) {
+                miniContainer.innerHTML = Object.entries(miniStats).map(([label, count]) => `
+                    <div class="mini-stat-item"><span class="mini-stat-label">${label}</span><span class="mini-stat-value">${count}</span></div>
+                `).join('');
+            }
+            animateValue("card-total-proyek", 0, totalProyek, animDuration);
+            if(document.getElementById('card-total-penawaran')) animateValue("card-total-penawaran", 0, totalPenawaran, animDuration, formatRupiah); 
+            animateValue("card-total-spk", 0, totalSPK, animDuration, formatRupiah);
+            animateValue("card-jhk", 0, avgJHK, animDuration, (val) => val + " Hari");
+            animateValue("card-avg-keterlambatan", 0, avgKeterlambatan, animDuration, (val) => val + " Hari");
+            animateValue("card-total-denda", 0, totalDenda, animDuration, formatRupiah);
+            animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
+            if(document.getElementById('card-nilai-toko')) animateValue("card-nilai-toko", 0, avgNilaiToko, animDuration, formatScore, true);
+            if(document.getElementById('card-nilai-kontraktor')) animateValue("card-nilai-kontraktor", 0, avgNilaiKontraktor, animDuration, formatScore, true);
+        }
+        
+        initDashboardData.called = true; // flag if needed
     }
 
     // --- MODAL FUNCTIONS ---
@@ -274,24 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(btnBackToSummary) btnBackToSummary.style.display = 'flex'; 
         if(modalSummaryView && modalListView && modalStoreDetailView) { modalSummaryView.style.display = 'block'; modalListView.style.display = 'none'; modalStoreDetailView.style.display = 'none'; }
 
-        currentGroupedProjects = { 'Approval RAB': [], 'Proses PJU': [], 'Approval SPK': [], 'Ongoing': [], 'Proses Kerja Tambah Kurang': [], 'Done': [] };
-
-        filteredData.forEach(item => {
-            const hasStatusRab = item["Status_Rab"] && String(item["Status_Rab"]).trim() !== "";
-            const hasPenawaranFinal = item["Total Penawaran Final"] && String(item["Total Penawaran Final"]).trim() !== "";
-            const hasStatus = item["Status"] && String(item["Status"]).trim() !== ""; 
-            const hasSPK = item["Nominal SPK"] && String(item["Nominal SPK"]).trim() !== "";
-            const hasSerahTerima = (item["tanggal_serah_terima"] && String(item["tanggal_serah_terima"]).trim() !== "") || (item["Tgl Serah Terima"] && String(item["Tgl Serah Terima"]).trim() !== "");
-            const hasOpnameFinal = item["tanggal_opname_final"] && String(item["tanggal_opname_final"]).trim() !== "";
-
-            if (hasOpnameFinal) currentGroupedProjects['Done'].push(item);
-            else if (hasSerahTerima && !hasOpnameFinal) currentGroupedProjects['Proses Kerja Tambah Kurang'].push(item);
-            else if (hasSPK && !hasSerahTerima) currentGroupedProjects['Ongoing'].push(item);
-            else if (hasStatus && !hasSPK) currentGroupedProjects['Approval SPK'].push(item);
-            else if (hasPenawaranFinal && !hasSPK) currentGroupedProjects['Proses PJU'].push(item);
-            else if (hasStatusRab && !hasPenawaranFinal) currentGroupedProjects['Approval RAB'].push(item);
-        });
-
+        // currentGroupedProjects sudah terisi dari fungsi renderKPI di atas
         if(grid) {
             grid.innerHTML = Object.entries(currentGroupedProjects).map(([label, items], index) => `
                 <div class="modal-stat-item" data-status="${label}">
@@ -722,6 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- EVENT LISTENERS ---
+    // Modal Cards Click HO/Branch
     if(totalProyekCard) totalProyekCard.addEventListener('click', showProjectDetails);
     if(totalPenawaranCard) totalPenawaranCard.addEventListener('click', showPenawaranDetails); 
     if(totalSpkCard) totalSpkCard.addEventListener('click', showSpkDetails); 
@@ -730,6 +739,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if(avgKeterlambatanCard) avgKeterlambatanCard.addEventListener('click', showKeterlambatanDetails); 
     if(nilaiTokoCard) nilaiTokoCard.addEventListener('click', showNilaiTokoDetails);
     if(nilaiKontraktorCard) nilaiKontraktorCard.addEventListener('click', showNilaiKontraktorDetails);
+
+    // Modal Cards Click KONTRAKTOR
+    document.querySelectorAll('.kontraktor-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            const status = card.getAttribute('data-status');
+            if (status) {
+                currentModalContext = 'PROJECT';
+                if(modalMainTitle) modalMainTitle.textContent = `Detail Toko: ${status}`;
+                if(btnBackToSummary) btnBackToSummary.style.display = 'none'; // KONTRAKTOR langsung ke list, tidak ada summary view
+                renderStoreList(status);
+                if(projectModal) projectModal.style.display = 'flex';
+            }
+        });
+    });
     
     if(grid) grid.addEventListener('click', (e) => { const statItem = e.target.closest('.modal-stat-item'); if (!statItem) return; const status = statItem.getAttribute('data-status'); if (status) renderStoreList(status); const costType = statItem.getAttribute('data-cost-type'); if (costType) renderCostList(costType); });
     
