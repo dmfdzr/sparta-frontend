@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const avgCostM2Card = document.getElementById('card-avg-cost-m2-wrapper'); 
     const avgKeterlambatanCard = document.getElementById('card-avg-keterlambatan-wrapper');
     const nilaiTokoCard = document.getElementById('card-nilai-toko-wrapper');
+    const nilaiKontraktorCard = document.getElementById('card-nilai-kontraktor-wrapper');
 
     // Variabel View List Toko & Detail
     const modalMainTitle = document.getElementById('modalMainTitle'); 
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentModalContext = 'PROJECT';
     let currentSpkGroups = [];
     let currentCostGroups = [];
+    let currentKontraktorGroups = [];
 
     // --- FUNGSI 1: Modal untuk Total Proyek ---
     const showProjectDetails = () => {
@@ -527,6 +529,116 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
+    const showNilaiKontraktorDetails = () => {
+        if (!filteredData || filteredData.length === 0) return;
+        currentModalContext = 'NILAI_KONTRAKTOR';
+
+        if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai Kontraktor";
+        if (btnBackToSummary) btnBackToSummary.style.display = 'none';
+
+        // Kelompokkan Nilai Toko berdasarkan Kontraktor
+        const groupedKontraktor = {};
+        filteredData.forEach(item => {
+            const nt = parseScore(item["Nilai Toko"]);
+            const kontraktor = item["Kontraktor"] && item["Kontraktor"].trim() !== "" ? item["Kontraktor"] : 'Tanpa Kontraktor';
+
+            if (nt > 0) {
+                if (!groupedKontraktor[kontraktor]) {
+                    groupedKontraktor[kontraktor] = {
+                        namaKontraktor: kontraktor,
+                        totalNilai: 0,
+                        countToko: 0,
+                        items: []
+                    };
+                }
+                groupedKontraktor[kontraktor].totalNilai += nt;
+                groupedKontraktor[kontraktor].countToko++;
+                groupedKontraktor[kontraktor].items.push(item);
+            }
+        });
+
+        // Hitung rata-rata tiap kontraktor dan urutkan
+        currentKontraktorGroups = Object.values(groupedKontraktor).map(group => {
+            group.avgNilai = group.totalNilai / group.countToko;
+            return group;
+        }).sort((a, b) => b.avgNilai - a.avgNilai);
+
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Kontraktor (${currentKontraktorGroups.length})`;
+
+        if (storeListContainer) {
+            if (currentKontraktorGroups.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Nilai Kontraktor.</div>';
+            } else {
+                storeListContainer.innerHTML = currentKontraktorGroups.map((group, index) => {
+                    const avgScore = formatScore(group.avgNilai);
+                    return `
+                    <div class="store-item" data-kontraktor-index="${index}">
+                        <div class="store-info">
+                            <strong>${group.namaKontraktor}</strong>
+                            <span>Total Digarap: ${group.countToko} Toko</span>
+                        </div>
+                        <div class="store-badge" style="background:#e0f2fe; color:#0284c7; border: 1px solid #bae6fd; font-size: 13px;">
+                            Rata-rata: ${avgScore}
+                        </div>
+                    </div>
+                `}).join('');
+            }
+        }
+
+        if (modalSummaryView && modalListView && modalStoreDetailView) {
+            modalSummaryView.style.display = 'none';
+            modalStoreDetailView.style.display = 'none';
+            modalListView.style.display = 'block';
+        }
+
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
+    const renderKontraktorDetail = (groupIndex) => {
+        const group = currentKontraktorGroups[groupIndex];
+        if (!group) return;
+
+        if (detailStoreTitle) {
+            detailStoreTitle.textContent = `Kontraktor: ${group.namaKontraktor}`;
+        }
+
+        if (storeDetailContainer) {
+            const avgScore = formatScore(group.avgNilai);
+
+            // Buat list toko HTML di dalam detail view
+            const storeListHTML = group.items.map(item => {
+                const nilaiToko = item["Nilai Toko"] || '-';
+                const namaToko = item["Nama_Toko"] || 'Tanpa Nama';
+                const ulok = item["Nomor Ulok"] || '-';
+                return `
+                    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-weight: 600; font-size: 13px; color: #1e293b;">${namaToko}</span>
+                            <span style="font-size: 11px; color: #64748b;">Ulok: ${ulok}</span>
+                        </div>
+                        <span style="font-weight: 700; color: #d97706; font-size: 14px;">Skor: ${nilaiToko}</span>
+                    </div>
+                `;
+            }).join('');
+
+            storeDetailContainer.innerHTML = `
+                <div class="detail-grid" style="margin-bottom: 15px;">
+                    <div class="detail-item"><span class="detail-label">Total Proyek Dinilai</span><span class="detail-value" style="color:#2563eb; font-size: 16px;">${group.countToko} Toko</span></div>
+                    <div class="detail-item"><span class="detail-label">Rata-rata Skor Kontraktor</span><span class="detail-value" style="color:#0284c7; font-size: 16px;">${avgScore}</span></div>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px;">
+                    <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 13px; color: #475569;">Rincian Toko & Nilai:</h4>
+                    ${storeListHTML}
+                </div>
+            `;
+        }
+
+        if (modalListView && modalStoreDetailView) {
+            modalListView.style.display = 'none';
+            modalStoreDetailView.style.display = 'block';
+        }
+    };
+
     // --- FUNGSI 7: Render Detail Toko Spesifik (Diperbarui dengan Nilai Toko) ---
     const renderCostDetail = (groupIndex) => {
         const group = currentCostGroups[groupIndex];
@@ -761,7 +873,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if(totalJhkCard) totalJhkCard.addEventListener('click', showJhkDetails); 
     if(avgCostM2Card) avgCostM2Card.addEventListener('click', showAvgCostM2Details); 
     if(avgKeterlambatanCard) avgKeterlambatanCard.addEventListener('click', showKeterlambatanDetails); 
-    if(nilaiTokoCard) nilaiTokoCard.addEventListener('click', showNilaiTokoDetails); // EVENT CARD BARU
+    if(nilaiTokoCard) nilaiTokoCard.addEventListener('click', showNilaiTokoDetails);
+    if(nilaiKontraktorCard) nilaiKontraktorCard.addEventListener('click', showNilaiKontraktorDetails);
     
     // Event Delegation: Menangkap klik pada card stat di dalam modal
     if(grid) {
@@ -796,6 +909,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const costIndex = storeItem.getAttribute('data-cost-index');
             if (costIndex !== null) {
                 renderCostDetail(costIndex);
+                return;
+            }
+
+            const kontraktorIndex = storeItem.getAttribute('data-kontraktor-index');
+            if (kontraktorIndex !== null) {
+                renderKontraktorDetail(kontraktorIndex);
                 return;
             }
         });
@@ -1026,16 +1145,16 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalOpname = 0;
         let totalLuasTerbangun = 0;
         let uniqueUlokLuas = {};
-        
         let sumNilaiToko = 0; 
         let countNilaiToko = 0;
         let countKeterlambatan = 0; 
-
-        // VARIABEL BARU UNTUK MENGHITUNG STATUS DI DEPAN CARD
         let miniStats = {
             'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0,
             'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0
         };
+        let sumAvgKontraktor = 0; 
+        let countKontraktorGroups = 0;
+        const groupedKontraktorData = {};
 
         data.forEach(item => {
             totalSPK += parseCurrency(item["Nominal SPK"]);
@@ -1107,9 +1226,25 @@ document.addEventListener('DOMContentLoaded', () => {
         animateValue("card-avg-keterlambatan", 0, avgKeterlambatan, animDuration, (val) => val + " Hari");
         animateValue("card-total-denda", 0, totalDenda, animDuration, formatRupiah);
         animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
+        Object.values(groupedKontraktorData).forEach(g => {
+            sumAvgKontraktor += (g.total / g.count);
+            countKontraktorGroups++;
+        });
+        const avgNilaiKontraktor = countKontraktorGroups > 0 ? (sumAvgKontraktor / countKontraktorGroups) : 0;
         
         if(document.getElementById('card-nilai-toko')) {
             animateValue("card-nilai-toko", 0, avgNilaiToko, animDuration, formatScore, true);
+        }
+
+        if(document.getElementById('card-nilai-kontraktor')) {
+            animateValue("card-nilai-kontraktor", 0, avgNilaiKontraktor, animDuration, formatScore, true);
+        }
+
+        const kontraktor = item["Kontraktor"] && item["Kontraktor"].trim() !== "" ? item["Kontraktor"] : 'Tanpa Kontraktor';
+        if (nt > 0) {
+            if (!groupedKontraktorData[kontraktor]) groupedKontraktorData[kontraktor] = { total: 0, count: 0 };
+            groupedKontraktorData[kontraktor].total += nt;
+            groupedKontraktorData[kontraktor].count++;
         }
     }
 
