@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 2. RENDER MENU SIDEBAR (Hapus path asset yang error 404)
+    // 2. RENDER MENU SIDEBAR (Tanpa Asset Gambar)
     // ==========================================
     const MENU_CATALOG = {
         'menu-rab': { href: '../../rab/', title: 'RAB Kontraktor', desc: 'Penawaran final kontraktor.' },
@@ -73,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
         linkEl.className = 'menu-item';
         if (menuData.onClick) linkEl.addEventListener('click', menuData.onClick);
         
-        // Hapus elemen <img> sepenuhnya karena asset dihapus
         linkEl.innerHTML = `
             <div class="menu-text">
                 <h3>${menuData.title}</h3>
@@ -781,4 +780,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         window.requestAnimationFrame(step);
     }
+
+    // ==========================================
+    // INIT EXECUTION - SANGAT PENTING
+    // ==========================================
+    initDashboardData();
 });
