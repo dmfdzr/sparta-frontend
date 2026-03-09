@@ -31,6 +31,13 @@ const UPLOAD_CATEGORIES = [
     { key: "pendukung", label: "Dokumen Pendukung (NIDI, SLO, dll)" },
 ];
 
+// Upload tunables untuk menjaga browser tetap ringan saat mengirim banyak file.
+const IMAGE_MAX_WIDTH = 1920;
+const IMAGE_MAX_HEIGHT = 1920;
+const IMAGE_TARGET_BYTES = 900 * 1024; // ~900KB per image
+const IMAGE_MIN_QUALITY = 0.55;
+const NON_IMAGE_MAX_BYTES = 15 * 1024 * 1024; // 15MB untuk PDF/dokumen
+
 document.addEventListener("DOMContentLoaded", () => {
     checkAuth();
     initApp();
@@ -860,9 +867,119 @@ function updateCabangFilterOptions() {
 // ==========================================
 // 5. SUBMIT HANDLER (PERBAIKAN UTAMA: TYPE SAFE)
 // ==========================================
+
+function fileToDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
+
+function loadImageFromObjectUrl(objectUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Gagal membaca gambar untuk kompresi"));
+        img.src = objectUrl;
+    });
+}
+
+function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                reject(new Error("Gagal membuat blob hasil kompresi"));
+                return;
+            }
+            resolve(blob);
+        }, type, quality);
+    });
+}
+
+function buildCompressedFileName(originalName) {
+    const dot = originalName.lastIndexOf(".");
+    const base = dot > 0 ? originalName.slice(0, dot) : originalName;
+    return `${base}.jpg`;
+}
+
+async function compressImageFile(file) {
+    const objectUrl = URL.createObjectURL(file);
+    try {
+        const image = await loadImageFromObjectUrl(objectUrl);
+        let width = image.naturalWidth || image.width;
+        let height = image.naturalHeight || image.height;
+
+        const ratio = Math.min(1, IMAGE_MAX_WIDTH / width, IMAGE_MAX_HEIGHT / height);
+        width = Math.max(1, Math.round(width * ratio));
+        height = Math.max(1, Math.round(height * ratio));
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d", { alpha: false });
+        if (!ctx) throw new Error("Canvas tidak tersedia untuk kompresi");
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(image, 0, 0, width, height);
+
+        let quality = 0.85;
+        let outputBlob = await canvasToBlob(canvas, "image/jpeg", quality);
+
+        while (outputBlob.size > IMAGE_TARGET_BYTES && quality > IMAGE_MIN_QUALITY) {
+            quality = Math.max(IMAGE_MIN_QUALITY, quality - 0.1);
+            outputBlob = await canvasToBlob(canvas, "image/jpeg", quality);
+        }
+
+        if (outputBlob.size >= file.size) {
+            return {
+                file,
+                filename: file.name,
+                mimeType: file.type || "image/jpeg",
+                compressed: false
+            };
+        }
+
+        const compressedFile = new File(
+            [outputBlob],
+            buildCompressedFileName(file.name),
+            { type: "image/jpeg", lastModified: Date.now() }
+        );
+
+        return {
+            file: compressedFile,
+            filename: compressedFile.name,
+            mimeType: compressedFile.type,
+            compressed: true
+        };
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
+
+async function prepareUploadFile(file) {
+    if (file.type && file.type.startsWith("image/")) {
+        return compressImageFile(file);
+    }
+
+    if (file.size > NON_IMAGE_MAX_BYTES) {
+        throw new Error(`Ukuran file ${file.name} melebihi batas 15MB`);
+    }
+
+    return {
+        file,
+        filename: file.name,
+        mimeType: file.type || "application/octet-stream",
+        compressed: false
+    };
+}
+
 async function handleFormSubmit(e) {
     e.preventDefault();
     showLoading(true);
+    setLoadingMessage("Menyiapkan data...");
     document.getElementById("error-msg").textContent = "";
 
     try {
@@ -899,34 +1016,52 @@ async function handleFormSubmit(e) {
             });
         });
 
-        // === KONVERSI FILE BARU KE BASE64 ===
-        const fileToBase64 = (file) => {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
-        };
-
-        const filePromises = [];
-
-        UPLOAD_CATEGORIES.forEach(cat => {
+        const uploadTasks = [];
+        for (const cat of UPLOAD_CATEGORIES) {
             const filesInBuffer = newFilesBuffer[cat.key] || [];
             filesInBuffer.forEach(file => {
-                const promise = fileToBase64(file).then(base64String => {
-                    payload.files.push({
-                        category: cat.key,
-                        filename: file.name,
-                        type: file.type,
-                        data: base64String
-                    });
-                });
-                filePromises.push(promise);
+                uploadTasks.push({ category: cat.key, file });
             });
-        });
+        }
 
-        await Promise.all(filePromises);
+        beginUploadProgress(uploadTasks.length);
+
+        // === PROSES FILE BARU BERTAHAP AGAR MEMORY TIDAK LONJAK ===
+        let processedFiles = 0;
+        for (const task of uploadTasks) {
+            setUploadProgress(
+                processedFiles,
+                uploadTasks.length,
+                `Memproses ${task.file.name} (${processedFiles + 1}/${uploadTasks.length})`
+            );
+
+            const prepared = await prepareUploadFile(task.file);
+            const base64String = await fileToDataURL(prepared.file);
+
+            payload.files.push({
+                category: task.category,
+                filename: prepared.filename,
+                type: prepared.mimeType,
+                data: base64String
+            });
+
+            processedFiles += 1;
+            setUploadProgress(
+                processedFiles,
+                uploadTasks.length,
+                `Siap kirim: ${prepared.filename}`
+            );
+
+            if (prepared.compressed) {
+                console.log(`Compressed: ${task.file.name} -> ${prepared.filename} (${task.file.size} -> ${prepared.file.size} bytes)`);
+            }
+        }
+
+        if (uploadTasks.length === 0) {
+            setLoadingMessage("Mengirim data ke server...");
+        } else {
+            setUploadProgress(uploadTasks.length, uploadTasks.length, "Semua file siap. Mengirim data ke server...");
+        }
 
         console.log("Payload files count:", payload.files.length);
         console.log("Payload files:", payload.files.map(f => ({
@@ -990,7 +1125,59 @@ function hideModal(id) {
 
 function showLoading(show) {
     const el = document.getElementById("loading-overlay");
-    if (el) el.style.display = show ? "flex" : "none";
+    if (!el) return;
+
+    if (!show) {
+        resetUploadProgressUI();
+    }
+
+    el.style.display = show ? "flex" : "none";
+}
+
+function setLoadingMessage(message) {
+    const textEl = document.getElementById("loading-text");
+    if (textEl) {
+        textEl.textContent = message || "Memuat...";
+    }
+}
+
+function beginUploadProgress(totalFiles) {
+    const progressBox = document.getElementById("upload-progress");
+    if (!progressBox) return;
+
+    if (totalFiles <= 0) {
+        progressBox.style.display = "none";
+        setLoadingMessage("Mengirim data ke server...");
+        return;
+    }
+
+    progressBox.style.display = "block";
+    setLoadingMessage("Mempersiapkan file upload...");
+    setUploadProgress(0, totalFiles, "Menunggu proses file...");
+}
+
+function setUploadProgress(done, total, statusText) {
+    const bar = document.getElementById("upload-progress-bar");
+    const countEl = document.getElementById("upload-progress-count");
+    const percentEl = document.getElementById("upload-progress-percent");
+    const fileEl = document.getElementById("upload-progress-file");
+
+    const safeTotal = Math.max(1, Number(total) || 1);
+    const safeDone = Math.max(0, Math.min(Number(done) || 0, safeTotal));
+    const percent = Math.round((safeDone / safeTotal) * 100);
+
+    if (bar) bar.style.width = `${percent}%`;
+    if (countEl) countEl.textContent = `${safeDone} / ${safeTotal} file`;
+    if (percentEl) percentEl.textContent = `${percent}%`;
+    if (fileEl) fileEl.textContent = statusText || "Memproses file...";
+}
+
+function resetUploadProgressUI() {
+    const progressBox = document.getElementById("upload-progress");
+    if (progressBox) progressBox.style.display = "none";
+
+    setLoadingMessage("Memuat...");
+    setUploadProgress(0, 1, "Menunggu proses...");
 }
 
 function showToast(msg) {
