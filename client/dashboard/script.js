@@ -642,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="detail-item"><span class="detail-label">Cost /m² (Luas Area Terbuka)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${formatRupiah(Math.round(group.costTerbuka))}</span></div>
                     <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${group.cabang}</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Bangunan</span><span class="detail-value">${refItem["Luas Bangunan"] || 0} m²</span></div>
-                    <div class="detail-item"><span class="detail-label">Luas Terbangunan</span><span class="detail-value">${refItem["Luas Terbangunan"] || 0} m²</span></div>
+                    <div class="detail-item"><span class="detail-label">Luas Terbangun</span><span class="detail-value">${refItem["Luas Terbangunan"] || 0} m²</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Area Terbuka</span><span class="detail-value">${refItem["Luas Area Terbuka"] || 0} m²</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Area Parkir</span><span class="detail-value">${refItem["Luas Area Parkir"] || 0} m²</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Area Sales</span><span class="detail-value">${refItem["Luas Area Sales"] || 0} m²</span></div>
