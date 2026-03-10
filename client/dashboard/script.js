@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             totalOpname += parseCurrency(item["Grand Total Opname Final"]);
             
             const ulok = item["Nomor Ulok"] || 'Tanpa Ulok-' + Math.random();
-            const luas = parseFloat(item["Luas Terbangunan"]) || 0;
+            const luas = parseFloat(item["Luas Terbangun"]) || 0;
             if (!uniqueUlokLuas[ulok] && luas > 0) { uniqueUlokLuas[ulok] = luas; totalLuasTerbangun += luas; }
 
             const hasStatusRab = item["Status_Rab"] && String(item["Status_Rab"]).trim() !== "";
@@ -469,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const groupedCost = {};
         filteredData.forEach(item => {
-            const opname = parseCurrency(item["Grand Total Opname Final"]), lTerbangun = parseFloat(item["Luas Terbangunan"]) || 0, lBangunan = parseFloat(item["Luas Bangunan"]) || 0, lTerbuka = parseFloat(item["Luas Area Terbuka"]) || 0, ulok = item["Nomor Ulok"] || 'Tanpa Ulok';
+            const opname = parseCurrency(item["Grand Total Opname Final"]), lTerbangun = parseFloat(item["Luas Terbangun"]) || 0, lBangunan = parseFloat(item["Luas Bangunan"]) || 0, lTerbuka = parseFloat(item["Luas Area Terbuka"]) || 0, ulok = item["Nomor Ulok"] || 'Tanpa Ulok';
             if (!groupedCost[ulok]) groupedCost[ulok] = { ulok: ulok, namaToko: item.Nama_Toko || 'Tanpa Nama', cabang: item.Cabang || '-', totalOpname: 0, luasTerbangun: lTerbangun, luasBangunan: lBangunan, luasTerbuka: lTerbuka, items: [] };
             groupedCost[ulok].totalOpname += opname; groupedCost[ulok].items.push(item);
             if (groupedCost[ulok].luasTerbangun === 0 && lTerbangun > 0) groupedCost[ulok].luasTerbangun = lTerbangun;
@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const summaryData = [
-            { label: 'Luas Terbangunan', value: formatRupiah(Math.round(sumTer > 0 ? sumOpTer / sumTer : 0)) + ' /m²', type: 'TERBANGUN' },
+            { label: 'Luas Terbangun', value: formatRupiah(Math.round(sumTer > 0 ? sumOpTer / sumTer : 0)) + ' /m²', type: 'TERBANGUN' },
             { label: 'Luas Bangunan', value: formatRupiah(Math.round(sumBan > 0 ? sumOpBan / sumBan : 0)) + ' /m²', type: 'BANGUNAN' },
             { label: 'Luas Area Terbuka', value: formatRupiah(Math.round(sumTerb > 0 ? sumOpTerb / sumTerb : 0)) + ' /m²', type: 'TERBUKA' }
         ];
@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(btnBackToSummary) btnBackToSummary.style.display = 'flex';
 
         let sortedGroups = [...currentCostGroups]; let typeLabel = '';
-        if(type === 'TERBANGUN') { sortedGroups = sortedGroups.filter(g => g.costTerbangun > 0).sort((a,b) => b.costTerbangun - a.costTerbangun); typeLabel = 'Luas Terbangunan'; }
+        if(type === 'TERBANGUN') { sortedGroups = sortedGroups.filter(g => g.costTerbangun > 0).sort((a,b) => b.costTerbangun - a.costTerbangun); typeLabel = 'Luas Terbangun'; }
         else if(type === 'BANGUNAN') { sortedGroups = sortedGroups.filter(g => g.costBangunan > 0).sort((a,b) => b.costBangunan - a.costBangunan); typeLabel = 'Luas Bangunan'; }
         else if(type === 'TERBUKA') { sortedGroups = sortedGroups.filter(g => g.costTerbuka > 0).sort((a,b) => b.costTerbuka - a.costTerbuka); typeLabel = 'Luas Area Terbuka'; }
 
@@ -647,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="detail-item"><span class="detail-label">Cost /m² (Luas Area Terbuka)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${formatRupiah(Math.round(group.costTerbuka))}</span></div>
                     <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${group.cabang}</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Bangunan</span><span class="detail-value">${refItem["Luas Bangunan"] || 0} m²</span></div>
-                    <div class="detail-item"><span class="detail-label">Luas Terbangunan</span><span class="detail-value">${refItem["Luas Terbangunan"] || 0} m²</span></div>
+                    <div class="detail-item"><span class="detail-label">Luas Terbangun</span><span class="detail-value">${refItem["Luas Terbangun"] || 0} m²</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Area Terbuka</span><span class="detail-value">${refItem["Luas Area Terbuka"] || 0} m²</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Area Parkir</span><span class="detail-value">${refItem["Luas Area Parkir"] || 0} m²</span></div>
                     <div class="detail-item"><span class="detail-label">Luas Area Sales</span><span class="detail-value">${refItem["Luas Area Sales"] || 0} m²</span></div>
