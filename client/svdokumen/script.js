@@ -687,7 +687,6 @@ function checkDocumentCompleteness(fileLinksString) {
         "sketsaAwal",
         "spk",
         "rab",
-        "pendukung",
         "instruksiLapangan",
         "pengawasan",
         "aanwijzing",
