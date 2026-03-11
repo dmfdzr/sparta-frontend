@@ -128,6 +128,11 @@ function initApp() {
         exportPdfBtn.addEventListener('click', handleExportToPDF);
     }
 
+    const exportExcelBtn = document.getElementById('btn-export-excel');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', handleExportToExcel);
+    }
+
     setupAutoCalculation();
 
     // Search & Filter
@@ -1406,4 +1411,65 @@ function handleExportToPDF() {
 
     const dateStr = new Date().toISOString().slice(0, 10);
     doc.save(`Laporan_Dokumen_${dateStr}.pdf`);
+}
+
+function handleExportToExcel() {
+    if (!window.XLSX) {
+        alert("Library Excel belum dimuat. Pastikan Anda terhubung ke internet.");
+        return;
+    }
+
+    if (!filteredDocuments || filteredDocuments.length === 0) {
+        alert('Tidak ada data untuk diexport (Tabel kosong)!');
+        return;
+    }
+
+    // 1. Siapkan data baris per baris
+    const excelData = filteredDocuments.map((docItem, index) => {
+        const statusCheck = checkDocumentCompleteness(docItem.file_links);
+        const statusText = statusCheck.complete ? "Sudah Lengkap" : "Belum Lengkap";
+        const missingText = statusCheck.complete ? "-" : statusCheck.missingList.join(', ');
+        
+        const folderUrl = docItem.folder_link || docItem.folder_drive || docItem.folder_url || "-";
+        const waktuUpdate = docItem.timestamp || docItem.updated_at || "-";
+        const editor = docItem.last_edit || docItem.pic_name || "-";
+
+        // Object ini akan otomatis menjadi header dan isian baris di Excel
+        return {
+            "No": index + 1,
+            "Kode Toko": docItem.kode_toko || "-",
+            "Nama Toko": docItem.nama_toko || "-",
+            "Cabang": docItem.cabang || "-",
+            "Status Kelengkapan": statusText,
+            "Detail Kekurangan": missingText,
+            "Waktu Update": waktuUpdate,
+            "Terakhir Diedit": editor,
+            "Link Folder": folderUrl
+        };
+    });
+
+    // 2. Buat Worksheet (lembar kerja) dari data JSON di atas
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // 3. Atur lebar kolom (width characters/wch) agar rapi dan tidak berantakan
+    const colWidths = [
+        { wch: 5 },   // No
+        { wch: 15 },  // Kode Toko
+        { wch: 35 },  // Nama Toko
+        { wch: 20 },  // Cabang
+        { wch: 20 },  // Status Kelengkapan
+        { wch: 50 },  // Detail Kekurangan
+        { wch: 20 },  // Waktu Update
+        { wch: 25 },  // Terakhir Diedit
+        { wch: 45 }   // Link Folder
+    ];
+    worksheet['!cols'] = colWidths;
+
+    // 4. Buat Workbook (file Excel-nya) dan masukkan worksheet
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Status Dokumen");
+
+    // 5. Generate file dan mulai proses download
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `Data_Dokumen_Toko_${dateStr}.xlsx`);
 }
