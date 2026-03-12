@@ -834,30 +834,34 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showAvgBeanspotDetails = () => {
-        if (!currentBeanspotItems || currentBeanspotItems.length === 0) return;
+        if (!filteredData || filteredData.length === 0) return; 
+        
         currentModalContext = 'BEANSPOT';
         if (modalMainTitle) modalMainTitle.textContent = "Daftar Toko Pekerjaan Beanspot";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none';
 
-        // Urutkan dari nilai Beanspot terbesar ke terkecil
         const sortedItems = [...currentBeanspotItems].sort((a, b) => parseCurrency(b["Pekerjaan Beanspot"]) - parseCurrency(a["Pekerjaan Beanspot"]));
 
         if(listStatusTitle) listStatusTitle.textContent = `Total Toko Beanspot (${sortedItems.length})`;
 
         if (storeListContainer) {
-            storeListContainer.innerHTML = sortedItems.map((item) => {
-                const val = parseCurrency(item["Pekerjaan Beanspot"]);
-                return `
-                <div class="store-item" style="cursor: default; border-color: #fbcfe8;">
-                    <div class="store-info">
-                        <strong>${item.Nama_Toko || 'Tanpa Nama'}</strong>
-                        <span>Ulok: ${item["Nomor Ulok"] || '-'} | ${item.Cabang || '-'}</span>
-                    </div>
-                    <div class="store-badge" style="background:#fdf2f8; color:#db2777; border: 1px solid #fbcfe8; font-size: 13px;">
-                        ${formatRupiah(val)}
-                    </div>
-                </div>`;
-            }).join('');
+            if (sortedItems.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Beanspot.</div>';
+            } else {
+                storeListContainer.innerHTML = sortedItems.map((item) => {
+                    const val = parseCurrency(item["Pekerjaan Beanspot"]);
+                    return `
+                    <div class="store-item" style="cursor: default; border-color: #fbcfe8;">
+                        <div class="store-info">
+                            <strong>${item.Nama_Toko || 'Tanpa Nama'}</strong>
+                            <span>Ulok: ${item["Nomor Ulok"] || '-'} | ${item.Cabang || '-'}</span>
+                        </div>
+                        <div class="store-badge" style="background:#fdf2f8; color:#db2777; border: 1px solid #fbcfe8; font-size: 13px;">
+                            ${formatRupiah(val)}
+                        </div>
+                    </div>`;
+                }).join('');
+            }
         }
         
         if (modalSummaryView && modalListView && modalStoreDetailView) { 
