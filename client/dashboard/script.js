@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const uniqueTahun = [...new Set(data.map(item => getYearFromDate(item["Timestamp"])))].filter(y => y).sort((a, b) => b - a);
         tahunSelect.innerHTML = '<option value="ALL">Semua Tahun</option>';
         uniqueTahun.forEach(thn => { tahunSelect.innerHTML += `<option value="${thn}">${thn}</option>`; });
-        if(uniqueTahun.length > 0) tahunSelect.value = uniqueTahun[0];
+        tahunSelect.value = 'ALL';
     }
 
     function applyFilters() {
