@@ -360,18 +360,32 @@ document.addEventListener('DOMContentLoaded', () => {
             else {
                 storeListContainer.innerHTML = items.map(item => {
                     let extraInfo = '';
-                    if (status === 'Ongoing' && item["Awal_SPK"]) extraInfo = ` | Mulai SPK: ${item["Awal_SPK"]}`;
+                    if (status === 'Ongoing' && item["Awal_SPK"]) {
+                        extraInfo = ` | Mulai SPK: ${item["Awal_SPK"]}`;
+                    }
+                    
+                    if (status === 'Approval RAB' && item["Status_Rab"]) {
+                        extraInfo = ` | Status RAB: <span style="color: #d97706; font-weight: 600;">${item["Status_Rab"]}</span>`;
+                    }
+
                     const lingkup = item.Lingkup_Pekerjaan ? item.Lingkup_Pekerjaan : '-';
+                    
                     return `
                     <div class="store-item" data-index="${filteredData.indexOf(item)}">
-                        <div class="store-info"><strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
-                        <span>${item.Cabang || '-'} | ${item.Kode_Toko || '-'}${extraInfo}</span></div>
+                        <div class="store-info">
+                            <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${lingkup})</span></strong>
+                            <span>${item.Cabang || '-'} | ${item.Kode_Toko || '-'}${extraInfo}</span>
+                        </div>
                         <div class="store-badge">${item.Kategori || '-'}</div>
                     </div>`
                 }).join('');
             }
         }
-        if(modalSummaryView && modalListView && modalStoreDetailView) { modalSummaryView.style.display = 'none'; modalStoreDetailView.style.display = 'none'; modalListView.style.display = 'block'; }
+        if(modalSummaryView && modalListView && modalStoreDetailView) { 
+            modalSummaryView.style.display = 'none'; 
+            modalStoreDetailView.style.display = 'none'; 
+            modalListView.style.display = 'block'; 
+        }
     };
 
     const showPenawaranDetails = () => {
