@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FETCH & FILTER LOGIC ---
     async function initDashboardData() {
-        const API_URL = "https://sparta-be.onrender.com/api/opname/summary-data";
+        const API_URL = "https://sparta-backend-5hdj.onrender.com/api/opname/summary-data";
         if(document.getElementById('card-total-proyek')) document.getElementById('card-total-proyek').textContent = "...";
         
         try {
@@ -242,6 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return matchCabang && matchTahun && matchKontraktor;
         });
+        
         renderKPI(filteredData);
     }
 
