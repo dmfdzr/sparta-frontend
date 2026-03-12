@@ -11,7 +11,6 @@ const cabangInput = document.getElementById("cabang");
 const picSelect = document.getElementById("pic_building_support");
 const kodeUlokInput = document.getElementById("kode_ulok");
 const namaTokoInput = document.getElementById("nama_toko");
-// Menggunakan ID "logout-link" dari HTML, tapi diperlakukan sebagai tombol Back
 const backLink = document.getElementById("logout-link"); 
 const rabUrlInput = document.getElementById("rab_url");
 const rabStatus = document.getElementById("rab-status");
@@ -19,6 +18,13 @@ const spkUrlInput = document.getElementById("spk_url");
 const spkStatus = document.getElementById("spk-status");
 const kategoriLokasiInput = document.getElementById("kategori_lokasi");
 const tanggalSpkInput = document.getElementById("tanggal_spk");
+const BRANCH_GROUPS = {
+    "LOMBOK": ["LOMBOK", "SUMBAWA"],
+    "MEDAN": ["MEDAN", "ACEH"],
+    "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
+    "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
+    "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
+};
 
 let currentRabUrl = "";
 let currentSpkUrl = "";
@@ -26,20 +32,35 @@ let currentSpkUrl = "";
 // ================== BAGIAN 2: FUNGSI UTAMA & UTILITAS ==================
 
 function initializePage(userData) {
-    const loggedInCabang = userData.cabang;
-    
+    const loggedInCabang = (userData.cabang || "").toUpperCase();
     const cabangSelect = document.getElementById("cabang");
+    
     cabangSelect.innerHTML = "";
     
-    const option = document.createElement("option");
-    option.value = loggedInCabang;
-    option.textContent = loggedInCabang.toUpperCase();
-    option.selected = true;
-    
-    cabangSelect.appendChild(option);
-    cabangSelect.disabled = true; 
-    
-    cabangSelect.dispatchEvent(new Event("change"));
+    if (BRANCH_GROUPS[loggedInCabang]) {
+        cabangSelect.disabled = false;
+        
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "-- Pilih Cabang --";
+        cabangSelect.appendChild(defaultOption);
+        
+        BRANCH_GROUPS[loggedInCabang].forEach(subCabang => {
+            const option = document.createElement("option");
+            option.value = subCabang;
+            option.textContent = subCabang;
+            cabangSelect.appendChild(option);
+        });
+    } else {
+        const option = document.createElement("option");
+        option.value = loggedInCabang;
+        option.textContent = loggedInCabang;
+        option.selected = true;
+        
+        cabangSelect.appendChild(option);
+        cabangSelect.disabled = true; 
+        cabangSelect.dispatchEvent(new Event("change"));
+    }
 }
 
 function hideMessages() {
