@@ -273,6 +273,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let miniStats = { 'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0, 'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0 };
         currentGroupedProjects = { 'Approval RAB': [], 'Proses PJU': [], 'Approval SPK': [], 'Ongoing': [], 'Proses Kerja Tambah Kurang': [], 'Done': [] };
 
+        let countPerhatian = 0;
+        currentPerhatianItems = [];
+        const todayDate = new Date();
+        let miniPerhatianStats = { 
+            'Apprv RAB': 0, 'Pros PJU': 0, 'Apprv SPK': 0, 'Ongoing': 0, 'Tambah Krg': 0 
+        };
+
         data.forEach(item => {
             totalPenawaran += parseCurrency(item["Total Penawaran Final"]); 
             totalSPK += parseCurrency(item["Nominal SPK"]);
@@ -312,6 +319,45 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (hasPenawaranFinal && !hasSPK) { miniStats['Proses PJU']++; currentGroupedProjects['Proses PJU'].push(item); }
             else if (hasStatusRab && !hasPenawaranFinal) { miniStats['Approval RAB']++; currentGroupedProjects['Approval RAB'].push(item); }
 
+            let isPerhatian = false;
+            let alasanSLA = "";
+            let kategoriSLA = "";
+
+            const itemTimestamp = new Date(item["Timestamp"]);
+            const getDiffDays = (date1, date2) => Math.floor((date1 - date2) / (1000 * 60 * 60 * 24));
+
+            if (hasOpnameFinal) {
+                // Done, abaikan
+            } else if (hasSerahTerima && !hasOpnameFinal) {
+                const tglSerahTerima = new Date(item["tanggal_serah_terima"] || item["Tgl Serah Terima"]);
+                if (!isNaN(tglSerahTerima) && getDiffDays(todayDate, tglSerahTerima) > 14) {
+                    isPerhatian = true; alasanSLA = `Kerja Tambah Kurang melebihi 14 hari (${getDiffDays(todayDate, tglSerahTerima)} hari)`; kategoriSLA = 'Tambah Krg';
+                }
+            } else if (hasSPK && !hasSerahTerima) {
+                const akhirSpk = new Date(item["Akhir_SPK_Setelah"] || item["Akhir_SPK"]);
+                if (!isNaN(akhirSpk) && todayDate > akhirSpk) {
+                    isPerhatian = true; alasanSLA = `Ongoing melewati batas Akhir SPK`; kategoriSLA = 'Ongoing';
+                }
+            } else if (hasStatus && !hasSPK) {
+                if (!isNaN(itemTimestamp) && getDiffDays(todayDate, itemTimestamp) > 2) {
+                    isPerhatian = true; alasanSLA = `Approval SPK melebihi 2 hari (${getDiffDays(todayDate, itemTimestamp)} hari)`; kategoriSLA = 'Apprv SPK';
+                }
+            } else if (hasPenawaranFinal && !hasSPK) {
+                if (!isNaN(itemTimestamp) && getDiffDays(todayDate, itemTimestamp) > 7) {
+                    isPerhatian = true; alasanSLA = `Proses PJU melebihi 7 hari (${getDiffDays(todayDate, itemTimestamp)} hari)`; kategoriSLA = 'Pros PJU';
+                }
+            } else if (hasStatusRab && !hasPenawaranFinal) {
+                if (!isNaN(itemTimestamp) && getDiffDays(todayDate, itemTimestamp) > 2) {
+                    isPerhatian = true; alasanSLA = `Approval RAB melebihi 2 hari (${getDiffDays(todayDate, itemTimestamp)} hari)`; kategoriSLA = 'Apprv RAB';
+                }
+            }
+
+            if (isPerhatian) {
+                countPerhatian++;
+                miniPerhatianStats[kategoriSLA]++; 
+                currentPerhatianItems.push({ ...item, alasanSLA: alasanSLA });
+            }
+
             const kontraktor = item["Kontraktor"] && item["Kontraktor"].trim() !== "" ? item["Kontraktor"] : 'Tanpa Kontraktor';
             if (nt > 0) {
                 if (!groupedKontraktorData[kontraktor]) groupedKontraktorData[kontraktor] = { total: 0, count: 0 };
@@ -346,7 +392,19 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('');
         }
 
+        const miniPerhatianContainer = document.getElementById('mini-perhatian-stats');
+        if (miniPerhatianContainer) {
+            miniPerhatianContainer.innerHTML = Object.entries(miniPerhatianStats).map(([label, count]) => `
+                <div class="mini-stat-item" style="border-color: ${count > 0 ? '#fca5a5' : 'var(--border-color)'}; background: ${count > 0 ? '#fef2f2' : 'var(--bg-color)'};">
+                    <span class="mini-stat-label" style="color: ${count > 0 ? '#b91c1c' : '#64748b'};">${label}</span>
+                    <span class="mini-stat-value" style="color: ${count > 0 ? '#ef4444' : 'var(--secondary-color)'};">${count}</span>
+                </div>
+            `).join('');
+        }
+
         animateValue("card-total-proyek", 0, totalProyek, animDuration);
+
+        if(document.getElementById('card-perlu-perhatian')) animateValue("card-perlu-perhatian", 0, countPerhatian, animDuration);
         
         // Render sisa kartu jika BUKAN Kontraktor
         if (!isContractor) {

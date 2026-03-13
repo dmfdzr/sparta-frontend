@@ -120,7 +120,13 @@ body {
     gap: 12px; 
 }
 
-#card-total-proyek-wrapper { grid-column: 1 / -1; } 
+#card-total-proyek-wrapper, #card-perlu-perhatian-wrapper {
+    grid-column: 1 / -1;
+} 
+
+#mini-perhatian-stats {
+    grid-template-columns: repeat(5, 1fr);
+}
 
 .stat-card { 
     background: #fff; 
@@ -194,7 +200,10 @@ body {
 @media (max-width: 992px) {
     .header-logo, .building-logo { display: none !important; }
     .mini-project-stats { grid-template-columns: repeat(3, 1fr); padding-left: 0; border-left: none; border-top: 1px dashed #e2e8f0; margin-top: 10px; padding-top: 10px; }
-    #card-total-proyek-wrapper { flex-direction: column !important; align-items: stretch !important; }
+    #card-total-proyek-wrapper, #card-perlu-perhatian-wrapper {
+        flex-direction: column !important; align-items: stretch !important;
+    }
+    #mini-perhatian-stats { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 768px) {
@@ -255,7 +264,9 @@ body {
     .filter-select, .btn-apply-filter { width: 100%; }
     
     .stats-grid { grid-template-columns: 1fr; }
-    #card-total-proyek-wrapper { grid-column: span 1; }
+    #card-total-proyek-wrapper, #card-perlu-perhatian-wrapper {
+        grid-column: span 1;
+    }
 }
 
 @media screen and (max-width: 480px) {
