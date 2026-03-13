@@ -7,11 +7,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const ulokSearch = document.getElementById("ulok_search");
     let allUlokOptions = []; // [{value, text} untuk dropdown]
 
-    // const PYTHON_API_BASE_URL = "https://building-alfamart.onrender.com";
     const PYTHON_API_BASE_URL = "https://sparta-backend-5hdj.onrender.com"
 
-    if (!sessionStorage.getItem('loggedInUserCabang')) {
+    const userCabang = sessionStorage.getItem('loggedInUserCabang');
+    const userRole = sessionStorage.getItem('userRole');
+    if (!userCabang) {
         window.location.replace('../../auth/pic/login.html');
+    }
+
+    const isManagerOrSupport = ['BRANCH BUILDING & MAINTENANCE MANAGER', 'BRANCH BUILDING SUPPORT DOKUMENTASI'].includes(userRole);
+    const isSpecialBatam = (userRole === 'BRANCH BUILDING COORDINATOR' && userCabang.toUpperCase() === 'BATAM');
+
+    if (!isManagerOrSupport && !isSpecialBatam) {
+        alert("Anda tidak memiliki hak akses ke halaman ini.");
+        window.location.replace('../../dashboard/index.html');
     }
 
     // Render opsi ke <select> sesuai teks pencarian
@@ -45,67 +54,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const namaTokoInput = document.getElementById("nama_toko");
 
     const branchToUlokMap = {
-        "WHC IMAM BONJOL": "7AZ1",
-        LUWU: "2VZ1",
-        KARAWANG: "1JZ1",
-        REMBANG: "2AZ1",
-        BANJARMASIN: "1GZ1",
-        PARUNG: "1MZ1",
-        TEGAL: "2PZ1",
-        GORONTALO: "2SZ1",
-        PONTIANAK: "1PZ1",
-        LOMBOK: "1SZ1",
-        KOTABUMI: "1VZ1",
-        SERANG: "2GZ1",
-        CIANJUR: "2JZ1",
-        BALARAJA: "TZ01",
-        SIDOARJO: "UZ01",
-        MEDAN: "WZ01",
-        BOGOR: "XZ01",
-        JEMBER: "YZ01",
-        BALI: "QZ01",
-        PALEMBANG: "PZ01",
-        KLATEN: "OZ01",
-        MAKASSAR: "RZ01",
-        PLUMBON: "VZ01",
-        PEKANBARU: "1AZ1",
-        JAMBI: "1DZ1",
-        "HEAD OFFICE": "Z001",
-        "BANDUNG RAYA": "BZ01",
-        BEKASI: "CZ01",
-        CILACAP: "IZ01",
-        CILEUNGSI: "JZ01",
-        SEMARANG: "HZ01",
-        CIKOKOL: "KZ01",
-        LAMPUNG: "LZ01",
-        MALANG: "MZ01",
-        MANADO: "1YZ1",
-        BATAM: "2DZ1",
-        MADIUN: "2MZ1",
+        "WHC IMAM BONJOL": "7AZ1", LUWU: "2VZ1", KARAWANG: "1JZ1", REMBANG: "2AZ1", BANJARMASIN: "1GZ1",
+        PARUNG: "1MZ1", TEGAL: "2PZ1", GORONTALO: "2SZ1", PONTIANAK: "1PZ1", LOMBOK: "1SZ1", SERANG: "2GZ1",
+        CIANJUR: "2JZ1", BALARAJA: "TZ01", SIDOARJO: "UZ01", MEDAN: "WZ01", BOGOR: "XZ01", JEMBER: "YZ01",
+        BALI: "QZ01", PALEMBANG: "PZ01", KLATEN: "OZ01", MAKASSAR: "RZ01", PLUMBON: "VZ01", PEKANBARU: "1AZ1",
+        JAMBI: "1DZ1", "HEAD OFFICE": "Z001", "BANDUNG RAYA": "BZ01", BEKASI: "CZ01", CILACAP: "IZ01",
+        CILEUNGSI: "JZ01", SEMARANG: "HZ01", CIKOKOL: "KZ01", LAMPUNG: "LZ01", MALANG: "MZ01", MANADO: "1YZ1",
+        BATAM: "2DZ1", MADIUN: "2MZ1",
     };
 
     let approvedRabData = [];
 
     const branchGroups = {
         LOMBOK: ["LOMBOK", "SUMBAWA"],
-        SUMBAWA: ["LOMBOK", "SUMBAWA"],
         MEDAN: ["MEDAN", "ACEH"],
-        ACEH: ["MEDAN", "ACEH"],
+        LAMPUNG: ["LAMPUNG", "LAMPUNG_KOTABUMI"],
         PALEMBANG: ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        BENGKULU: ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        BANGKA: ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        BELITUNG: ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
         SIDOARJO: ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        "SIDOARJO BPN_SMD": [
-        "SIDOARJO",
-        "SIDOARJO BPN_SMD",
-        "MANOKWARI",
-        "NTT",
-        "SORONG",
-        ],
-        MANOKWARI: ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        NTT: ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        SORONG: ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
     };
 
     // --- Helper Functions ---
@@ -409,12 +374,15 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleFormSubmit(e) {
         e.preventDefault();
         if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
+            form.reportValidity();
+            return;
         }
 
         showMessage("Mengirim data SPK...", "info");
         submitButton.disabled = true;
+
+        const originalBtnText = submitButton.textContent;
+        submitButton.textContent = "Mengirim..."; 
 
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
@@ -422,46 +390,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const ulokFromForm = data["Nomor Ulok"].split(" (")[0];
         const lingkupFromForm = data["Nomor Ulok"].includes("(")
-        ? data["Nomor Ulok"].split("(")[1].replace(")", "")
-        : null;
+            ? data["Nomor Ulok"].split("(")[1].replace(")", "")
+            : null;
 
         const selectedRab = approvedRabData.find(
-        (rab) =>
-            rab["Nomor Ulok"] === ulokFromForm &&
-            rab["Lingkup_Pekerjaan"] === lingkupFromForm
+            (rab) =>
+                rab["Nomor Ulok"] === ulokFromForm &&
+                rab["Lingkup_Pekerjaan"] === lingkupFromForm
         );
 
         if (!selectedRab) {
-        showMessage("Data RAB tidak valid. Silakan pilih ulang.", "error");
-        submitButton.disabled = false;
-        return;
+            showMessage("Data RAB tidak valid. Silakan pilih ulang.", "error");
+            submitButton.disabled = false;
+            submitButton.textContent = originalBtnText; // Kembalikan teks jika gagal
+            return;
         }
 
         // Cek status lagi untuk memastikan RowIndex
         let spkStatus = null;
         try {
-        const res = await fetch(
-            `${PYTHON_API_BASE_URL}/api/get_spk_status?ulok=${encodeURIComponent(ulokFromForm)}&lingkup=${encodeURIComponent(lingkupFromForm)}`
-        );
-        spkStatus = await res.json();
+            const res = await fetch(
+                `${PYTHON_API_BASE_URL}/api/get_spk_status?ulok=${encodeURIComponent(ulokFromForm)}&lingkup=${encodeURIComponent(lingkupFromForm)}`
+            );
+            spkStatus = await res.json();
         } catch (err) {
-        console.error("Gagal cek status SPK:", err);
+            console.error("Gagal cek status SPK:", err);
         }
 
         if (spkStatus && spkStatus.Status) {
-        const status = spkStatus.Status;
-        if (status === "Menunggu Persetujuan Branch Manager") {
-            showMessage("SPK sedang diproses. Tidak bisa kirim ulang.", "error");
-            submitButton.disabled = false; return;
-        }
-        if (status === "SPK Disetujui") {
-            showMessage("SPK sudah disetujui.", "error");
-            submitButton.disabled = false; return;
-        }
-        if (status === "SPK Ditolak") {
-            data["Revisi"] = "YES";
-            data["RowIndex"] = spkStatus.RowIndex;
-        }
+            const status = spkStatus.Status;
+            if (status === "Menunggu Persetujuan Branch Manager") {
+                showMessage("SPK sedang diproses. Tidak bisa kirim ulang.", "error");
+                submitButton.disabled = false; 
+                submitButton.textContent = originalBtnText; // Kembalikan teks jika gagal
+                return;
+            }
+            if (status === "SPK Disetujui") {
+                showMessage("SPK sudah disetujui.", "error");
+                submitButton.disabled = false; 
+                submitButton.textContent = originalBtnText; // Kembalikan teks jika gagal
+                return;
+            }
+            if (status === "SPK Ditolak") {
+                data["Revisi"] = "YES";
+                data["RowIndex"] = spkStatus.RowIndex;
+            }
         }
 
         // --- ISI DATA SPK ---
@@ -475,43 +448,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const cabangCode = branchToUlokMap[selectedRab.Cabang.toUpperCase()] || selectedRab.Cabang;
 
-        // --- LOGIKA PENOMORAN SPK DIPERBAIKI ---
-        // Cek apakah ada sequence revisi yang tersimpan
         const revisiSequence = form.dataset.revisiSequence;
 
         if (revisiSequence && data["Revisi"] === "YES") {
-            // KASUS REVISI: Gunakan nomor urut lama (misal: "005")
-            // Hasil: 005/PROPNDEV-Z001/XI/25
             data["Nomor SPK"] = `${revisiSequence}/PROPNDEV-${cabangCode}/${data.spk_manual_1}/${data.spk_manual_2}`;
         } else {
-            // KASUS BARU: Gunakan placeholder (Otomatis) yang nanti diganti backend
             data["Nomor SPK"] = `(Otomatis)/PROPNDEV-${cabangCode}/${data.spk_manual_1}/${data.spk_manual_2}`;
         }
 
         data["PAR"] = `${data.par_manual_1}/PROPNDEV-${cabangCode}-${data.par_manual_2}-${data.par_manual_3}`;
 
-        // Submit ke Backend
         try {
-        const response = await fetch(`${PYTHON_API_BASE_URL}/api/submit_spk`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
-        });
+            const response = await fetch(`${PYTHON_API_BASE_URL}/api/submit_spk`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
 
-        const result = await response.json();
+            const result = await response.json();
 
-        if (response.ok && result.status === "success") {
-            showMessage("SPK berhasil dikirim!", "success");
-            form.reset();
-            delete form.dataset.revisiSequence; // Hapus data revisi
-            rabDetailsDiv.style.display = "none";
-            setTimeout(() => window.location.reload(), 2000);
-        } else {
-            throw new Error(result.message || "Terjadi kesalahan di server.");
-        }
+            if (response.ok && result.status === "success") {
+                showMessage("SPK berhasil dikirim!", "success");
+                
+                submitButton.textContent = "Berhasil!"; 
+                
+                form.reset();
+                delete form.dataset.revisiSequence; // Hapus data revisi
+                rabDetailsDiv.style.display = "none";
+                setTimeout(() => window.location.reload(), 2000);
+            } else {
+                throw new Error(result.message || "Terjadi kesalahan di server.");
+            }
         } catch (error) {
-        showMessage(`Error: ${error.message}`, "error");
-        submitButton.disabled = false;
+            showMessage(`Error: ${error.message}`, "error");
+            submitButton.disabled = false;
+            
+            submitButton.textContent = originalBtnText; 
         }
     }
 
@@ -566,6 +538,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    cabangSelect.addEventListener("change", async (e) => {
+        const selectedCabang = e.target.value;
+        
+        if (selectedCabang) {
+            setCabangCode(selectedCabang);
+            showMessage(`Memuat kontraktor untuk cabang ${selectedCabang}...`, "info");
+            await fetchKontraktor(selectedCabang);
+            showMessage("", "none");
+        } else {
+            setCabangCode("");
+            kontraktorSelect.innerHTML = '<option value="">-- Pilih Cabang terlebih dahulu --</option>';
+        }
+    });
+
     form.addEventListener("submit", handleFormSubmit);
 
     function checkSessionTime() {
@@ -604,6 +590,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ==========================================
+    // TVALIDASI INPUT FORM
+    // ==========================================
+
+    // 1. Validasi Kode Toko (Max 4 karakter, Uppercase, Alfanumerik)
+    const kodeTokoInput = document.getElementById("kode_toko");
+    if (kodeTokoInput) {
+        kodeTokoInput.maxLength = 4;
+        kodeTokoInput.addEventListener("input", function() {
+            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+    }
+
+    // 2. Validasi Input Manual SPK & PAR
+    const spkBulan = document.getElementById("spk_manual_1");
+    const spkTahun = document.getElementById("spk_manual_2");
+    const parUrut = document.getElementById("par_manual_1");
+    const parBulan = document.getElementById("par_manual_2");
+    const parTahun = document.getElementById("par_manual_3");
+
+    [spkBulan, parBulan].forEach(input => {
+        if (input) {
+            input.addEventListener("input", function() {
+                this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
+            });
+        }
+    });
+
+    [spkTahun, parUrut, parTahun].forEach(input => {
+        if (input) {
+            input.addEventListener("input", function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        }
+    });
+
     // --- Initialization ---
     function initializePage() {
         const userCabang = sessionStorage.getItem("loggedInUserCabang");
@@ -611,9 +633,19 @@ document.addEventListener('DOMContentLoaded', () => {
         setCabangCode(userCabang);
         fetchApprovedRab();
 
+        const waktuMulaiInput = document.getElementById("waktu_mulai");
+        if (waktuMulaiInput) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Ditambah 0 di depan jika 1 digit
+            const day = String(today.getDate()).padStart(2, '0');
+            
+            waktuMulaiInput.min = `${year}-${month}-${day}`;
+        }
+
         checkSessionTime();
         setInterval(checkSessionTime, 300000);
     }
 
-    initializePage();
+        initializePage();
     });

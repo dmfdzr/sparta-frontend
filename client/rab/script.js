@@ -23,19 +23,10 @@ const CONFIG = {
     ],
     BRANCH_GROUPS: {
         "LOMBOK": ["LOMBOK", "SUMBAWA"],
-        "SUMBAWA": ["LOMBOK", "SUMBAWA"],
         "MEDAN": ["MEDAN", "ACEH"],
-        "ACEH": ["MEDAN", "ACEH"],
         "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
         "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        "BENGKULU": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        "BANGKA": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        "BELITUNG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
-        "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        "SIDOARJO BPN_SMD": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        "MANOKWARI": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        "NTT": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        "SORONG": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
+        "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
     },
     BRANCH_TO_ULOK: {
         "LUWU": "2VZ1", "KARAWANG": "1JZ1", "REMBANG": "2AZ1", "BANJARMASIN": "1GZ1",
@@ -881,8 +872,25 @@ async function init() {
         UI.checkRejectedData();
     });
 
-    document.getElementById("cabang").addEventListener("change", () => {
-        if (document.getElementById("lingkup_pekerjaan").value) API.fetchPrices();
+    document.getElementById("cabang").addEventListener("change", async (e) => {
+        const selectedCabang = e.target.value;
+        const lingkup = document.getElementById("lingkup_pekerjaan").value;
+        const userEmail = sessionStorage.getItem('loggedInUserEmail');
+
+        // 1. Perbarui harga secara real-time ke API berdasarkan cabang yang baru dipilih
+        if (lingkup) {
+            await API.fetchPrices();
+        }
+        
+        // 2. Cek status revisi/reject secara spesifik untuk cabang pilihan yang baru
+        if (userEmail && selectedCabang) {
+            await API.checkStatus(userEmail, selectedCabang);
+            
+            // 3. Trigger fungsi pengecekan agar langsung memunculkan alert jika terdeteksi data revisi
+            UI.checkRejectedData();
+        }
+
+        // 4. Hitung ulang total
         Calculator.calculateGrandTotal();
     });
 

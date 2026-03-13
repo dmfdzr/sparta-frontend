@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const avgCostM2Card = document.getElementById('card-avg-cost-m2-wrapper'); 
     const avgKeterlambatanCard = document.getElementById('card-avg-keterlambatan-wrapper');
     const nilaiTokoCard = document.getElementById('card-nilai-toko-wrapper');
+    const nilaiKontraktorCard = document.getElementById('card-nilai-kontraktor-wrapper');
 
     // Variabel View List Toko & Detail
     const modalMainTitle = document.getElementById('modalMainTitle'); 
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentModalContext = 'PROJECT';
     let currentSpkGroups = [];
     let currentCostGroups = [];
+    let currentKontraktorGroups = [];
 
     // --- FUNGSI 1: Modal untuk Total Proyek ---
     const showProjectDetails = () => {
@@ -92,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } 
             else if (hasSerahTerima && !hasOpnameFinal) {
                 // Kerja Tambah Kurang: tanggal serah terima sudah terisi & tanggal opname final belum
-                currentGroupedProjects['Kerja Tambah Kurang'].push(item);
+                currentGroupedProjects['Proses Kerja Tambah Kurang'].push(item);
             } 
             else if (hasSPK && !hasSerahTerima) {
                 // Ongoing: nilai SPK sudah terisi & tanggal serah terima belum
@@ -285,16 +287,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNGSI 4: Modal untuk Rata-rata Cost /m² ---
     const showAvgCostM2Details = () => {
         if (!filteredData || filteredData.length === 0) return;
-        currentModalContext = 'COST_M2'; 
+        currentModalContext = 'COST_M2_SUMMARY'; 
 
-        if (modalMainTitle) modalMainTitle.textContent = "Detail Cost /m² per Proyek (Grup by Ulok)";
+        if (modalMainTitle) modalMainTitle.textContent = "Kategori Rata-rata Cost /m²";
         if (btnBackToSummary) btnBackToSummary.style.display = 'none'; 
 
-        // 1. Kelompokkan data Opname Final & Luas berdasarkan Ulok
+        // 1. Kelompokkan data Opname Final & 3 Jenis Luas berdasarkan Ulok
         const groupedCost = {};
         filteredData.forEach(item => {
             const opname = parseCurrency(item["Grand Total Opname Final"]);
-            const luas = parseFloat(item["Luas Terbangunan"]) || 0;
+            const lTerbangun = parseFloat(item["Luas Terbangunan"]) || 0;
+            const lBangunan = parseFloat(item["Luas Bangunan"]) || 0;
+            const lTerbuka = parseFloat(item["Luas Area Terbuka"]) || 0;
             const ulok = item["Nomor Ulok"] || 'Tanpa Ulok';
 
             if (!groupedCost[ulok]) {
@@ -303,7 +307,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     namaToko: item.Nama_Toko || 'Tanpa Nama',
                     cabang: item.Cabang || '-',
                     totalOpname: 0,
-                    luasTerbangun: luas > 0 ? luas : 0,
+                    luasTerbangun: lTerbangun > 0 ? lTerbangun : 0,
+                    luasBangunan: lBangunan > 0 ? lBangunan : 0,
+                    luasTerbuka: lTerbuka > 0 ? lTerbuka : 0,
                     items: []
                 };
             }
@@ -311,53 +317,114 @@ document.addEventListener('DOMContentLoaded', () => {
             groupedCost[ulok].totalOpname += opname;
             groupedCost[ulok].items.push(item);
             
-            // Cegah luas = 0 jika di baris ME ternyata kosong tapi di Sipil ada
-            if (groupedCost[ulok].luasTerbangun === 0 && luas > 0) {
-                groupedCost[ulok].luasTerbangun = luas;
-            }
+            if (groupedCost[ulok].luasTerbangun === 0 && lTerbangun > 0) groupedCost[ulok].luasTerbangun = lTerbangun;
+            if (groupedCost[ulok].luasBangunan === 0 && lBangunan > 0) groupedCost[ulok].luasBangunan = lBangunan;
+            if (groupedCost[ulok].luasTerbuka === 0 && lTerbuka > 0) groupedCost[ulok].luasTerbuka = lTerbuka;
         });
 
-        // 2. Hitung Cost/M2 per grup dan urutkan
-        currentCostGroups = Object.values(groupedCost)
-            .filter(group => group.totalOpname > 0 && group.luasTerbangun > 0)
-            .map(group => {
-                group.costPerM2 = group.totalOpname / group.luasTerbangun;
-                return group;
-            })
-            .sort((a, b) => b.costPerM2 - a.costPerM2);
+        currentCostGroups = Object.values(groupedCost).map(group => {
+            group.costTerbangun = group.luasTerbangun > 0 ? group.totalOpname / group.luasTerbangun : 0;
+            group.costBangunan = group.luasBangunan > 0 ? group.totalOpname / group.luasBangunan : 0;
+            group.costTerbuka = group.luasTerbuka > 0 ? group.totalOpname / group.luasTerbuka : 0;
+            return group;
+        });
 
-        if(listStatusTitle) listStatusTitle.textContent = `Daftar Lokasi & Cost/m² (${currentCostGroups.length} Lokasi)`;
+        // 2. Kalkulasi Rata-rata Total Keseluruhan
+        let sumOpnameTerbangun = 0, sumTerbangun = 0;
+        let sumOpnameBangunan = 0, sumBangunan = 0;
+        let sumOpnameTerbuka = 0, sumTerbuka = 0;
 
-        if (storeListContainer) {
-            if (currentCostGroups.length === 0) {
-                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Cost/m².</div>';
+        currentCostGroups.forEach(g => {
+            if (g.luasTerbangun > 0) { sumOpnameTerbangun += g.totalOpname; sumTerbangun += g.luasTerbangun; }
+            if (g.luasBangunan > 0) { sumOpnameBangunan += g.totalOpname; sumBangunan += g.luasBangunan; }
+            if (g.luasTerbuka > 0) { sumOpnameTerbuka += g.totalOpname; sumTerbuka += g.luasTerbuka; }
+        });
+
+        const avgTerbangun = sumTerbangun > 0 ? sumOpnameTerbangun / sumTerbangun : 0;
+        const avgBangunan = sumBangunan > 0 ? sumOpnameBangunan / sumBangunan : 0;
+        const avgTerbuka = sumTerbuka > 0 ? sumOpnameTerbuka / sumTerbuka : 0;
+
+        const summaryData = [
+            { label: 'Luas Terbangunan', value: formatRupiah(Math.round(avgTerbangun)) + ' /m²', type: 'TERBANGUN' },
+            { label: 'Luas Bangunan', value: formatRupiah(Math.round(avgBangunan)) + ' /m²', type: 'BANGUNAN' },
+            { label: 'Luas Area Terbuka', value: formatRupiah(Math.round(avgTerbuka)) + ' /m²', type: 'TERBUKA' }
+        ];
+
+        if(grid) {
+            grid.innerHTML = summaryData.map((item, index) => `
+                <div class="modal-stat-item" data-cost-type="${item.type}" style="animation-delay: ${0.1 + (index * 0.05)}s; cursor: pointer;">
+                    <span class="modal-stat-label">Cost/m² (${item.label})</span>
+                    <span class="modal-stat-value" style="color: #805ad5;">${item.value}</span>
+                </div>
+            `).join('');
+        }
+
+        if (modalSummaryView && modalListView && modalStoreDetailView) {
+            modalSummaryView.style.display = 'block';
+            modalStoreDetailView.style.display = 'none';
+            modalListView.style.display = 'none';
+        }
+
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
+    const renderCostList = (type) => {
+        currentModalContext = 'COST_M2_LIST';
+        if(btnBackToSummary) btnBackToSummary.style.display = 'flex';
+
+        let sortedGroups = [...currentCostGroups];
+        let typeLabel = '';
+        
+        // Sorting berdasarkan pilihan kategori
+        if(type === 'TERBANGUN') {
+            sortedGroups = sortedGroups.filter(g => g.costTerbangun > 0).sort((a,b) => b.costTerbangun - a.costTerbangun);
+            typeLabel = 'Luas Terbangunan';
+        } else if(type === 'BANGUNAN') {
+            sortedGroups = sortedGroups.filter(g => g.costBangunan > 0).sort((a,b) => b.costBangunan - a.costBangunan);
+            typeLabel = 'Luas Bangunan';
+        } else if(type === 'TERBUKA') {
+            sortedGroups = sortedGroups.filter(g => g.costTerbuka > 0).sort((a,b) => b.costTerbuka - a.costTerbuka);
+            typeLabel = 'Luas Area Terbuka';
+        }
+
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Lokasi & Cost/m² (${typeLabel})`;
+
+        if(storeListContainer) {
+            if(sortedGroups.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Cost/m² untuk kategori ini.</div>';
             } else {
-                storeListContainer.innerHTML = currentCostGroups.map((group, index) => {
-                    const costPerM2Str = formatRupiah(Math.round(group.costPerM2));
+                storeListContainer.innerHTML = sortedGroups.map((group) => {
+                    let costVal = 0;
+                    if(type === 'TERBANGUN') costVal = group.costTerbangun;
+                    if(type === 'BANGUNAN') costVal = group.costBangunan;
+                    if(type === 'TERBUKA') costVal = group.costTerbuka;
+                    
+                    const costStr = formatRupiah(Math.round(costVal));
+                    const rawIndex = currentCostGroups.indexOf(group);
 
-                    // Tampilan List tanpa nama lingkup
                     return `
-                    <div class="store-item" data-cost-index="${index}">
+                    <div class="store-item" data-cost-index="${rawIndex}">
                         <div class="store-info">
                             <strong>${group.namaToko}</strong>
                             <span>Ulok: ${group.ulok} | ${group.cabang}</span>
                         </div>
                         <div class="store-badge" style="background:#faf5ff; color:#805ad5; border: 1px solid #e9d8fd; font-size: 13px;">
-                            ${costPerM2Str} /m²
+                            ${costStr} /m²
                         </div>
                     </div>
-                `}).join('');
+                    `;
+                }).join('');
             }
         }
 
-        if (modalSummaryView && modalListView && modalStoreDetailView) {
+        if(modalSummaryView && modalListView && modalStoreDetailView) {
             modalSummaryView.style.display = 'none';
             modalStoreDetailView.style.display = 'none';
             modalListView.style.display = 'block';
         }
-
-        if (projectModal) projectModal.style.display = 'flex';
     };
+
+
 
     // --- FUNGSI 5: Modal untuk Keterlambatan ---
     const showKeterlambatanDetails = () => {
@@ -462,6 +529,116 @@ document.addEventListener('DOMContentLoaded', () => {
         if (projectModal) projectModal.style.display = 'flex';
     };
 
+    const showNilaiKontraktorDetails = () => {
+        if (!filteredData || filteredData.length === 0) return;
+        currentModalContext = 'NILAI_KONTRAKTOR';
+
+        if (modalMainTitle) modalMainTitle.textContent = "Detail Nilai Kontraktor";
+        if (btnBackToSummary) btnBackToSummary.style.display = 'none';
+
+        // Kelompokkan Nilai Toko berdasarkan Kontraktor
+        const groupedKontraktor = {};
+        filteredData.forEach(item => {
+            const nt = parseScore(item["Nilai Toko"]);
+            const kontraktor = item["Kontraktor"] && item["Kontraktor"].trim() !== "" ? item["Kontraktor"] : 'Tanpa Kontraktor';
+
+            if (nt > 0) {
+                if (!groupedKontraktor[kontraktor]) {
+                    groupedKontraktor[kontraktor] = {
+                        namaKontraktor: kontraktor,
+                        totalNilai: 0,
+                        countToko: 0,
+                        items: []
+                    };
+                }
+                groupedKontraktor[kontraktor].totalNilai += nt;
+                groupedKontraktor[kontraktor].countToko++;
+                groupedKontraktor[kontraktor].items.push(item);
+            }
+        });
+
+        // Hitung rata-rata tiap kontraktor dan urutkan
+        currentKontraktorGroups = Object.values(groupedKontraktor).map(group => {
+            group.avgNilai = group.totalNilai / group.countToko;
+            return group;
+        }).sort((a, b) => b.avgNilai - a.avgNilai);
+
+        if(listStatusTitle) listStatusTitle.textContent = `Daftar Kontraktor (${currentKontraktorGroups.length})`;
+
+        if (storeListContainer) {
+            if (currentKontraktorGroups.length === 0) {
+                storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada data Nilai Kontraktor.</div>';
+            } else {
+                storeListContainer.innerHTML = currentKontraktorGroups.map((group, index) => {
+                    const avgScore = formatScore(group.avgNilai);
+                    return `
+                    <div class="store-item" data-kontraktor-index="${index}">
+                        <div class="store-info">
+                            <strong>${group.namaKontraktor}</strong>
+                            <span>Total Digarap: ${group.countToko} Toko</span>
+                        </div>
+                        <div class="store-badge" style="background:#e0f2fe; color:#0284c7; border: 1px solid #bae6fd; font-size: 13px;">
+                            Rata-rata: ${avgScore}
+                        </div>
+                    </div>
+                `}).join('');
+            }
+        }
+
+        if (modalSummaryView && modalListView && modalStoreDetailView) {
+            modalSummaryView.style.display = 'none';
+            modalStoreDetailView.style.display = 'none';
+            modalListView.style.display = 'block';
+        }
+
+        if (projectModal) projectModal.style.display = 'flex';
+    };
+
+    const renderKontraktorDetail = (groupIndex) => {
+        const group = currentKontraktorGroups[groupIndex];
+        if (!group) return;
+
+        if (detailStoreTitle) {
+            detailStoreTitle.textContent = `Kontraktor: ${group.namaKontraktor}`;
+        }
+
+        if (storeDetailContainer) {
+            const avgScore = formatScore(group.avgNilai);
+
+            // Buat list toko HTML di dalam detail view
+            const storeListHTML = group.items.map(item => {
+                const nilaiToko = item["Nilai Toko"] || '-';
+                const namaToko = item["Nama_Toko"] || 'Tanpa Nama';
+                const ulok = item["Nomor Ulok"] || '-';
+                return `
+                    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-weight: 600; font-size: 13px; color: #1e293b;">${namaToko}</span>
+                            <span style="font-size: 11px; color: #64748b;">Ulok: ${ulok}</span>
+                        </div>
+                        <span style="font-weight: 700; color: #d97706; font-size: 14px;">Skor: ${nilaiToko}</span>
+                    </div>
+                `;
+            }).join('');
+
+            storeDetailContainer.innerHTML = `
+                <div class="detail-grid" style="margin-bottom: 15px;">
+                    <div class="detail-item"><span class="detail-label">Total Proyek Dinilai</span><span class="detail-value" style="color:#2563eb; font-size: 16px;">${group.countToko} Toko</span></div>
+                    <div class="detail-item"><span class="detail-label">Rata-rata Skor Kontraktor</span><span class="detail-value" style="color:#0284c7; font-size: 16px;">${avgScore}</span></div>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px;">
+                    <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 13px; color: #475569;">Rincian Toko & Nilai:</h4>
+                    ${storeListHTML}
+                </div>
+            `;
+        }
+
+        if (modalListView && modalStoreDetailView) {
+            modalListView.style.display = 'none';
+            modalStoreDetailView.style.display = 'block';
+        }
+    };
+
     // --- FUNGSI 7: Render Detail Toko Spesifik (Diperbarui dengan Nilai Toko) ---
     const renderCostDetail = (groupIndex) => {
         const group = currentCostGroups[groupIndex];
@@ -472,7 +649,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (storeDetailContainer) {
-            // Pemisahan Opname Sipil & ME
             const itemSipil = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('sipil'));
             const itemME = group.items.find(i => i.Lingkup_Pekerjaan && i.Lingkup_Pekerjaan.toLowerCase().includes('me'));
             const refItem = itemSipil || itemME || group.items[0];
@@ -480,9 +656,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const opnameSipil = itemSipil ? parseCurrency(itemSipil["Grand Total Opname Final"]) : 0;
             const opnameME = itemME ? parseCurrency(itemME["Grand Total Opname Final"]) : 0;
             const opnameFinal = formatRupiah(group.totalOpname);
-            const costPerM2 = formatRupiah(Math.round(group.costPerM2));
+            
+            // Format 3 Kategori Cost/m2
+            const costTerbangun = formatRupiah(Math.round(group.costTerbangun));
+            const costBangunan = formatRupiah(Math.round(group.costBangunan));
+            const costTerbuka = formatRupiah(Math.round(group.costTerbuka));
 
-            // Mengambil nilai murni dari JSON
+            // Nilai Murni Luas (Tanpa Koma dari Javascript)
             const luasBangunan = refItem["Luas Bangunan"] || 0;
             const luasTerbangun = refItem["Luas Terbangunan"] || 0;
             const luasTerbuka = refItem["Luas Area Terbuka"] || 0;
@@ -493,14 +673,17 @@ document.addEventListener('DOMContentLoaded', () => {
             storeDetailContainer.innerHTML = `
                 <div class="detail-grid">
                     <div class="detail-item"><span class="detail-label">Grand Total Opname Final</span><span class="detail-value" style="color:#2f855a; font-size: 16px;">${opnameFinal}</span></div>
-                    <div class="detail-item"><span class="detail-label">Cost /m² (Luas Terbangun)</span><span class="detail-value" style="color:#805ad5; font-size: 16px;">${costPerM2}</span></div>
-                    
                     <div class="detail-item"><span class="detail-label">Rincian Opname</span>
                         <span class="detail-value" style="font-weight: 500; line-height: 1.5;">
                             Sipil: <strong>${formatRupiah(opnameSipil)}</strong> <br>
                             ME: <strong>${formatRupiah(opnameME)}</strong>
                         </span>
                     </div>
+                    
+                    <div class="detail-item"><span class="detail-label">Cost /m² (Luas Terbangun)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${costTerbangun}</span></div>
+                    <div class="detail-item"><span class="detail-label">Cost /m² (Luas Bangunan)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${costBangunan}</span></div>
+                    
+                    <div class="detail-item"><span class="detail-label">Cost /m² (Luas Area Terbuka)</span><span class="detail-value" style="color:#805ad5; font-size: 15px;">${costTerbuka}</span></div>
                     <div class="detail-item"><span class="detail-label">Cabang</span><span class="detail-value">${group.cabang}</span></div>
 
                     <div class="detail-item"><span class="detail-label">Luas Bangunan</span><span class="detail-value">${luasBangunan} m²</span></div>
@@ -690,7 +873,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if(totalJhkCard) totalJhkCard.addEventListener('click', showJhkDetails); 
     if(avgCostM2Card) avgCostM2Card.addEventListener('click', showAvgCostM2Details); 
     if(avgKeterlambatanCard) avgKeterlambatanCard.addEventListener('click', showKeterlambatanDetails); 
-    if(nilaiTokoCard) nilaiTokoCard.addEventListener('click', showNilaiTokoDetails); // EVENT CARD BARU
+    if(nilaiTokoCard) nilaiTokoCard.addEventListener('click', showNilaiTokoDetails);
+    if(nilaiKontraktorCard) nilaiKontraktorCard.addEventListener('click', showNilaiKontraktorDetails);
     
     // Event Delegation: Menangkap klik pada card stat di dalam modal
     if(grid) {
@@ -699,7 +883,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!statItem) return; 
             
             const status = statItem.getAttribute('data-status');
-            renderStoreList(status);
+            if (status) renderStoreList(status);
+
+            const costType = statItem.getAttribute('data-cost-type');
+            if (costType) renderCostList(costType);
         });
     }
 
@@ -722,6 +909,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const costIndex = storeItem.getAttribute('data-cost-index');
             if (costIndex !== null) {
                 renderCostDetail(costIndex);
+                return;
+            }
+
+            const kontraktorIndex = storeItem.getAttribute('data-kontraktor-index');
+            if (kontraktorIndex !== null) {
+                renderKontraktorDetail(kontraktorIndex);
                 return;
             }
         });
@@ -952,10 +1145,16 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalOpname = 0;
         let totalLuasTerbangun = 0;
         let uniqueUlokLuas = {};
-        
         let sumNilaiToko = 0; 
         let countNilaiToko = 0;
-        let countKeterlambatan = 0; // Variabel baru untuk menghitung jumlah toko yang telat
+        let countKeterlambatan = 0; 
+        let miniStats = {
+            'Approval RAB': 0, 'Proses PJU': 0, 'Approval SPK': 0,
+            'Ongoing': 0, 'Proses Kerja Tambah Kurang': 0, 'Done': 0
+        };
+        let sumAvgKontraktor = 0; 
+        let countKontraktorGroups = 0;
+        const groupedKontraktorData = {};
 
         data.forEach(item => {
             totalSPK += parseCurrency(item["Nominal SPK"]);
@@ -970,7 +1169,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const tambahSpk = parseFloat(item["tambah_spk"]) || 0;
             const keterlambatan = parseFloat(item["Keterlambatan"]) || 0;
             
-            // Hitung toko yang benar-benar terlambat
             if (keterlambatan > 0) {
                 countKeterlambatan++;
             }
@@ -979,17 +1177,43 @@ document.addEventListener('DOMContentLoaded', () => {
             totalKeterlambatan += keterlambatan;
             totalDenda += parseCurrency(item["Denda"]);
             totalOpname += parseCurrency(item["Grand Total Opname Final"]);
-            totalLuasTerbangun += parseFloat(item["Luas Terbangunan"]) || 0;
+            
             const ulok = item["Nomor Ulok"] || 'Tanpa Ulok-' + Math.random();
             const luas = parseFloat(item["Luas Terbangunan"]) || 0;
             if (!uniqueUlokLuas[ulok] && luas > 0) {
                 uniqueUlokLuas[ulok] = luas;
-                totalLuasTerbangun += luas; // Hanya ditambahkan sekali per ulok
+                totalLuasTerbangun += luas; 
             }
+
+            // --- LOGIKA PENGELOMPOKAN STATUS UNTUK CARD DEPAN ---
+            const hasStatusRab = item["Status_Rab"] && String(item["Status_Rab"]).trim() !== "";
+            const hasPenawaranFinal = item["Total Penawaran Final"] && String(item["Total Penawaran Final"]).trim() !== "";
+            const hasStatus = item["Status"] && String(item["Status"]).trim() !== "";
+            const hasSPK = item["Nominal SPK"] && String(item["Nominal SPK"]).trim() !== "";
+            const hasSerahTerima = (item["tanggal_serah_terima"] && String(item["tanggal_serah_terima"]).trim() !== "") || 
+                                   (item["Tgl Serah Terima"] && String(item["Tgl Serah Terima"]).trim() !== "");
+            const hasOpnameFinal = item["tanggal_opname_final"] && String(item["tanggal_opname_final"]).trim() !== "";
+
+            if (hasOpnameFinal) miniStats['Done']++;
+            else if (hasSerahTerima && !hasOpnameFinal) miniStats['Proses Kerja Tambah Kurang']++;
+            else if (hasSPK && !hasSerahTerima) miniStats['Ongoing']++;
+            else if (hasStatus && !hasSPK) miniStats['Approval SPK']++;
+            else if (hasPenawaranFinal && !hasSPK) miniStats['Proses PJU']++;
+            else if (hasStatusRab && !hasPenawaranFinal) miniStats['Approval RAB']++;
         });
 
+        // --- RENDER MINI STATS KE HTML DALAM CARD ---
+        const miniContainer = document.getElementById('mini-project-stats');
+        if (miniContainer) {
+            miniContainer.innerHTML = Object.entries(miniStats).map(([label, count]) => `
+                <div class="mini-stat-item">
+                    <span class="mini-stat-label">${label}</span>
+                    <span class="mini-stat-value">${count}</span>
+                </div>
+            `).join('');
+        }
+
         const avgKeterlambatan = countKeterlambatan > 0 ? Math.round(totalKeterlambatan / countKeterlambatan) : 0;
-        
         const avgCostM2 = totalLuasTerbangun > 0 ? (totalOpname / totalLuasTerbangun) : 0;
         const avgNilaiToko = countNilaiToko > 0 ? (sumNilaiToko / countNilaiToko) : 0;
         const avgJHK = totalProyek > 0 ? Math.round(totalJHK / totalProyek) : 0;
@@ -1002,9 +1226,25 @@ document.addEventListener('DOMContentLoaded', () => {
         animateValue("card-avg-keterlambatan", 0, avgKeterlambatan, animDuration, (val) => val + " Hari");
         animateValue("card-total-denda", 0, totalDenda, animDuration, formatRupiah);
         animateValue("card-avg-cost-m2", 0, avgCostM2, animDuration, formatRupiah);
+        Object.values(groupedKontraktorData).forEach(g => {
+            sumAvgKontraktor += (g.total / g.count);
+            countKontraktorGroups++;
+        });
+        const avgNilaiKontraktor = countKontraktorGroups > 0 ? (sumAvgKontraktor / countKontraktorGroups) : 0;
         
         if(document.getElementById('card-nilai-toko')) {
             animateValue("card-nilai-toko", 0, avgNilaiToko, animDuration, formatScore, true);
+        }
+
+        if(document.getElementById('card-nilai-kontraktor')) {
+            animateValue("card-nilai-kontraktor", 0, avgNilaiKontraktor, animDuration, formatScore, true);
+        }
+
+        const kontraktor = item["Kontraktor"] && item["Kontraktor"].trim() !== "" ? item["Kontraktor"] : 'Tanpa Kontraktor';
+        if (nt > 0) {
+            if (!groupedKontraktorData[kontraktor]) groupedKontraktorData[kontraktor] = { total: 0, count: 0 };
+            groupedKontraktorData[kontraktor].total += nt;
+            groupedKontraktorData[kontraktor].count++;
         }
     }
 
