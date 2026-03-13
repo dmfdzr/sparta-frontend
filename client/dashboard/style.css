@@ -141,16 +141,17 @@ body {
     position: relative; overflow: hidden; 
 }
 
-.stat-card:nth-child(1) { border-left-color: #3b82f6; } 
-.stat-card:nth-child(2) { border-left-color: #4338ca; } 
-.stat-card:nth-child(3) { border-left-color: #f97316; } 
-.stat-card:nth-child(4) { border-left-color: #10b981; } 
-.stat-card:nth-child(5) { border-left-color: #ef4444; } 
-.stat-card:nth-child(6) { border-left-color: #991b1b; } 
-.stat-card:nth-child(7) { border-left-color: #8b5cf6; } 
-.stat-card:nth-child(8) { border-left-color: #f59e0b; }
-.stat-card:nth-child(9) { border-left-color: #0ea5e9; }
-.stat-card:nth-child(10) { border-left-color: #db2777; }
+#card-total-proyek-wrapper { border-left-color: #3b82f6; } 
+#card-perlu-perhatian-wrapper { border-left-color: #ef4444; } 
+#card-total-penawaran-wrapper { border-left-color: #4338ca; } 
+#card-total-spk-wrapper { border-left-color: #f97316; } 
+#card-total-jhk-wrapper { border-left-color: #10b981; } 
+#card-avg-keterlambatan-wrapper { border-left-color: #ef4444; } 
+#card-total-denda-wrapper { border-left-color: #991b1b; } 
+#card-avg-cost-m2-wrapper { border-left-color: #8b5cf6; } 
+#card-nilai-toko-wrapper { border-left-color: #f59e0b; }
+#card-nilai-kontraktor-wrapper { border-left-color: #0ea5e9; }
+#card-avg-beanspot-wrapper { border-left-color: #db2777; }
 
 .stat-card[style*="cursor: pointer"]:hover { transform: translateY(-3px) scale(1.02); box-shadow: var(--card-shadow-hover); }
 .stat-card[style*="cursor: pointer"]:active { transform: translateY(0) scale(0.98); }
