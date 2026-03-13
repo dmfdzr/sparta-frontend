@@ -56,7 +56,7 @@ Sistem SPARTA dilengkapi dengan keamanan dan pembatasan operasional:
 
 ---
 
-## 📂 Struktur Direktori Repositori
+## Struktur Direktori Repositori
 
 ```text
 sparta-frontend/
