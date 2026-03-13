@@ -1,4 +1,4 @@
-# 🏢 SPARTA Frontend 
+# SPARTA Frontend 
 
 **System for Property Administration, Reporting, Tracking & Approval - Building & Maintenance**
 
