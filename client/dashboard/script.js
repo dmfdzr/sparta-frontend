@@ -1003,10 +1003,24 @@ document.addEventListener('DOMContentLoaded', () => {
             modalStoreDetailView.style.display = 'none'; 
         }
 
+        // --- KODE BARU: Kamus batas SLA ---
+        const slaLimits = {
+            'Approval RAB': 'Maksimal 2 Hari',
+            'Proses PJU': 'Maksimal 7 Hari',
+            'Approval SPK': 'Maksimal 2 Hari',
+            'Ongoing': 'Sebelum Tanggal Akhir SPK',
+            'Proses Kerja Tambah Kurang': 'Maksimal 14 Hari'
+        };
+
         if(grid) {
             grid.innerHTML = Object.entries(currentGroupedPerhatian).map(([label, items]) => `
-                <div class="modal-stat-item" data-perhatian-status="${label}" style="border-color: ${items.length > 0 ? '#fca5a5' : 'var(--border-color)'}; background: ${items.length > 0 ? '#fef2f2' : '#f8fafc'};">
-                    <span class="modal-stat-label" style="color: ${items.length > 0 ? '#b91c1c' : '#64748b'};">${label}</span>
+                <div class="modal-stat-item" data-perhatian-status="${label}" style="border-color: ${items.length > 0 ? '#fca5a5' : 'var(--border-color)'}; background: ${items.length > 0 ? '#fef2f2' : '#f8fafc'}; align-items: center;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <span class="modal-stat-label" style="color: ${items.length > 0 ? '#b91c1c' : '#64748b'};">${label}</span>
+                        <span style="font-size: 10px; color: ${items.length > 0 ? '#ef4444' : '#94a3b8'}; font-weight: 500;">
+                            ⏳ ${slaLimits[label] || '-'}
+                        </span>
+                    </div>
                     <span class="modal-stat-value" style="color: ${items.length > 0 ? '#ef4444' : '#1e293b'};">${items.length}</span>
                 </div>
             `).join('');
