@@ -331,10 +331,10 @@ if (backLink) {
 
 window.closePopup = closePopup;
 
-// Pengecekan Login Otomatis
 (function checkAuth() {
     const isAuthenticated = sessionStorage.getItem("authenticated");
     const userCabang = sessionStorage.getItem("loggedInUserCabang");
+    const userRole = sessionStorage.getItem("userRole");
     const loginPage = "../auth/index.html"; 
 
     if (isAuthenticated !== "true" || !userCabang) {
@@ -343,10 +343,19 @@ window.closePopup = closePopup;
         return;
     }
 
+    const isManagerOrSupport = ['BRANCH BUILDING & MAINTENANCE MANAGER', 'BRANCH BUILDING SUPPORT DOKUMENTASI'].includes(userRole);
+    const isSpecialBatam = (userRole === 'BRANCH BUILDING COORDINATOR' && userCabang.toUpperCase() === 'BATAM');
+
+    if (!isManagerOrSupport && !isSpecialBatam) {
+        alert("Anda tidak memiliki hak akses ke halaman ini.");
+        window.location.replace('../dashboard/index.html');
+        return;
+    }
+
     const userData = {
         cabang: userCabang,
         email: sessionStorage.getItem("loggedInUserEmail") || "",
-        role: sessionStorage.getItem("userRole") || ""
+        role: userRole || ""
     };
 
     initializePage(userData);
