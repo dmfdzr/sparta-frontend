@@ -743,6 +743,7 @@ const API = {
         data["Cabang"] = document.getElementById("cabang").value;
         data["Email_Pembuat"] = sessionStorage.getItem("loggedInUserEmail");
         data["Grand Total"] = Formatter.parseRupiah(document.getElementById("grand-total-amount").textContent);
+        data["Grand Total Final"] = Formatter.parseRupiah(document.getElementById("final-total-amount").textContent);
 
         let idx = 1;
         document.querySelectorAll(".boq-table-body:not(.hidden) .boq-item-row").forEach(row => {
