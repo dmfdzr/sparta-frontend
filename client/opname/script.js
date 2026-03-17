@@ -417,6 +417,7 @@ const PDFGenerator = {
             });
         }
         const picKontraktorData = await fetchPicKontraktorData(selectedUlok);
+        const picList = await fetchPicList({ noUlok: selectedUlok, lingkup: lingkupFix, kodeToko: selectedStore.kode_toko });
 
         // 2. Data Keterlambatan (Denda)
         let penaltyData = { days: 0, amount: 0, isLate: false };
@@ -429,23 +430,28 @@ const PDFGenerator = {
             }
 
             const penaltyRes = await fetch(penaltyUrl);
-            const penaltyJson = await penaltyRes.json();
-            if (penaltyJson.terlambat) {
-                penaltyData.isLate = true;
-                penaltyData.days = penaltyJson.hari_terlambat;
-                penaltyData.amount = calculateLatePenalty(penaltyJson.hari_terlambat);
+            if (penaltyRes.ok) {
+                const penaltyJson = await penaltyRes.json();
+                if (penaltyJson.terlambat) {
+                    penaltyData.isLate = true;
+                    penaltyData.days = penaltyJson.hari_terlambat;
+                    penaltyData.amount = calculateLatePenalty(penaltyJson.hari_terlambat);
+                }
             }
         } catch (err) {
             console.warn("Gagal mengambil data denda untuk PDF:", err);
         }
         
+        // 3. Data submissions
+        const dataOpname = submissions && submissions.length > 0 ? submissions[0] : {};
+
         // Fallback data nama PIC/Kontraktor
-        if (fromOpname?.name && String(fromOpname.name).trim()) picKontraktorData.name = String(fromOpname.name).trim();
+        if (dataOpname?.name && String(dataOpname.name).trim()) picKontraktorData.name = String(dataOpname.name).trim();
         if (!picKontraktorData.pic_username || picKontraktorData.pic_username === "N/A") {
-            if (fromOpname?.pic_username) picKontraktorData.pic_username = String(fromOpname.pic_username).trim();
+            if (dataOpname?.pic_username) picKontraktorData.pic_username = String(dataOpname.pic_username).trim();
         }
         if (!picKontraktorData.kontraktor_username || picKontraktorData.kontraktor_username === "N/A") {
-            if (fromOpname?.kontraktor_username) picKontraktorData.kontraktor_username = String(fromOpname.kontraktor_username).trim();
+            if (dataOpname?.kontraktor_username) picKontraktorData.kontraktor_username = String(dataOpname.kontraktor_username).trim();
         }
 
         // ==========================================
@@ -458,7 +464,7 @@ const PDFGenerator = {
         lastY += 15;
 
         doc.setFont("helvetica", "normal").setFontSize(10);
-        const dataOpname = submissions && submissions.length > 0 ? submissions[0] : {};
+        
         const finalNamaToko = dataOpname.nama_toko || selectedStore.nama_toko || "-";
         const finalAlamat = dataOpname.alamat || selectedStore.alamat || "-";
         const picLine = picList && picList.length > 0 ? picList.join(", ") : (picKontraktorData.name || picKontraktorData.pic_username || "N/A");
@@ -578,28 +584,19 @@ const PDFGenerator = {
             const groupsByType = { "PEKERJAAN TAMBAH": [], "PEKERJAAN KURANG": [] };
             
             submissions.forEach(it => {
-                // [FIX] Validasi Volume untuk IL
                 const vAkhir = toNumberVol_PDF(it.volume_akhir);
                 
-                // Coba ambil Volume Awal dari berbagai kemungkinan nama field
-                // Untuk item IL, jika tidak ada volume awal/RAB, kita anggap 0
                 let rawVolAwal = it.vol_rab;
                 if (rawVolAwal === undefined || rawVolAwal === null || rawVolAwal === "") {
-                    rawVolAwal = it.volume_awal; // Coba fallback ke properti lain
+                    rawVolAwal = it.volume_awal;
                 }
                 const vAwal = toNumberVol_PDF(rawVolAwal); 
                 
-                // Hitung selisih manual
                 let sel = vAkhir - vAwal;
-                
-                // Pembulatan 2 desimal untuk menghindari floating point issue
                 sel = Math.round((sel + Number.EPSILON) * 100) / 100;
 
-                // Jika hasil hitungan manual tidak 0, masukkan ke kategori
                 if (sel !== 0) {
-                    // Update properti selisih di object item agar konsisten
                     it.selisih = String(sel).replace('.', ','); 
-                    
                     const type = sel < 0 ? "PEKERJAAN KURANG" : "PEKERJAAN TAMBAH";
                     groupsByType[type].push(it);
                 }
@@ -627,7 +624,6 @@ const PDFGenerator = {
                         
                         const namaPekerjaan = item.jenis_pekerjaan + (item.is_il ? " (IL)" : "");
                         
-                        // Gunakan vol_rab (vAwal) yang sudah divalidasi tadi, atau 0 jika kosong
                         let displayVolAwal = item.vol_rab;
                         if (displayVolAwal === undefined || displayVolAwal === null || displayVolAwal === "") {
                             displayVolAwal = "0";
@@ -683,15 +679,9 @@ const PDFGenerator = {
         const totalTambahPPN = totalTambahBulat + ppnTambah;
         const totalKurangPPN = totalKurangBulat + ppnKurang;
         
-        // 1. Total Awal (RAB + IL) sudah termasuk PPN
         const totalSetelahPPNRAB = grandTotalRAB + grandTotalIL;
-        // 2. Selisih Tambah/Kurang sudah termasuk PPN
         const deltaPPN = totalTambahPPN + totalKurangPPN;
-        
-        // 3. Opname Final (Gross) = Total Awal + Selisih
         const totalOpnameGross = totalSetelahPPNRAB + deltaPPN;
-
-        // 4. Hitung Pembayaran Akhir (Net) = Gross - Denda
         const finalPayment = totalOpnameGross - penaltyData.amount;
 
         doc.setFontSize(12).setFont("helvetica", "bold");
@@ -704,7 +694,6 @@ const PDFGenerator = {
         if (deltaNominal > 0) statusText = "Pekerjaan Tambah";
         if (deltaNominal < 0) statusText = "Pekerjaan Kurang";
 
-        // Setup Baris Tabel Status
         let statusTableBody = [
             [{ content: `STATUS: ${statusText}`, colSpan: 2, styles: { fillColor: [245, 245, 245], fontStyle: "bold", fontSize: 12 } }],
             ["Total Awal (RAB + IL) incl. PPN", formatRupiah(totalSetelahPPNRAB)],
@@ -714,13 +703,11 @@ const PDFGenerator = {
             ["Total Opname Final (incl. PPN)", formatRupiah(totalOpnameGross)]
         ];
 
-        // Jika Ada Keterlambatan, Tambahkan Baris Denda
         if (penaltyData.isLate && penaltyData.amount > 0) {
             statusTableBody.push(
                 [{ content: `Denda Keterlambatan (${penaltyData.days} Hari)`, styles: { textColor: [220, 38, 38], fontStyle: "bold" } }, 
                 { content: `- ${formatRupiah(penaltyData.amount)}`, styles: { textColor: [220, 38, 38], fontStyle: "bold" } }]
             );
-            // Baris Akhir: Total Dibayarkan
             statusTableBody.push(
                 ["Grand Total", formatRupiah(finalPayment)]
             );
@@ -734,7 +721,6 @@ const PDFGenerator = {
             styles: { fontSize: 11, halign: "left", cellPadding: 4 },
             columnStyles: { 1: { halign: "right", cellWidth: 80 } },
             didParseCell: (data) => {
-                // Highlight baris terakhir (Grand Total / Total Dibayarkan)
                 if (data.row.index === statusTableBody.length - 1) {
                     data.cell.styles.fillColor = [144, 238, 144];
                     data.cell.styles.fontStyle = "bold";
