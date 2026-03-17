@@ -961,64 +961,30 @@ const Render = {
 
             const combinedList = [];
 
-            // Backend kadang mengirim field ULOK dengan shape berbeda per user/cabang.
-            const toUlokList = (store) => {
-                const raw =
-                    store.no_uloks ??
-                    store.no_ulok ??
-                    store.uloks ??
-                    store.ulok ??
-                    [];
-
-                let arr = [];
-                if (Array.isArray(raw)) {
-                    arr = raw;
-                } else if (typeof raw === "string") {
-                    arr = raw.split(/[,;\n]/g);
-                } else if (raw !== null && raw !== undefined) {
-                    arr = [raw];
-                }
-
-                return [...new Set(
-                    arr
-                        .map((v) => String(v ?? "").trim())
-                        .filter(Boolean)
-                )];
-            };
-
-            stores.forEach((store) => {
-                const ulokList = toUlokList(store);
-                ulokList.forEach((ulokNo) => {
-                    combinedList.push({
-                        store,
-                        ulok: ulokNo
+            stores.forEach(store => {
+                if (store.no_uloks && Array.isArray(store.no_uloks) && store.no_uloks.length > 0) {
+                    store.no_uloks.forEach(ulokNo => {
+                        combinedList.push({
+                            store: store,
+                            ulok: ulokNo
+                        });
                     });
-                });
+                }
             });
 
             combinedList.sort((a, b) => {
-                const namaA = String(a.store.nama_toko || "");
-                const namaB = String(b.store.nama_toko || "");
-                const nameCompare = namaA.localeCompare(namaB);
+                const nameCompare = a.store.nama_toko.localeCompare(b.store.nama_toko);
                 if (nameCompare !== 0) return nameCompare;
                 return a.ulok.localeCompare(b.ulok);
             });
 
             const renderList = (filter = "") => {
                 const f = filter.toLowerCase();
-                const filtered = combinedList.filter(item => {
-                    const namaToko = String(item.store.nama_toko || "").toLowerCase();
-                    const kodeToko = String(item.store.kode_toko || "").toLowerCase();
-                    const ulok = String(item.ulok || "").toLowerCase();
-                    const cabang = String(item.store.cabang || item.store.nama_cabang || item.store.kota || "").toLowerCase();
-
-                    return (
-                        namaToko.includes(f) ||
-                        kodeToko.includes(f) ||
-                        ulok.includes(f) ||
-                        cabang.includes(f)
-                    );
-                });
+                const filtered = combinedList.filter(item =>
+                    item.store.nama_toko.toLowerCase().includes(f) ||
+                    item.store.kode_toko.toLowerCase().includes(f) ||
+                    item.ulok.toLowerCase().includes(f)
+                );
 
                 let html = `
                     <div class="container" style="padding-top:20px;">
@@ -1032,7 +998,7 @@ const Render = {
                             </div>
                             
                             <div style="margin-bottom:24px;">
-                                <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Toko, Cabang, Kode Toko, atau No. ULOK..." value="${filter}">
+                                <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Toko atau No. ULOK..." value="${filter}">
                             </div>
                             
                             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
@@ -1041,10 +1007,6 @@ const Render = {
                                         
                                         <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); margin-bottom:4px;">
                                             ${item.store.nama_toko}
-                                        </div>
-
-                                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">
-                                            Cabang: <strong>${item.store.cabang || item.store.nama_cabang || item.store.kota || "-"}</strong>
                                         </div>
                                         
                                         <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
