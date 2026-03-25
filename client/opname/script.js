@@ -1691,11 +1691,6 @@ const Render = {
             const rawData = await res.json();
             let submissions = Array.isArray(rawData) ? rawData : [];
 
-            submissions = submissions.filter(item => {
-                const itemLingkup = (item.lingkup_pekerjaan || item.lingkup || "").toUpperCase();
-                return itemLingkup === AppState.selectedLingkup.toUpperCase();
-            });
-
             if (AppState.user.role === 'kontraktor') {
                 const currentUsername = AppState.user.username;
                 const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
@@ -1928,11 +1923,6 @@ const Render = {
             const res = await fetch(url);
             const rawData = await res.json();
             let pendingItems = Array.isArray(rawData) ? rawData : [];
-
-            pendingItems = pendingItems.filter(item => {
-                const itemLingkup = (item.lingkup_pekerjaan || item.lingkup || "").toUpperCase();
-                return itemLingkup === AppState.selectedLingkup.toUpperCase();
-            });
 
             if (AppState.user.role === 'kontraktor') {
                 const currentUsername = AppState.user.username;
