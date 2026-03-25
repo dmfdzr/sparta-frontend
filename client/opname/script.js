@@ -1691,6 +1691,21 @@ const Render = {
             const rawData = await res.json();
             let submissions = Array.isArray(rawData) ? rawData : [];
 
+            try {
+                const rabData = await fetchRabData(AppState.selectedStore.kode_toko, AppState.selectedUlok, AppState.selectedLingkup);
+                const validJenisPekerjaan = new Set(rabData.map(rab => (rab.jenis_pekerjaan || "").trim().toLowerCase()));
+
+                submissions = submissions.filter(item => {
+                    const itemLingkup = item.lingkup_pekerjaan || item.lingkup;
+                    if (itemLingkup) {
+                        return itemLingkup.toUpperCase() === AppState.selectedLingkup.toUpperCase();
+                    }
+                    return item.jenis_pekerjaan && validJenisPekerjaan.has(item.jenis_pekerjaan.trim().toLowerCase());
+                });
+            } catch (err) {
+                console.warn("Gagal memvalidasi lingkup via RAB", err);
+            }
+
             if (AppState.user.role === 'kontraktor') {
                 const currentUsername = AppState.user.username;
                 const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
@@ -1923,6 +1938,24 @@ const Render = {
             const res = await fetch(url);
             const rawData = await res.json();
             let pendingItems = Array.isArray(rawData) ? rawData : [];
+
+            try {
+                // Tarik data RAB sesuai lingkup yang dipilih (SIPIL/ME)
+                const rabData = await fetchRabData(AppState.selectedStore.kode_toko, AppState.selectedUlok, AppState.selectedLingkup);
+                
+                // Buat daftar nama pekerjaan yang sah untuk lingkup ini
+                const validJenisPekerjaan = new Set(rabData.map(rab => (rab.jenis_pekerjaan || "").trim().toLowerCase()));
+
+                pendingItems = pendingItems.filter(item => {
+                    const itemLingkup = item.lingkup_pekerjaan || item.lingkup;
+                    if (itemLingkup) {
+                        return itemLingkup.toUpperCase() === AppState.selectedLingkup.toUpperCase();
+                    }
+                    return item.jenis_pekerjaan && validJenisPekerjaan.has(item.jenis_pekerjaan.trim().toLowerCase());
+                });
+            } catch (err) {
+                console.warn("Gagal memvalidasi lingkup via RAB", err);
+            }
 
             if (AppState.user.role === 'kontraktor') {
                 const currentUsername = AppState.user.username;
