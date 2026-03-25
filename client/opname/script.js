@@ -1710,12 +1710,12 @@ const Render = {
                 const currentUsername = AppState.user.username;
                 const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
 
-                submissions = submissions.filter(item => 
-                    item.kontraktor_username === currentUsername || 
-                    item.kontraktor_name === currentUsername ||
-                    item.kontraktor_email === currentEmail ||
-                    item.email === currentEmail
-                );
+                // submissions = submissions.filter(item => 
+                //     item.kontraktor_username === currentUsername || 
+                //     item.kontraktor_name === currentUsername ||
+                //     item.kontraktor_email === currentEmail ||
+                //     item.email === currentEmail
+                // );
             }
 
             if (submissions.length === 0) {
@@ -1961,12 +1961,12 @@ const Render = {
                 const currentUsername = AppState.user.username;
                 const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
 
-                pendingItems = pendingItems.filter(item => 
-                    item.kontraktor_username === currentUsername || 
-                    item.kontraktor_name === currentUsername ||
-                    item.kontraktor_email === currentEmail ||
-                    item.email === currentEmail
-                );
+                // pendingItems = pendingItems.filter(item => 
+                //     item.kontraktor_username === currentUsername || 
+                //     item.kontraktor_name === currentUsername ||
+                //     item.kontraktor_email === currentEmail ||
+                //     item.email === currentEmail
+                // );
             }
 
             const renderApprovalTable = () => {
