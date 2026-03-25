@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     const MENU_CATALOG = {
         'menu-rab': { href: '../../rab/', title: 'RAB Kontraktor', desc: 'Penawaran Final Kontraktor' },
-        'menu-materai': { href: '../../materai/', title: 'Dokumen Termaterai', desc: 'Dokumen Termaterai RAB' },
+        'menu-materai': { href: '../../materai/', title: 'Dokumen SPH', desc: 'Dokumen SPH RAB' },
         'menu-spk': { href: '../../spk/', title: 'SPK', desc: 'Surat Perintah Kerja' },
         'menu-pengawasan': { href: '../../inputpic/', title: 'PIC Pengawasan', desc: 'Input PIC Pekerjaan' },
         'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form Opname Pekerjaan' },

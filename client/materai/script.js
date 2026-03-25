@@ -165,7 +165,7 @@ function getHeaderHTML(user) {
     return `
     <header class="app-header">
         <img src="../../assets/Alfamart-Emblem.png" alt="Logo" class="header-logo">
-        <h1>Dokumen Termaterai</h1>
+        <h1>Dokumen SPH</h1>
         <div>
             <a href="../dashboard/index.html" class="btn-header-back">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -374,7 +374,7 @@ function renderViewResults(container) {
     container.innerHTML = `
     <div class="card">
         <div class="page-header">
-            <h2 class="page-title">Hasil Dokumen Termaterai</h2>
+            <h2 class="page-title">Hasil Dokumen SPH</h2>
             <button class="btn-secondary" onclick="navigate('/dashboard')">Kembali</button>
         </div>
         <div class="filters-grid">
