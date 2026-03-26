@@ -955,8 +955,11 @@ const Render = {
         }
 
         try {
+            console.log("=== DEBUG STORE SELECTION ===");
+            console.log("Fetching URL:", url);
             const res = await fetch(url);
             const stores = await res.json();
+            console.log("Raw Response stores:", stores);
 
             if (!Array.isArray(stores)) throw new Error("Gagal mengambil data toko.");
 
@@ -989,6 +992,7 @@ const Render = {
                 }
             });
             const uniqueStores = Array.from(storeMap.values());
+            console.log("Unique Stores after deduplication:", uniqueStores);
 
             const combinedList = [];
 
@@ -1095,13 +1099,16 @@ const Render = {
             renderList();
 
         } catch (e) {
-            console.error(e);
+            console.error("=== ERROR FETCH STORE ===", e);
+            console.error("Failed URL:", url);
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
-                    <div class="alert-error">
-                        <h3>Gagal Memuat Data</h3>
-                        <p>${e.message}</p>
-                        <button class="btn btn-back" onclick="AppState.activeView='dashboard'; Render.app()" style="margin-top:10px;">Dashboard</button>
+                    <div class="alert-error" style="background:#fee2e2; border-left:5px solid #ef4444; padding:20px; text-align:left;">
+                        <h3 style="color:#b91c1c; margin-top:0;">Gagal Memuat Data</h3>
+                        <p style="color:#7f1d1d; word-break: break-all;"><strong>Pesan Error:</strong> ${e.message}</p>
+                        <p style="color:#7f1d1d; word-break: break-all; font-size: 0.85rem; margin-top: 8px;"><strong>URL:</strong> ${url}</p>
+                        <p style="color:#7f1d1d; font-size: 0.85rem;">Silakan cek Console (F12) untuk detail lebih lanjut.</p>
+                        <button class="btn btn-back" onclick="AppState.activeView='dashboard'; Render.app()" style="margin-top:15px; border-color:#b91c1c; color:#b91c1c;">Kembali ke Dashboard</button>
                     </div>
                 </div>`;
         }
