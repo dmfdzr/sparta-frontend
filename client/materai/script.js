@@ -165,7 +165,7 @@ function getHeaderHTML(user) {
     return `
     <header class="app-header">
         <img src="../../assets/Alfamart-Emblem.png" alt="Logo" class="header-logo">
-        <h1>Dokumen Termaterai</h1>
+        <h1>Dokumen SPH</h1>
         <div>
             <a href="../dashboard/index.html" class="btn-header-back">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -207,7 +207,7 @@ function renderDashboard(container) {
         <div class="menu-card" onclick="navigate('/buat-dokumen')">
             <div class="menu-icon">📝</div>
             <div class="menu-title">Buat Dokumen</div>
-            <div class="menu-desc">Unggah RAB & SPH Termaterai</div>
+            <div class="menu-desc">Unggah RAB & Dokumen SPH</div>
         </div>
         <div class="menu-card" onclick="navigate('/hasil-dokumen')">
             <div class="menu-icon">📂</div>
@@ -255,7 +255,7 @@ function renderCreateDocument(container) {
             </div>
 
             <div style="margin-bottom: 20px;">
-                <label>Upload File Termaterai (PDF)</label>
+                <label>Upload File SPH (PDF)</label>
                 <input type="file" id="fileRab" accept=".pdf,application/pdf" required />
                 <small style="display: block; margin-top: 6px; color: #666;">Pastikan dokumen sudah digabung dan termeterai.</small>
             </div>
@@ -374,7 +374,7 @@ function renderViewResults(container) {
     container.innerHTML = `
     <div class="card">
         <div class="page-header">
-            <h2 class="page-title">Hasil Dokumen Termaterai</h2>
+            <h2 class="page-title">Hasil Dokumen SPH</h2>
             <button class="btn-secondary" onclick="navigate('/dashboard')">Kembali</button>
         </div>
         <div class="filters-grid">

@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     const MENU_CATALOG = {
         'menu-rab': { href: '../../rab/', title: 'RAB Kontraktor', desc: 'Penawaran Final Kontraktor' },
-        'menu-materai': { href: '../../materai/', title: 'Dokumen Termaterai', desc: 'Dokumen Termaterai RAB' },
+        'menu-materai': { href: '../../materai/', title: 'Dokumen SPH', desc: 'Dokumen SPH RAB' },
         'menu-spk': { href: '../../spk/', title: 'SPK', desc: 'Surat Perintah Kerja' },
         'menu-pengawasan': { href: '../../inputpic/', title: 'PIC Pengawasan', desc: 'Input PIC Pekerjaan' },
         'menu-opname': { href: '../../opname/', title: 'Opname', desc: 'Form Opname Pekerjaan' },
@@ -316,12 +316,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasOpnameFinal = item["tanggal_opname_final"] && String(item["tanggal_opname_final"]).trim() !== "";
 
             // Pengelompokan Status Corong Utama
-            if (hasOpnameFinal) { miniStats['Done']++; currentGroupedProjects['Done'].push(item); }
-            else if (hasSerahTerima && !hasOpnameFinal) { miniStats['Proses Kerja Tambah Kurang']++; currentGroupedProjects['Proses Kerja Tambah Kurang'].push(item); }
-            else if (hasSPK && !hasSerahTerima) { miniStats['Ongoing']++; currentGroupedProjects['Ongoing'].push(item); }
-            else if (hasStatus && !hasSPK) { miniStats['Approval SPK']++; currentGroupedProjects['Approval SPK'].push(item); }
-            else if (hasPenawaranFinal && !hasSPK) { miniStats['Proses PJU']++; currentGroupedProjects['Proses PJU'].push(item); }
-            else if (hasStatusRab && !hasPenawaranFinal) { miniStats['Approval RAB']++; currentGroupedProjects['Approval RAB'].push(item); }
+            if (hasOpnameFinal) {
+                miniStats['Done']++; currentGroupedProjects['Done'].push(item);
+            }
+            else if (hasSerahTerima && !hasOpnameFinal) {
+                miniStats['Proses Kerja Tambah Kurang']++; currentGroupedProjects['Proses Kerja Tambah Kurang'].push(item);
+            }
+            else if (hasSPK && !hasSerahTerima) {
+                miniStats['Ongoing']++; currentGroupedProjects['Ongoing'].push(item);
+            }
+            else if (hasStatus && !hasSPK) {
+                miniStats['Approval SPK']++; currentGroupedProjects['Approval SPK'].push(item);
+            }
+            else if (hasPenawaranFinal && !hasSPK) {
+                miniStats['Proses PJU']++; currentGroupedProjects['Proses PJU'].push(item);
+            }
+            else if (hasStatusRab && !hasPenawaranFinal) {
+                miniStats['Approval RAB']++; currentGroupedProjects['Approval RAB'].push(item);
+            }
 
             let isPerhatian = false;
             let alasanSLA = "";
@@ -333,8 +345,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hasOpnameFinal) {
             } else if (hasSerahTerima && !hasOpnameFinal) {
                 const tglSerahTerima = new Date(item["tanggal_serah_terima"] || item["Tgl Serah Terima"]);
-                if (!isNaN(tglSerahTerima) && getDiffDays(todayDate, tglSerahTerima) > 14) {
-                    isPerhatian = true; alasanSLA = `Kerja Tambah Kurang melebihi 14 hari (${getDiffDays(todayDate, tglSerahTerima)} hari)`; kategoriSLA = 'Proses Kerja Tambah Kurang';
+                const selisihHari = getDiffDays(todayDate, tglSerahTerima);
+                if (!isNaN(tglSerahTerima) && selisihHari > 14) {
+                    isPerhatian = true; 
+                    alasanSLA = `Melebihi batas 14 hari setelah Serah Terima (Berjalan ${selisihHari} hari)`; 
+                    kategoriSLA = 'Proses Kerja Tambah Kurang';
                 }
             } else if (hasSPK && !hasSerahTerima) {
                 const akhirSpk = new Date(item["Akhir_SPK_Setelah"] || item["Akhir_SPK"]);
@@ -1009,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'Proses PJU': 'Maksimal 7 Hari',
             'Approval SPK': 'Maksimal 2 Hari',
             'Ongoing': 'Sebelum Tanggal Akhir SPK',
-            'Proses Kerja Tambah Kurang': 'Maksimal 14 Hari'
+            'Proses Kerja Tambah Kurang': 'Maksimal 14 Hari Setelah Serah Terima'
         };
 
         if(grid) {
