@@ -948,9 +948,10 @@ const Render = {
         const u = AppState.user;
 
         if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
-            url = `${API_BASE_URL}/api/toko?username=${u.username}`;
+            url = `${API_BASE_URL}/api/toko?username=${encodeURIComponent(u.username || "")}`;
         } else if (u.role === 'kontraktor') {
-            url = `${API_BASE_URL}/api/toko_kontraktor?username=${u.username}`;
+            const uname = u.kontraktor_username || u.username || "";
+            url = `${API_BASE_URL}/api/toko_kontraktor?username=${encodeURIComponent(uname)}`;
         }
 
         try {
