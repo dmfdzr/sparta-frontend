@@ -963,20 +963,27 @@ const Render = {
             const storeMap = new Map();
             stores.forEach(store => {
                 const key = `${(store.kode_toko || "").toUpperCase()}||${(store.nama_toko || "").toUpperCase()}`;
+                
+                // Ekstrak ulok baik dari no_uloks (array) maupun no_ulok (array/string)
+                let ulokList = [];
+                if (store.no_uloks && Array.isArray(store.no_uloks)) ulokList.push(...store.no_uloks);
+                if (store.no_ulok) {
+                    if (Array.isArray(store.no_ulok)) ulokList.push(...store.no_ulok);
+                    else ulokList.push(store.no_ulok);
+                }
+                
                 if (storeMap.has(key)) {
                     const existing = storeMap.get(key);
-                    // Gabungkan no_uloks tanpa duplikat
-                    if (store.no_uloks && Array.isArray(store.no_uloks)) {
-                        store.no_uloks.forEach(ulok => {
-                            if (!existing.no_uloks.includes(ulok)) {
-                                existing.no_uloks.push(ulok);
-                            }
-                        });
-                    }
+                    // Gabungkan ulok tanpa duplikat
+                    ulokList.forEach(ulok => {
+                        if (!existing.no_uloks.includes(ulok)) {
+                            existing.no_uloks.push(ulok);
+                        }
+                    });
                 } else {
                     storeMap.set(key, {
                         ...store,
-                        no_uloks: Array.isArray(store.no_uloks) ? [...store.no_uloks] : []
+                        no_uloks: [...ulokList]
                     });
                 }
             });
@@ -996,17 +1003,22 @@ const Render = {
             });
 
             combinedList.sort((a, b) => {
-                const nameCompare = a.store.nama_toko.localeCompare(b.store.nama_toko);
+                const nameA = a.store.nama_toko || "";
+                const nameB = b.store.nama_toko || "";
+                const nameCompare = nameA.localeCompare(nameB);
                 if (nameCompare !== 0) return nameCompare;
-                return a.ulok.localeCompare(b.ulok);
+                
+                const ulokA = a.ulok || "";
+                const ulokB = b.ulok || "";
+                return ulokA.localeCompare(ulokB);
             });
 
             const renderList = (filter = "") => {
                 const f = filter.toLowerCase();
                 const filtered = combinedList.filter(item =>
-                    item.store.nama_toko.toLowerCase().includes(f) ||
-                    item.store.kode_toko.toLowerCase().includes(f) ||
-                    item.ulok.toLowerCase().includes(f)
+                    (item.store.nama_toko || "").toLowerCase().includes(f) ||
+                    (item.store.kode_toko || "").toLowerCase().includes(f) ||
+                    (item.ulok || "").toLowerCase().includes(f)
                 );
 
                 let html = `
