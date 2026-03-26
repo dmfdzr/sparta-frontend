@@ -1710,12 +1710,11 @@ const Render = {
                 const currentUsername = AppState.user.username;
                 const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
 
-                // submissions = submissions.filter(item => 
-                //     item.kontraktor_username === currentUsername || 
-                //     item.kontraktor_name === currentUsername ||
-                //     item.kontraktor_email === currentEmail ||
-                //     item.email === currentEmail
-                // );
+                submissions = submissions.filter(item => {
+                    const matchUser = currentUsername && (item.kontraktor_username === currentUsername || item.kontraktor_name === currentUsername);
+                    const matchEmail = currentEmail && (item.kontraktor_email === currentEmail || item.email === currentEmail);
+                    return matchUser || matchEmail;
+                });
             }
 
             if (submissions.length === 0) {
@@ -1961,12 +1960,11 @@ const Render = {
                 const currentUsername = AppState.user.username;
                 const currentEmail = AppState.user.email || sessionStorage.getItem("loggedInUserEmail");
 
-                // pendingItems = pendingItems.filter(item => 
-                //     item.kontraktor_username === currentUsername || 
-                //     item.kontraktor_name === currentUsername ||
-                //     item.kontraktor_email === currentEmail ||
-                //     item.email === currentEmail
-                // );
+                pendingItems = pendingItems.filter(item => {
+                    const matchUser = currentUsername && (item.kontraktor_username === currentUsername || item.kontraktor_name === currentUsername);
+                    const matchEmail = currentEmail && (item.kontraktor_email === currentEmail || item.email === currentEmail);
+                    return matchUser || matchEmail;
+                });
             }
 
             const renderApprovalTable = () => {
