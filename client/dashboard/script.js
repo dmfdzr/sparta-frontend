@@ -1052,9 +1052,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada toko yang melebihi SLA di tahap ini.</div>';
             } else {
                 storeListContainer.innerHTML = items.map(item => `
-                    <div class="store-item" style="cursor: default; border-color: #fca5a5;">
+                    <div class="store-item" data-index="${filteredData.indexOf(item)}" style="border-color: #fca5a5;">
                         <div class="store-info">
-                            <strong>${item.Nama_Toko || 'Tanpa Nama'}</strong>
+                            <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${item.Lingkup_Pekerjaan || '-'})</span></strong>
                             <span>Ulok: ${item["Nomor Ulok"] || '-'} | Cabang: ${item.Cabang || '-'}</span>
                             <span style="display: block; margin-top: 4px; color: #ef4444; font-weight: 600; font-size: 11px;">
                                 ⚠️ ${item.alasanSLA}
