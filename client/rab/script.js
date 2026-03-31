@@ -838,6 +838,21 @@ async function init() {
     const locSelect = document.getElementById('lokasi_cabang');
     const cabSelect = document.getElementById("cabang");
 
+    // Logic for User Cabang Role
+    if (userCabang === 'CIKOKOL' || userCabang === 'BINTAN') {
+        const displayText = userCabang === 'CIKOKOL' ? "KZ01" : "KZ01";
+        const opt = document.createElement('option'); opt.value = "KZ01"; opt.textContent = displayText; locSelect.appendChild(opt);
+        locSelect.value = "KZ01";
+        locSelect.disabled = true;
+    } else {
+        const ulokCode = CONFIG.BRANCH_TO_ULOK[userCabang];
+        if (ulokCode) {
+            const opt = document.createElement('option'); opt.value = ulokCode; opt.textContent = ulokCode; locSelect.appendChild(opt);
+            locSelect.value = ulokCode;
+            locSelect.disabled = true;
+        }
+    }
+
     cabSelect.innerHTML = '';
     const group = CONFIG.BRANCH_GROUPS[userCabang];
     if (group) {
