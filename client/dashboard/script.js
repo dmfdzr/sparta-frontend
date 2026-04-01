@@ -214,9 +214,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const proyekSelect = document.getElementById('filterProyek');
         if (proyekSelect) {
-            const uniqueProyek = [...new Set(data.map(item => item.Proyek))].filter(p => p && p.trim() !== "").sort();
+            const uniqueProyek = [...new Set(data.map(item => {
+                let p = item["Proyek"] || item["Proyek "] || item["proyek"];
+                return p !== undefined && p !== null ? String(p).trim() : "";
+            }))].filter(p => p !== "").sort();
+
             proyekSelect.innerHTML = '<option value="ALL">Semua Proyek</option>';
-            uniqueProyek.forEach(p => { proyekSelect.innerHTML += `<option value="${p}">${p}</option>`; });
+            uniqueProyek.forEach(p => { 
+                proyekSelect.innerHTML += `<option value="${p}">${p}</option>`; 
+            });
             proyekSelect.value = 'ALL';
         }
     }
@@ -266,8 +272,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 4. Logika Filtering Proyek
             const selectedProyek = document.getElementById('filterProyek') ? document.getElementById('filterProyek').value : 'ALL';
-            const matchProyek = (selectedProyek === 'ALL') || (item.Proyek && item.Proyek.trim() === selectedProyek.trim());
-
+            let rawProyek = item["Proyek"] || item["Proyek "] || item["proyek"];
+            const matchProyek = (selectedProyek === 'ALL') || (rawProyek && String(rawProyek).trim() === selectedProyek.trim());
             return matchCabang && matchTahun && matchKontraktor && matchProyek;
         });
         
