@@ -211,6 +211,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tahunSelect.innerHTML = '<option value="ALL">Semua Tahun</option>';
         uniqueTahun.forEach(thn => { tahunSelect.innerHTML += `<option value="${thn}">${thn}</option>`; });
         tahunSelect.value = 'ALL';
+
+        const proyekSelect = document.getElementById('filterProyek');
+        if (proyekSelect) {
+            const uniqueProyek = [...new Set(data.map(item => item.Proyek))].filter(p => p && p.trim() !== "").sort();
+            proyekSelect.innerHTML = '<option value="ALL">Semua Proyek</option>';
+            uniqueProyek.forEach(p => { proyekSelect.innerHTML += `<option value="${p}">${p}</option>`; });
+            proyekSelect.value = 'ALL';
+        }
     }
 
     function applyFilters() {
@@ -256,7 +264,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            return matchCabang && matchTahun && matchKontraktor;
+            // 4. Logika Filtering Proyek
+            const selectedProyek = document.getElementById('filterProyek') ? document.getElementById('filterProyek').value : 'ALL';
+            const matchProyek = (selectedProyek === 'ALL') || (item.Proyek && item.Proyek.trim() === selectedProyek.trim());
+
+            return matchCabang && matchTahun && matchKontraktor && matchProyek;
         });
         
         renderKPI(filteredData);
