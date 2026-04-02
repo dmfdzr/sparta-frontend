@@ -2,6 +2,15 @@ const API_PROXY_URL = "https://pengawasan-tambahspk.onrender.com/api/form";
 // Arahkan ke halaman login baru di folder auth
 const LOGIN_PAGE_URL = "../auth/index.html"; 
 
+const branchGroups = {
+    "CIKOKOL": ["CIKOKOL", "BINTAN"],
+    "LOMBOK": ["LOMBOK", "SUMBAWA"],
+    "MEDAN": ["MEDAN", "ACEH"],
+    "LAMPUNG": ["LAMPUNG", "KOTABUMI"],
+    "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
+    "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
+};
+
 let currentUser = null;
 let ulokData = [];
 let originalEndDateISO = '';
@@ -108,6 +117,34 @@ async function populateUlokDropdown(cabang) {
     }
 }
 
+function setupBranchGroup(userCabang) {
+    const branchContainer = document.getElementById('branch-group-container');
+    const branchSelect = document.getElementById('branch_select');
+    
+    if (branchGroups[userCabang]) {
+        branchContainer.style.display = 'block';
+        branchSelect.innerHTML = '';
+        branchGroups[userCabang].forEach(cabang => {
+            const option = document.createElement('option');
+            option.value = cabang;
+            option.textContent = cabang;
+            if (cabang === userCabang) option.selected = true;
+            branchSelect.appendChild(option);
+        });
+        
+        branchSelect.addEventListener('change', (e) => {
+            populateUlokDropdown(e.target.value);
+            // Reset tanggal
+            updateDates(); 
+        });
+        
+        populateUlokDropdown(branchSelect.value);
+    } else {
+        if(branchContainer) branchContainer.style.display = 'none';
+        populateUlokDropdown(userCabang);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     (function checkAuth() {
         const isAuthenticated = sessionStorage.getItem("authenticated");
@@ -125,7 +162,7 @@ document.addEventListener("DOMContentLoaded", function() {
             nama: userEmail ? userEmail.split('@')[0] : "User"
         };
         
-        populateUlokDropdown(currentUser.cabang);
+        setupBranchGroup(currentUser.cabang);
     })();
 
     const alasanContainer = document.getElementById("alasan-container");
