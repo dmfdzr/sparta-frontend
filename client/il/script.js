@@ -894,7 +894,8 @@ async function initializePage() {
                 $(DOM.lokasiCabang).val(kodeCabang).trigger('change'); // Penting untuk Select2
             } else {
                 const newOption = new Option(kodeCabang, kodeCabang, true, true);
-                DOM.lokasiCabang.add(newOption).trigger('change');
+                DOM.lokasiCabang.add(newOption);
+                $(DOM.lokasiCabang).trigger('change');
             }
             DOM.lokasiCabang.disabled = true; // Kunci input
 
