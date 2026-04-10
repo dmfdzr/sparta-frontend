@@ -863,27 +863,27 @@ async function initializePage() {
                 // Ambil Tengah: 2512 (Hapus non-angka)
                 tanggal = parts[1].replace(/[^0-9]/g, ''); 
                 
-                // Ambil Belakang: 4444 (Cek Renovasi & Hapus non-angka)
+                // Ambil Belakang: 4444 (Cek Renovasi)
                 let rawManual = parts[2].trim(); 
                 if (rawManual.toUpperCase().endsWith("R")) {
                     isRenov = true;
-                    // Hapus huruf R, lalu bersihkan selain angka
-                    manual = rawManual.slice(0, -1).replace(/[^0-9]/g, ''); 
+                    // Hapus huruf R, biarkan alphanumeric untuk format renovasi (misal C0B4)
+                    manual = rawManual.slice(0, -1).replace(/[^a-zA-Z0-9]/g, '').toUpperCase(); 
                 } else {
                     manual = rawManual.replace(/[^0-9]/g, '');
                 }
             }
         } 
-        // Fallback: Jika format lama tanpa strip (Z00125124444)
+        // Fallback: Jika format lama tanpa strip (Z00125124444 atau Z0012512C0B4R)
         else if (paramUlok.length >= 12) {
             kodeCabang = paramUlok.substring(0, 4);
             tanggal = paramUlok.substring(4, 8);
             
             if (paramUlok.toUpperCase().endsWith("R")) {
                 isRenov = true;
-                manual = paramUlok.substring(8, 12); 
+                manual = paramUlok.substring(8, paramUlok.length - 1).replace(/[^a-zA-Z0-9]/g, '').toUpperCase(); 
             } else {
-                manual = paramUlok.substring(8, 12);
+                manual = paramUlok.substring(8, 12).replace(/[^0-9]/g, '');
             }
         }
 
