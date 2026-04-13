@@ -6,6 +6,7 @@ const LOCAL_KEY_DOCS = "materai_docs";
 
 // Konfigurasi Branch Group
 const BRANCH_GROUPS = {
+    "CIKOKOL": ["CIKOKOL", "BINTAN"],
     "LOMBOK": ["LOMBOK", "SUMBAWA"],
     "MEDAN": ["MEDAN", "ACEH"],
     "LAMPUNG": ["LAMPUNG", "KOTABUMI"],
