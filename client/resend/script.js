@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resendForm = document.getElementById('resendForm');
 
     // Gunakan Base URL dari server Render Anda
-    const BASE_URL = 'https://send-email-app.onrender.com';
+    const BASE_URL = 'https://send-email-app-jl8p.onrender.com';
 
     /**
      * Utility Fetch Data dengan Error Handling
