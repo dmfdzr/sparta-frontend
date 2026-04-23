@@ -464,14 +464,17 @@ const UI = {
     },
 
     checkRejectedData: () => {
-        const fullUlok = document.getElementById('lokasi').value.replace(/-/g, '');
-        const scope = document.getElementById('lingkup_pekerjaan').value;
+        const normalizeUlok = (value) => String(value || '').replace(/-/g, '').trim().toUpperCase();
+        const normalizeScope = (value) => String(value || '').trim().toUpperCase();
+
+        const fullUlok = normalizeUlok(document.getElementById('lokasi').value);
+        const scope = normalizeScope(document.getElementById('lingkup_pekerjaan').value);
 
         if ((fullUlok.length !== 12 && fullUlok.length !== 13) || !scope) return;
 
         const rejected = State.rejectedSubmissionsList.find(item => {
-            const itemUlok = item['Nomor Ulok'].replace(/-/g, '');
-            const itemScope = item['Lingkup_Pekerjaan'] || item['Lingkup Pekerjaan'];
+            const itemUlok = normalizeUlok(item?.['Nomor Ulok']);
+            const itemScope = normalizeScope(item?.['Lingkup_Pekerjaan'] || item?.['Lingkup Pekerjaan']);
             return itemUlok === fullUlok && itemScope === scope;
         });
 
