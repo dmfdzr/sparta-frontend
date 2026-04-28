@@ -111,11 +111,16 @@ body {
     padding: 1rem 0;
 }
 
-/* Tampilan Tablet & Desktop: Paksa jadi 3 Kolom */
+/* Tampilan Tablet & Desktop: Paksa jadi 2 Kolom di Tablet, 4 di Desktop */
 @media (min-width: 768px) {
     .menu-container {
-        /* Ini membuat layout strictly 3 kolom */
-        grid-template-columns: repeat(3, 1fr); 
+        grid-template-columns: repeat(2, 1fr); 
+    }
+}
+
+@media (min-width: 1024px) {
+    .menu-container {
+        grid-template-columns: repeat(4, 1fr); 
     }
 }
 
