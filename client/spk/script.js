@@ -617,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Cabang user untuk validasi tanggal:', cabangUpper);
             
             // boleh backdate (pilih tanggal sebelum hari ini)
-            if (['LOMBOK', 'SUMBAWA', 'LUWU', 'BANJARMASIN', 'REMBANG'].includes(cabangUpper)) {
+            if (['LOMBOK', 'SUMBAWA', 'LUWU', 'BANJARMASIN', 'REMBANG', 'CIKOKOL'].includes(cabangUpper)) {
                 waktuMulaiInput.removeAttribute('min');
             } else {
                 const today = new Date();
