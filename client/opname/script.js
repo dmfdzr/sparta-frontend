@@ -1210,7 +1210,12 @@ const Render = {
                 const selisihNum = volAkhirNum - volRab;
                 const total_harga = selisihNum * (hargaMaterial + hargaUpah);
 
-                const alreadySubmitted = task.isSubmitted === true || !!task.item_id || ["PENDING", "APPROVED", "REJECTED"].includes(String(task.approval_status || "").toUpperCase());
+                const statusStr = String(task.approval_status || task.status || "").trim().toUpperCase();
+                const alreadySubmitted = task.isSubmitted === true || 
+                                         String(task.isSubmitted) === "true" ||
+                                         !!task.item_id || 
+                                         !!task.id_item ||
+                                         ["PENDING", "APPROVED", "REJECTED", "WAITING"].includes(statusStr);
 
                 // --- LOGIKA PEMBERSIH CATATAN ---
                 let rawCatatan = task.catatan || "";
@@ -1228,7 +1233,7 @@ const Render = {
                     total_harga,
                     // Gunakan catatan yang sudah dibersihkan
                     catatan: cleanCatatan,
-                    approval_status: task.approval_status || (alreadySubmitted ? "Pending" : ""),
+                    approval_status: task.approval_status || task.status || (alreadySubmitted ? "Pending" : ""),
                     desain: task.desain || "-",
                     kualitas: task.kualitas || "-",
                     spesifikasi: task.spesifikasi || "-"
@@ -1428,7 +1433,7 @@ const Render = {
 
                                             <td class="text-center">
                                                 <span class="badge ${item.approval_status === 'Approved' ? 'badge-success' : (item.approval_status === 'Rejected' ? 'badge-danger' : 'badge-neutral')}">
-                                                    ${item.approval_status || 'Pending'}
+                                                    ${item.approval_status || 'Belum Submit'}
                                                 </span>
                                             </td>
 
