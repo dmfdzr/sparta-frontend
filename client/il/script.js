@@ -42,7 +42,8 @@ const CONFIG = {
         "SIDOARJO BPN_SMD": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
         "MANOKWARI": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
         "NTT": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        "SORONG": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
+        "SORONG": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
+        "CIKOKOL": ["CIKOKOL", "BINTAN"]
     },
     BRANCH_ULOK_MAP: {
         "LUWU": "2VZ1", "KARAWANG": "1JZ1", "REMBANG": "2AZ1",
@@ -54,7 +55,7 @@ const CONFIG = {
         "JAMBI": "1DZ1", "HEAD OFFICE": "Z001", "BANDUNG 1": "BZ01", "BANDUNG 2": "NZ01",
         "BEKASI": "CZ01", "CILACAP": "IZ01", "CILEUNGSI2": "JZ01", "SEMARANG": "HZ01",
         "CIKOKOL": "KZ01", "LAMPUNG": "LZ01", "MALANG": "MZ01", "MANADO": "1YZ1",
-        "BATAM": "2DZ1", "MADIUN": "2MZ1"
+        "BATAM": "2DZ1", "MADIUN": "2MZ1", "BINTAN": "KZ01"
     }
 };
 
@@ -552,12 +553,25 @@ const calculateGrandTotal = () => {
 
     if (DOM.grandTotalAmount) DOM.grandTotalAmount.textContent = Utils.formatRupiah(total);
     
+    // --- CEK CABANG UNTUK PPN ---
+    const cabangName = DOM.cabangSelect ? DOM.cabangSelect.value.toUpperCase() : "";
+    const isNoPPN = ["BATAM", "BINTAN"].includes(cabangName);
+    const ppnRate = isNoPPN ? 0 : 0.11;
+    
     const pembulatan = Math.floor(total / 10000) * 10000;
-    const ppn = pembulatan * 0.11;
+    const ppn = pembulatan * ppnRate;
     const finalTotal = pembulatan + ppn;
 
     if (DOM.pembulatanAmount) DOM.pembulatanAmount.textContent = Utils.formatRupiah(pembulatan);
-    if (DOM.ppnAmount) DOM.ppnAmount.textContent = Utils.formatRupiah(ppn);
+    
+    if (DOM.ppnAmount) {
+        DOM.ppnAmount.textContent = Utils.formatRupiah(ppn);
+        const ppnLabel = DOM.ppnAmount.previousElementSibling;
+        if (ppnLabel) {
+            ppnLabel.textContent = isNoPPN ? "PPN (0%):" : "PPN (11%):";
+        }
+    }
+    
     if (DOM.finalTotalAmount) DOM.finalTotalAmount.textContent = Utils.formatRupiah(finalTotal);
 };
 
@@ -638,6 +652,7 @@ async function handleFormSubmit() {
     data["Cabang"] = DOM.cabangSelect.value;
     data["Email_Pembuat"] = sessionStorage.getItem("loggedInUserEmail");
     data["Grand Total"] = Utils.parseRupiah(DOM.grandTotalAmount.textContent);
+    data["Grand Total Final"] = Utils.parseRupiah(DOM.finalTotalAmount.textContent);
 
     let itemIndex = 1;
     document.querySelectorAll(".boq-table-body:not(.hidden) .boq-item-row").forEach((row) => {
