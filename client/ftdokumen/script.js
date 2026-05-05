@@ -141,6 +141,29 @@ async function urlToBase64(url) {
     }
 }
 
+// Helper untuk Kompresi Gambar agar file tidak terlalu besar
+function resizeImage(dataUrl, maxWidth = 1024, quality = 0.6) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+            if (w > maxWidth) {
+                h = Math.round(h * (maxWidth / w));
+                w = maxWidth;
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = () => resolve(dataUrl); // Fallback ke asli jika gagal
+        img.src = dataUrl;
+    });
+}
+
 function preloadImage(url) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -437,13 +460,17 @@ function initEventListeners() {
 
     const inpFile = getEl("inp-file-upload");
     if (inpFile) {
-        inpFile.addEventListener("change", (e) => {
+        inpFile.addEventListener("change", async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
+            showLoading("Memproses & Kompresi Foto...");
             const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result;
+            reader.onloadend = async () => {
+                const rawBase64 = reader.result;
+                // [OPTIMASI] Kompresi file dari galeri agar tidak terlalu besar
+                const base64 = await resizeImage(rawBase64, 1024, 0.6);
+                
                 const pointId = STATE.currentPoint.id;
 
                 STATE.photos[pointId] = {
@@ -459,9 +486,10 @@ function initEventListeners() {
                     STATE.currentPhotoNumber = next;
                 }
 
+                hideLoading();
                 closeCamera();
                 renderFloorPlan();
-                showToast(`Foto #${pointId} berhasil diunggah (menyimpan...)`, "success");
+                showToast(`Foto #${pointId} berhasil diunggah (terkompresi)`, "success");
                 savePhotoToBackend(base64, null, pointId);
             };
             reader.readAsDataURL(file);
@@ -906,8 +934,8 @@ function capturePhoto() {
     let w = video.videoWidth;
     let h = video.videoHeight;
     
-    // [OPTIMASI] Turunkan Max Width dari 1000 ke 800 agar file lebih kecil
-    const MAX_WIDTH = 800; 
+    // [OPTIMASI] Gunakan standar 1024px dengan kualitas 0.6 agar tetap tajam namun ringan
+    const MAX_WIDTH = 1024; 
     if (w > MAX_WIDTH) {
         h = Math.round(h * (MAX_WIDTH / w));
         w = MAX_WIDTH;
@@ -919,8 +947,8 @@ function capturePhoto() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
 
-    // [OPTIMASI] Turunkan kualitas JPEG dari 0.65 ke 0.5 (Masih cukup jelas untuk laporan)
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.5); 
+    // [OPTIMASI] Kualitas 0.6 sudah sangat cukup untuk dokumen lapangan
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.6); 
     
     STATE.capturedBlob = dataUrl;
     imgResult.src = dataUrl;
@@ -1088,23 +1116,22 @@ async function generateAndSendPDF() {
         };
 
         try {
-            showLoading("Mengupload ke Server...");
-
-            const payload = {
-                ...STATE.formData,
-                pdfBase64, //
-                emailPengirim: user.email || ""
-            };
+            // Log ukuran payload untuk debugging
+            const payloadString = JSON.stringify(payload);
+            const payloadSizeMB = (payloadString.length / (1024 * 1024)).toFixed(2);
+            console.log(`Mengirim payload ke server: ${payloadSizeMB} MB`);
+            
+            showLoading(`Mengupload ke Server (${payloadSizeMB} MB)...`);
 
             const resSave = await fetch(`${API_BASE_URL}/doc/save-toko`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: payloadString
             });
             
             if (!resSave.ok) {
                 const errText = await resSave.text();
-                throw new Error(`Server Error (${resSave.status}). Kemungkinan ukuran file terlalu besar.`);
+                throw new Error(`Server Error (${resSave.status}). Ukuran file: ${payloadSizeMB} MB. Kemungkinan batas server terlampaui.`);
             }
             
             const jsonSave = await resSave.json();
