@@ -1,98 +1,94 @@
-# SPARTA Frontend 
+# <img src="client/assets/Alfamart-Emblem.png" height="40"> SPARTA Building v1
 
 **System for Property Administration, Reporting, Tracking & Approval - Building & Maintenance**
 
-Merupakan program untuk mendigitalisasi proses bisnis yang ada pada Building & Maintenance (khususnya Building).
+SPARTA (System for Property Administration, Reporting, Tracking & Approval) adalah platform digitalisasi proses bisnis untuk departemen **Building & Maintenance**. Versi ini fokus pada manajemen dokumen teknis, pengawasan proyek, dan integrasi workflow dari RAB hingga Serah Terima.
 
 ---
 
-## Techstack
+## 🚀 Tech Stack
 
-* **Frontend :** Vanilla JavaScript (ES6+), HTML5, CSS3
-* **Backend Integration :** Python API & Google Apps Script
-* **Platform :** Web Browser
-* **Deployment :** Vercel
+Aplikasi ini dibangun menggunakan pendekatan **Modular Vanilla JavaScript** untuk performa maksimal dan kemudahan integrasi tanpa overhead framework yang berat.
 
----
-
-## Sistem & Fitur
-
-Setiap fitur dalam SPARTA dibangun secara terisolasi di dalam direktori `client/` untuk menjaga kode tetap modular dan mudah di- *maintenance*.
-
-### 1. Dashboard & Monitoring
-* Paparan menu dinamik bergantung kepada peranan pengguna: *Manager, Coordinator, Support, dan Kontraktor*.
-
-### 2. RAB & Dokumen Termaterai
-* **RAB (Rencana Anggaran Biaya) :** Kalkulator otomatis untuk volume dan harga item pekerjaan untuk sipil maupun mekanikal/elektrikal.
-* **Dokumen Termaterai :** Dokumen dari kontraktor yang sudah termaterai lalu diserahkan ke Manager.
-
-### 3. SPK, Tambah SPK, Input PIC Pengawasan, & User Log
-* **SPK (Surat Perintah Kerja) & Tambah SPK :** Surat perintah kerja untuk kontraktor dengan ditentukannya tanggal awal dan akhir.
-* **Tambah SPK (Surat Perintah Kerja) :** Tambahn hari pekerjaan jika diperlukan dalam suatu pekerjaan.
-* **Input PIC Pengawasan :** Manager memilih salah satu Support untuk mengawasi pekerjaan toko yang akan berjalan sesuai dengan hari yang ditentukan.
-* **User Log (`userlog`):** Daftar akun/email yang akses aplikasi di hari itu.
-  
-### 4. Gantt Chart, Opname, & Instruksi Lapangan
-* **Gantt Chart :** Visualisasi progress pekerjaan toko dan pemberitahuan kepada kontraktor jika ada kemungkinan keterlambatan pekerjaan.
-* **Opname :** Laporan progress pekerjaan apakah sesuai dengan yang di lapangan dengan dokumentasi.
-* **Instruksi Lapangan :** Form tambahan pekerjaan jika ada kekurangan pekerjaan di luar RAB yang sudah dibuat.
-
-### 5. Penyimpanan & Dokumentasi Bangunan Toko
-* **Penyimpanan Dokumen Toko :** Upload dokumen pembangunan toko di setiap cabang.
-* **Dokumentasi Bangunan Toko Baru :** Dokumentasi untuk setiap bangunan toko baru.
+- **Frontend:** HTML5, CSS3 (Modern Flexbox/Grid), Vanilla JavaScript (ES6+)
+- **Icons:** [Lucide Icons](https://lucide.dev/)
+- **Backend Integration:** 
+  - **Python API:** Autentikasi dan Manajemen Data Utama
+  - **Google Apps Script:** Logging, Audit Trail, dan Spreadsheet Integration
+- **Deployment:** Vercel / Static Hosting
 
 ---
 
-## Keamanan & Pembatasan Akses
+## ✨ Fitur Utama
 
-Sistem SPARTA dilengkapi dengan keamanan dan pembatasan operasional:
+### 📊 1. Dashboard & Monitoring Cerdas
+- **Project Funneling:** Visualisasi tahap proyek dari Approval RAB hingga Terbit SPK.
+- **SLA Monitoring:** Pemantauan otomatis masa pengerjaan (contoh: 10 hari SLA untuk proses PJU).
+- **Role-Based UI:** Tampilan menu dinamis sesuai peran (Manager, Coordinator, Support, Kontraktor).
 
-* **Sistem Sesi (*Session Management*):** Menggunakan `sessionStorage` untuk menyimpan data peran (`userRole`) dan cabang pengguna. Sesi akan otomatis terhapus ketika browser ditutup.
-* **Audit Logging:** Seluruh aktivitas login (sukses maupun gagal) akan dicatat dan dikirim ke Google Apps Script.
-* **Pembatasan Akses Berbasis Waktu (*Gatekeeper*):** Sistem **hanya** dapat diakses pada jam operasional kerja:
-    * **Hari:** Senin - Jumat
-    * **Pukul:** 06:00 - 18:00 WIB
-    * Akses di luar jadwal tersebut akan otomatis ditolak oleh sistem.
+### 📝 2. Manajemen Dokumen (RAB & SPK)
+- **RAB Digital:** Kalkulator volume dan harga otomatis untuk pekerjaan Sipil, Mekanikal, dan Elektrikal.
+- **Workflow SPK:** Penerbitan Surat Perintah Kerja dengan penentuan timeline otomatis.
+- **Tambah SPK:** Penanganan adendum atau penambahan hari kerja secara sistematis.
+
+### 👷 3. Pengawasan & Opname Lapangan
+- **Input PIC Pengawasan:** Penugasan tim Support untuk pengawasan toko secara spesifik.
+- **Opname Progress:** Pelaporan kemajuan pekerjaan langsung dari lapangan.
+- **Smart Validation:** Pembatasan edit pada item yang berstatus *Pending/Approved*.
+- **Image Optimization:** Kompresi otomatis foto dokumentasi sebelum upload untuk efisiensi bandwidth.
+
+### 🛠️ 4. Instruksi Lapangan (IL) & Serah Terima
+- **Instruksi Lapangan:** Form penanganan pekerjaan tambahan di luar RAB awal dengan alur approval terintegrasi.
+- **Penyimpanan Dokumen:** Dokumentasi digital untuk bangunan toko baru dan arsip per cabang.
+
+### 🔒 5. Keamanan & Pembatasan Operasional
+- **Gatekeeper System:** Pembatasan akses hanya pada jam operasional kerja (Senin - Jumat, 06:00 - 18:00 WIB).
+- **Session Management:** Pengamanan sesi pengguna menggunakan `sessionStorage`.
+- **Branch Group Logic:** Filtering data otomatis berdasarkan grup cabang pengguna.
 
 ---
 
-## Struktur Direktori Repositori
+## 📁 Struktur Proyek
+
+Sistem dibangun secara modular di dalam direktori `client/`:
 
 ```text
 sparta-frontend/
 ├── client/
-│   ├── assets/        
-│   ├── auth/           
-│   ├── dashboard/      
-│   ├── ftdokumen/      
-│   ├── gantt/          
-│   ├── il/             
-│   ├── inputpic/       
-│   ├── manual/         
-│   ├── materai/        
-│   ├── monitoring/     
-│   ├── opname/         
-│   ├── rab/            
-│   ├── resend/         
-│   ├── spk/            
-│   ├── svdokumen/      
-│   ├── tambahspk/      
-│   ├── userlog/        
-│   ├── index.html      
-│   ├── script.js       
-│   └── style.css       
+│   ├── auth/           # Sistem Login & Sesi
+│   ├── dashboard/      # Ringkasan Statistik & SLA
+│   ├── rab/            # Modul Pembuatan RAB
+│   ├── spk/            # Manajemen & List SPK
+│   ├── opname/         # Pelaporan Progress Lapangan
+│   ├── il/             # Instruksi Lapangan (Pekerjaan Tambah)
+│   ├── monitoring/     # Dashboard Pemantauan Proyek
+│   ├── ftdokumen/      # Dokumentasi Foto & Kompresi
+│   ├── svdokumen/      # Penyimpanan Dokumen Toko
+│   ├── userlog/        # Audit Trail & Aktivitas User
+│   ├── assets/         # Gambar, Logo, & Static Files
+│   ├── index.html      # Landing Page Utama
+│   └── script.js       # Routing & Global Logic
 └── README.md
 ```
 
 ---
 
-## Konfigurasi API
+## 🛠️ Konfigurasi & Pengembangan
 
-Aplikasi ini menggunakan beberapa variabel *hardcoded* untuk berkomunikasi dengan *backend*. Untuk menjalankan sistem di *environment*, pastikan untuk menyesuaikan *endpoint* API pada file konfigurasi.
+### Menjalankan Secara Lokal
+Karena aplikasi ini menggunakan Vanilla JS, Anda dapat menjalankannya dengan:
+1. Menggunakan extension **Live Server** di VS Code.
+2. Menggunakan python: `python -m http.server 8000` di dalam folder `client`.
+3. Menghosting folder `client` pada web server apa pun.
 
-Buka file `client/auth/script.js` dan sesuaikan URL berikut:
-
+### Konfigurasi API
+Sesuaikan endpoint API pada file `client/auth/script.js`:
 ```javascript
-// Konfigurasi Endpoint Backend
-const APPS_SCRIPT_POST_URL = "[https://script.google.com/macros/s/.../exec](https://script.google.com/macros/s/.../exec)"; // URL Google Apps Script Anda
-const PYTHON_API_LOGIN_URL = "[https://sparta-be.onrender.com/api/login](https://sparta-backend-5hdj.onrender.com/api/login)";   // Base API URL Backend Python
+const APPS_SCRIPT_POST_URL = "URL_GOOGLE_APPS_SCRIPT_ANDA";
+const PYTHON_API_LOGIN_URL = "URL_BACKEND_PYTHON_ANDA";
+```
+
+---
+
+## 📄 Lisensi & Hak Cipta
+© 2026 **Property Administration - Building & Maintenance**. Semua hak cipta dilindungi.

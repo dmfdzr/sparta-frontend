@@ -11,7 +11,7 @@
   <body>
     <header class="main-header">
       <img src="/assets/Alfamart-Emblem.png" alt="Alfamart Logo" class="header-logo"/>
-      <h1>SPARTA</h1>
+      <h1>Building Maintenance Energy System</h1>
       <img src="/assets/Building-Logo.png" alt="Building & Maintenance Logo" class="building-logo"/>
     </header>
 
@@ -21,27 +21,37 @@
         <p>Silakan pilih menu di bawah ini untuk mengakses SPARTA</p>
       </div>
       <nav class="menu-container">
-        <a href="/auth/index.html" class="menu-item">
-            <div class="card-icons">
-                <img src="/assets/worker.png" alt="Kontraktor" title="Kontraktor"/>
-                <img src="/assets/scientist.png" alt="SAT/PIC" title="SAT/PIC"/>
-            </div>
-            <h3>Dashboard</h3>
-            <p>Login Dashboard SPARTA</p>
+        <a href="/auth/index.html" class="menu-item v1-card">
+            <i data-lucide="history" style="color: #64748b;"></i>
+            <h3>SPARTA Building v1</h3>
+            <p>Aplikasi SPARTA Building v1</p>
+            <div class="v1-notice">Hanya untuk menyelesaikan transaksi</div>
         </a>
 
-        <a href="/manual/" class="menu-item">
-          <img src="/assets/book.png" alt="User Manual"/>
-          <h3>User Manual</h3>
-          <p>Panduan penggunaan sistem & alur kerja</p>
+        <a href="https://sparta-building.vercel.app" target="_blank" class="menu-item v2-card">
+            <i data-lucide="building-2" style="color: var(--secondary-color);"></i>
+            <h3>SPARTA Building v2</h3>
+            <p>Aplikasi SPARTA Building v2</p>
         </a>
 
-        <a href="/" class="menu-item" onclick="alert('Halaman Tentang SPARTA belum tersedia.')">
-            <img src="/assets/about.png" alt="Tentang SPARTA"/>
-            <h3>Tentang SPARTA</h3>
-            <p>Informasi versi dan pengembang aplikasi</p>
+        <a href="https://sparta-maintenance.onrender.com/" target="_blank" class="menu-item maintenance-card">
+          <i data-lucide="wrench" style="color: var(--primary-color);"></i>
+          <h3>SPARTA Maintenance</h3>
+          <p>Aplikasi SPARTA Maintenance</p>
+        </a>
+
+        <a href="https://sparta-energy.vercel.app" target="_blank" class="menu-item energy-card">
+            <i data-lucide="zap" style="color: #10b981;"></i>
+            <h3>SPARTA Energy</h3>
+            <p>Aplikasi SPARTA Energy</p>
         </a>
       </nav>
     </main>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+      lucide.createIcons();
+    </script>
   </body>
 </html>

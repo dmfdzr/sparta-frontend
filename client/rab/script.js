@@ -22,23 +22,24 @@ const CONFIG = {
         "INSTALASI", "FIXTURE", "PEKERJAAN TAMBAHAN", "PEKERJAAN SBO"
     ],
     BRANCH_GROUPS: {
+        "CIKOKOL": ["CIKOKOL", "BINTAN"],
         "LOMBOK": ["LOMBOK", "SUMBAWA"],
         "MEDAN": ["MEDAN", "ACEH"],
-        "LAMPUNG": ["LAMPUNG", "LAMPUNG_KOTABUMI"],
+        "LAMPUNG": ["LAMPUNG", "KOTABUMI"],
         "PALEMBANG": ["PALEMBANG", "BENGKULU", "BANGKA", "BELITUNG"],
         "SIDOARJO": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
     },
     BRANCH_TO_ULOK: {
         "LUWU": "2VZ1", "KARAWANG": "1JZ1", "REMBANG": "2AZ1", "BANJARMASIN": "1GZ1",
         "PARUNG": "1MZ1", "TEGAL": "2PZ1", "GORONTALO": "2SZ1", "PONTIANAK": "1PZ1",
-        "LOMBOK": "1SZ1", "LAMPUNG_KOTABUMI": "LZ01", "SERANG": "2GZ1", "CIANJUR": "2JZ1",
+        "LOMBOK": "1SZ1", "KOTABUMI": "LZ01", "SERANG": "2GZ1", "CIANJUR": "2JZ1",
         "BALARAJA": "TZ01", "SIDOARJO": "UZ01", "MEDAN": "WZ01", "BOGOR": "XZ01",
         "JEMBER": "YZ01", "BALI": "QZ01", "PALEMBANG": "PZ01", "KLATEN": "OZ01",
         "MAKASSAR": "RZ01", "PLUMBON": "VZ01", "PEKANBARU": "1AZ1", "JAMBI": "1DZ1",
         "HEAD OFFICE": "Z001", "BANDUNG RAYA": "BZ01", "BEKASI": "CZ01",
         "CILACAP": "IZ01", "CILEUNGSI": "JZ01", "SEMARANG": "HZ01", "CIKOKOL": "KZ01",
         "LAMPUNG": "LZ01", "MALANG": "MZ01", "MANADO": "1YZ1", "BATAM": "2DZ1",
-        "MADIUN": "2MZ1", "CIKOKOL BINTAN": "KZ01"
+        "MADIUN": "2MZ1", "BINTAN": "KZ01"
     }
 };
 
@@ -150,8 +151,8 @@ const Calculator = {
         // --- CEK CABANG UNTUK PPN ---
         const cabangSelect = document.getElementById("cabang");
         const cabangName = cabangSelect ? cabangSelect.value.toUpperCase() : "";
-        const isBatam = cabangName === "BATAM";
-        const ppnRate = isBatam ? 0 : 0.11;
+        const isNoPPN = ["BATAM", "BINTAN"].includes(cabangName);
+        const ppnRate = isNoPPN ? 0 : 0.11;
         const pembulatan = Math.floor(total / 10000) * 10000;
         const ppn = pembulatan * ppnRate;
         const finalTotal = pembulatan + ppn;
@@ -162,7 +163,7 @@ const Calculator = {
             elements.ppn.textContent = Formatter.toRupiah(ppn);
             const ppnLabel = elements.ppn.previousElementSibling;
             if (ppnLabel) {
-                ppnLabel.textContent = isBatam ? "PPN (0%):" : "PPN (11%):";
+                ppnLabel.textContent = isNoPPN ? "PPN (0%):" : "PPN (11%):";
             }
         }
         
@@ -463,14 +464,17 @@ const UI = {
     },
 
     checkRejectedData: () => {
-        const fullUlok = document.getElementById('lokasi').value.replace(/-/g, '');
-        const scope = document.getElementById('lingkup_pekerjaan').value;
+        const normalizeUlok = (value) => String(value || '').replace(/-/g, '').trim().toUpperCase();
+        const normalizeScope = (value) => String(value || '').trim().toUpperCase();
+
+        const fullUlok = normalizeUlok(document.getElementById('lokasi').value);
+        const scope = normalizeScope(document.getElementById('lingkup_pekerjaan').value);
 
         if ((fullUlok.length !== 12 && fullUlok.length !== 13) || !scope) return;
 
         const rejected = State.rejectedSubmissionsList.find(item => {
-            const itemUlok = item['Nomor Ulok'].replace(/-/g, '');
-            const itemScope = item['Lingkup_Pekerjaan'] || item['Lingkup Pekerjaan'];
+            const itemUlok = normalizeUlok(item?.['Nomor Ulok']);
+            const itemScope = normalizeScope(item?.['Lingkup_Pekerjaan'] || item?.['Lingkup Pekerjaan']);
             return itemUlok === fullUlok && itemScope === scope;
         });
 
@@ -671,17 +675,58 @@ const API = {
     checkStatus: async (email, cabang) => {
         try {
             UI.showMessage("Memuat data status...");
-            const res = await fetch(`${CONFIG.API_URL}/api/check_status?email=${encodeURIComponent(email)}&cabang=${encodeURIComponent(cabang)}`);
-            const result = await res.json();
-            
-            if (result.active_codes) {
-                State.pendingStoreCodes = result.active_codes.pending || [];
-                State.approvedStoreCodes = result.active_codes.approved || [];
+
+            const statusEndpoints = [
+                `${CONFIG.API_URL}/api/check_status?email=${encodeURIComponent(email)}&cabang=${encodeURIComponent(cabang)}`,
+                `${CONFIG.API_URL}/api/check_status_rab_2?email=${encodeURIComponent(email)}&cabang=${encodeURIComponent(cabang)}`
+            ];
+
+            const responses = await Promise.allSettled(
+                statusEndpoints.map(url => fetch(url))
+            );
+
+            const parsedResults = [];
+            for (const res of responses) {
+                if (res.status !== 'fulfilled') continue;
+                if (!res.value.ok) continue;
+                try {
+                    const json = await res.value.json();
+                    parsedResults.push(json);
+                } catch (parseErr) {
+                    console.warn('Gagal parse response status endpoint:', parseErr);
+                }
             }
-            
-            if (result.rejected_submissions?.length > 0) {
-                State.rejectedSubmissionsList = result.rejected_submissions;
-                const codes = State.rejectedSubmissionsList.map(i => i['Nomor Ulok']).join(', ');
+
+            if (parsedResults.length === 0) {
+                throw new Error('Semua endpoint status gagal diakses.');
+            }
+
+            const normalizeUlok = (value) => String(value || '').replace(/-/g, '').trim().toUpperCase();
+            const normalizeScope = (value) => String(value || '').trim().toUpperCase();
+
+            const pendingSet = new Set();
+            const approvedSet = new Set();
+            const rejectedMap = new Map();
+
+            parsedResults.forEach(result => {
+                (result?.active_codes?.pending || []).forEach(code => pendingSet.add(String(code || '').trim()));
+                (result?.active_codes?.approved || []).forEach(code => approvedSet.add(String(code || '').trim()));
+
+                (result?.rejected_submissions || []).forEach(item => {
+                    const ulok = normalizeUlok(item?.['Nomor Ulok']);
+                    const scope = normalizeScope(item?.['Lingkup_Pekerjaan'] || item?.['Lingkup Pekerjaan']);
+                    if (!ulok) return;
+                    const key = `${ulok}_${scope}`;
+                    if (!rejectedMap.has(key)) rejectedMap.set(key, item);
+                });
+            });
+
+            State.pendingStoreCodes = Array.from(pendingSet);
+            State.approvedStoreCodes = Array.from(approvedSet);
+            State.rejectedSubmissionsList = Array.from(rejectedMap.values());
+
+            if (State.rejectedSubmissionsList.length > 0) {
+                const codes = State.rejectedSubmissionsList.map(i => i['Nomor Ulok']).filter(Boolean).join(', ');
                 UI.showMessage(`Ditemukan pengajuan ditolak: <strong>${codes}</strong>.`, "warning");
             } else {
                 document.getElementById("message").style.display = 'none';
@@ -838,8 +883,11 @@ async function init() {
     const cabSelect = document.getElementById("cabang");
 
     // Logic for User Cabang Role
-    if (userCabang === 'CIKOKOL') {
-        const opt = document.createElement('option'); opt.value = "KZ01"; opt.textContent = "CIKOKOL (KZ01)"; locSelect.appendChild(opt);
+    if (userCabang === 'CIKOKOL' || userCabang === 'BINTAN') {
+        const displayText = userCabang === 'CIKOKOL' ? "KZ01" : "KZ01";
+        const opt = document.createElement('option'); opt.value = "KZ01"; opt.textContent = displayText; locSelect.appendChild(opt);
+        locSelect.value = "KZ01";
+        locSelect.disabled = true;
     } else {
         const ulokCode = CONFIG.BRANCH_TO_ULOK[userCabang];
         if (ulokCode) {

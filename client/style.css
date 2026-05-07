@@ -44,11 +44,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    padding: 1.25rem 2rem;
+    background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
     color: white;
-    border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-bottom: 5px solid #fbbf24;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 .header-logo {
@@ -66,12 +69,16 @@ body {
 }
 
 .main-header h1 {
-    font-size: 2rem;
-    font-weight: 600;
+    font-size: 1.6rem;
+    font-weight: 800;
     color: white;
     animation: fadeInSlide 1s ease-out 0.5s forwards;
     opacity: 0;
     text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    margin: 0 1.5rem;
 }
 
 /* ================= CONTENT CONTAINER ================= */
@@ -111,11 +118,16 @@ body {
     padding: 1rem 0;
 }
 
-/* Tampilan Tablet & Desktop: Paksa jadi 3 Kolom */
+/* Tampilan Tablet & Desktop: Paksa jadi 2 Kolom di Tablet, 4 di Desktop */
 @media (min-width: 768px) {
     .menu-container {
-        /* Ini membuat layout strictly 3 kolom */
-        grid-template-columns: repeat(3, 1fr); 
+        grid-template-columns: repeat(2, 1fr); 
+    }
+}
+
+@media (min-width: 1024px) {
+    .menu-container {
+        grid-template-columns: repeat(4, 1fr); 
     }
 }
 
@@ -164,9 +176,77 @@ body {
     max-width: 250px; /* Membatasi lebar teks agar tidak terlalu melebar */
 }
 
+/* --- V1 NOTICE & CARD SPECIFICS --- */
+.v1-notice {
+    margin-top: 1.25rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #fefce8;
+    color: #854d0e;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid #fef08a;
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* --- CARD SPECIFICS (COLORS & BORDERS) --- */
+
+/* V1 - Grey */
+.v1-card {
+    border-left: 5px solid #94a3b8;
+    background: linear-gradient(to right, rgba(148, 163, 184, 0.05) 0%, #ffffff 100%);
+}
+
+.v1-card:hover {
+    border-left-width: 8px;
+    border-color: #64748b !important;
+    background: linear-gradient(to right, rgba(148, 163, 184, 0.1) 0%, #ffffff 100%);
+}
+
+.v1-card:hover .v1-notice {
+    background-color: #f1f5f9;
+    border-style: solid;
+}
+
+/* V2 - Red */
+.v2-card {
+    border-left: 5px solid var(--secondary-color);
+    background: linear-gradient(to right, rgba(229, 62, 62, 0.03) 0%, #ffffff 100%);
+}
+
+.v2-card:hover {
+    border-left-width: 8px;
+    background: linear-gradient(to right, rgba(229, 62, 62, 0.08) 0%, #ffffff 100%);
+}
+
+/* Maintenance - Blue */
+.maintenance-card {
+    border-left: 5px solid var(--primary-color);
+    background: linear-gradient(to right, rgba(0, 90, 158, 0.03) 0%, #ffffff 100%);
+}
+
+.maintenance-card:hover {
+    border-left-width: 8px;
+    border-color: #004a87 !important;
+    background: linear-gradient(to right, rgba(0, 90, 158, 0.08) 0%, #ffffff 100%);
+}
+
+/* Energy - Green */
+.energy-card {
+    border-left: 5px solid #10b981;
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.03) 0%, #ffffff 100%);
+}
+
+.energy-card:hover {
+    border-left-width: 8px;
+    border-color: #059669 !important;
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.08) 0%, #ffffff 100%);
+}
+
 /* --- ICONS --- */
 /* Icon tunggal */
-.menu-item > img {
+.menu-item > img, .menu-item > svg {
     display: block;
     margin-bottom: 2rem;
     height: 90px; /* Ukuran icon diperbesar sedikit agar seimbang dengan card */
@@ -184,13 +264,13 @@ body {
     margin-bottom: 2rem;
 }
 
-.card-icons img {
+.card-icons img, .card-icons svg {
     height: 75px; /* Disesuaikan agar pas berdua */
     width: auto;
     transition: transform 0.3s ease;
 }
 
-.menu-item:hover img {
+.menu-item:hover img, .menu-item:hover svg {
     transform: scale(1.1);
 }
 
@@ -334,21 +414,21 @@ body {
     /* === 2. HEADER ADJUSTMENTS === */
     .main-header {
         flex-direction: column; /* Logo & Judul tumpuk ke bawah */
-        padding: 1.5rem 1rem;
+        padding: 1rem;
         gap: 0.5rem;
         height: auto;
     }
 
     .header-logo, 
     .building-logo {
-        height: 60px; /* Kecilkan logo agar proporsional */
+        height: 50px; /* Kecilkan logo agar proporsional */
         margin: 0; /* Reset margin */
     }
 
     .main-header h1 {
-        font-size: 1.5rem; /* Kecilkan font judul */
+        font-size: 1.2rem; /* Kecilkan font judul */
         margin: 0.5rem 0;
-        line-height: 1.2;
+        line-height: 1.3;
     }
 
     /* === 3. WELCOME MESSAGE === */
@@ -378,12 +458,12 @@ body {
     }
 
     /* Kecilkan ikon di dalam menu */
-    .menu-item > img {
+    .menu-item > img, .menu-item > svg {
         height: 70px; 
         margin-bottom: 1rem;
     }
 
-    .card-icons img {
+    .card-icons img, .card-icons svg {
         height: 60px; /* Icon kembar (Login) dikecilkan */
         gap: 10px;
     }

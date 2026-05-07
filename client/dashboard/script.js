@@ -211,6 +211,20 @@ document.addEventListener('DOMContentLoaded', () => {
         tahunSelect.innerHTML = '<option value="ALL">Semua Tahun</option>';
         uniqueTahun.forEach(thn => { tahunSelect.innerHTML += `<option value="${thn}">${thn}</option>`; });
         tahunSelect.value = 'ALL';
+
+        const proyekSelect = document.getElementById('filterProyek');
+        if (proyekSelect) {
+            const uniqueProyek = [...new Set(data.map(item => {
+                let p = item["Proyek"] || item["Proyek "] || item["proyek"];
+                return p !== undefined && p !== null ? String(p).trim() : "";
+            }))].filter(p => p !== "").sort();
+
+            proyekSelect.innerHTML = '<option value="ALL">Semua Proyek</option>';
+            uniqueProyek.forEach(p => { 
+                proyekSelect.innerHTML += `<option value="${p}">${p}</option>`; 
+            });
+            proyekSelect.value = 'ALL';
+        }
     }
 
     function applyFilters() {
@@ -256,7 +270,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            return matchCabang && matchTahun && matchKontraktor;
+            // 4. Logika Filtering Proyek
+            const selectedProyek = document.getElementById('filterProyek') ? document.getElementById('filterProyek').value : 'ALL';
+            let rawProyek = item["Proyek"] || item["Proyek "] || item["proyek"];
+            const matchProyek = (selectedProyek === 'ALL') || (rawProyek && String(rawProyek).trim() === selectedProyek.trim());
+            return matchCabang && matchTahun && matchKontraktor && matchProyek;
         });
         
         renderKPI(filteredData);
@@ -1052,9 +1070,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 storeListContainer.innerHTML = '<div style="text-align:center; color:#718096; padding: 30px;">Tidak ada toko yang melebihi SLA di tahap ini.</div>';
             } else {
                 storeListContainer.innerHTML = items.map(item => `
-                    <div class="store-item" style="cursor: default; border-color: #fca5a5;">
+                    <div class="store-item" data-index="${filteredData.indexOf(item)}" style="border-color: #fca5a5;">
                         <div class="store-info">
-                            <strong>${item.Nama_Toko || 'Tanpa Nama'}</strong>
+                            <strong>${item.Nama_Toko || 'Tanpa Nama'} <span style="font-weight: 500; color: #3b82f6;">(${item.Lingkup_Pekerjaan || '-'})</span></strong>
                             <span>Ulok: ${item["Nomor Ulok"] || '-'} | Cabang: ${item.Cabang || '-'}</span>
                             <span style="display: block; margin-top: 4px; color: #ef4444; font-weight: 600; font-size: 11px;">
                                 ⚠️ ${item.alasanSLA}

@@ -42,7 +42,8 @@ const CONFIG = {
         "SIDOARJO BPN_SMD": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
         "MANOKWARI": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
         "NTT": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
-        "SORONG": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"]
+        "SORONG": ["SIDOARJO", "SIDOARJO BPN_SMD", "MANOKWARI", "NTT", "SORONG"],
+        "CIKOKOL": ["CIKOKOL", "BINTAN"]
     },
     BRANCH_ULOK_MAP: {
         "LUWU": "2VZ1", "KARAWANG": "1JZ1", "REMBANG": "2AZ1",
@@ -54,7 +55,7 @@ const CONFIG = {
         "JAMBI": "1DZ1", "HEAD OFFICE": "Z001", "BANDUNG 1": "BZ01", "BANDUNG 2": "NZ01",
         "BEKASI": "CZ01", "CILACAP": "IZ01", "CILEUNGSI2": "JZ01", "SEMARANG": "HZ01",
         "CIKOKOL": "KZ01", "LAMPUNG": "LZ01", "MALANG": "MZ01", "MANADO": "1YZ1",
-        "BATAM": "2DZ1", "MADIUN": "2MZ1"
+        "BATAM": "2DZ1", "MADIUN": "2MZ1", "BINTAN": "KZ01"
     }
 };
 
@@ -552,12 +553,25 @@ const calculateGrandTotal = () => {
 
     if (DOM.grandTotalAmount) DOM.grandTotalAmount.textContent = Utils.formatRupiah(total);
     
+    // --- CEK CABANG UNTUK PPN ---
+    const cabangName = DOM.cabangSelect ? DOM.cabangSelect.value.toUpperCase() : "";
+    const isNoPPN = ["BATAM", "BINTAN"].includes(cabangName);
+    const ppnRate = isNoPPN ? 0 : 0.11;
+    
     const pembulatan = Math.floor(total / 10000) * 10000;
-    const ppn = pembulatan * 0.11;
+    const ppn = pembulatan * ppnRate;
     const finalTotal = pembulatan + ppn;
 
     if (DOM.pembulatanAmount) DOM.pembulatanAmount.textContent = Utils.formatRupiah(pembulatan);
-    if (DOM.ppnAmount) DOM.ppnAmount.textContent = Utils.formatRupiah(ppn);
+    
+    if (DOM.ppnAmount) {
+        DOM.ppnAmount.textContent = Utils.formatRupiah(ppn);
+        const ppnLabel = DOM.ppnAmount.previousElementSibling;
+        if (ppnLabel) {
+            ppnLabel.textContent = isNoPPN ? "PPN (0%):" : "PPN (11%):";
+        }
+    }
+    
     if (DOM.finalTotalAmount) DOM.finalTotalAmount.textContent = Utils.formatRupiah(finalTotal);
 };
 
@@ -638,6 +652,7 @@ async function handleFormSubmit() {
     data["Cabang"] = DOM.cabangSelect.value;
     data["Email_Pembuat"] = sessionStorage.getItem("loggedInUserEmail");
     data["Grand Total"] = Utils.parseRupiah(DOM.grandTotalAmount.textContent);
+    data["Grand Total Final"] = Utils.parseRupiah(DOM.finalTotalAmount.textContent);
 
     let itemIndex = 1;
     document.querySelectorAll(".boq-table-body:not(.hidden) .boq-item-row").forEach((row) => {
@@ -745,6 +760,14 @@ async function initializePage() {
         resetButton: document.querySelector("button[type='reset']"),
     };
 
+    // --- TAMBAHAN: Elemen Dropdown Proyek ---
+    const proyekSelect = document.getElementById('proyek');
+    const renovasiOption = proyekSelect ? proyekSelect.querySelector('option[value="Renovasi"]') : null;
+
+    if (renovasiOption && !DOM.toggleRenovasi.checked) {
+        renovasiOption.disabled = false;
+    }
+
     DOM.toggleRenovasi.addEventListener('change', () => {
         const isRenov = DOM.toggleRenovasi.checked;
         DOM.separatorRenov.style.display = isRenov ? 'inline' : 'none';
@@ -752,6 +775,26 @@ async function initializePage() {
         DOM.lokasiManual.placeholder = isRenov ? "C0B4" : "0001";
         if (!isRenov) DOM.lokasiManual.value = DOM.lokasiManual.value.replace(/[^0-9]/g, '');
         updateNomorUlok();
+
+        if (proyekSelect && renovasiOption) {
+            if (isRenov) {
+                renovasiOption.disabled = false;
+                proyekSelect.value = "Renovasi";
+                
+                Array.from(proyekSelect.options).forEach(opt => {
+                    if (opt.value !== "Renovasi" && opt.value !== "") opt.disabled = true;
+                });
+            } else {
+                renovasiOption.disabled = true;
+                if (proyekSelect.value === "Renovasi") {
+                    proyekSelect.value = "";
+                }
+                
+                Array.from(proyekSelect.options).forEach(opt => {
+                    if (opt.value !== "Renovasi") opt.disabled = false;
+                });
+            }
+        }
     });
 
     DOM.lokasiManual.addEventListener('input', function () {
@@ -808,6 +851,11 @@ async function initializePage() {
     const paramUlok = urlParams.get('ulok');
     const paramToko = urlParams.get('toko');
 
+    console.log("=== DEBUG IL ULOK PARSING ===");
+    console.log("Raw URL search:", window.location.search);
+    console.log("paramUlok:", paramUlok);
+    console.log("paramToko:", paramToko);
+
     if (paramUlok) {
         // 1. Auto-fill Nama Toko
         if (paramToko) {
@@ -825,9 +873,12 @@ async function initializePage() {
         let manual = "";
         let isRenov = false;
 
-        // Cek apakah format menggunakan Strip (-) contoh: Z001-2512-4444
+        // Cek apakah format menggunakan Strip (-) 
+        // Format 3 bagian: Z001-2512-4444 atau Z001-2512-D4D4R
+        // Format 4 bagian (renovasi): Z001-2512-D4D4-R
         if (paramUlok.includes("-")) {
-            const parts = paramUlok.split("-"); // Menjadi array: ["Z001", "2512", "4444"]
+            const parts = paramUlok.split("-"); // Menjadi array
+            console.log("Format STRIP, parts:", parts);
             
             if (parts.length >= 3) {
                 kodeCabang = parts[0].trim(); // Ambil Depan: Z001
@@ -835,38 +886,53 @@ async function initializePage() {
                 // Ambil Tengah: 2512 (Hapus non-angka)
                 tanggal = parts[1].replace(/[^0-9]/g, ''); 
                 
-                // Ambil Belakang: 4444 (Cek Renovasi & Hapus non-angka)
-                let rawManual = parts[2].trim(); 
-                if (rawManual.toUpperCase().endsWith("R")) {
+                // Cek apakah format 4 bagian dengan "R" sebagai bagian ke-4 (renovasi)
+                if (parts.length >= 4 && parts[3].trim().toUpperCase() === "R") {
                     isRenov = true;
-                    // Hapus huruf R, lalu bersihkan selain angka
-                    manual = rawManual.slice(0, -1).replace(/[^0-9]/g, ''); 
+                    // Bagian ke-3 adalah manual (alphanumeric, misal D4D4)
+                    manual = parts[2].trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
                 } else {
-                    manual = rawManual.replace(/[^0-9]/g, '');
+                    // Format 3 bagian: cek apakah bagian ke-3 diakhiri "R"
+                    let rawManual = parts[2].trim(); 
+                    if (rawManual.toUpperCase().endsWith("R")) {
+                        isRenov = true;
+                        manual = rawManual.slice(0, -1).replace(/[^a-zA-Z0-9]/g, '').toUpperCase(); 
+                    } else {
+                        manual = rawManual.replace(/[^0-9]/g, '');
+                    }
                 }
             }
         } 
-        // Fallback: Jika format lama tanpa strip (Z00125124444)
+        // Fallback: Jika format lama tanpa strip (Z00125124444 atau Z0012512C0B4R)
         else if (paramUlok.length >= 12) {
+            console.log("Format TANPA STRIP, length:", paramUlok.length);
             kodeCabang = paramUlok.substring(0, 4);
             tanggal = paramUlok.substring(4, 8);
             
             if (paramUlok.toUpperCase().endsWith("R")) {
                 isRenov = true;
-                manual = paramUlok.substring(8, 12); 
+                manual = paramUlok.substring(8, paramUlok.length - 1).replace(/[^a-zA-Z0-9]/g, '').toUpperCase(); 
             } else {
-                manual = paramUlok.substring(8, 12);
+                manual = paramUlok.substring(8, 12).replace(/[^0-9]/g, '');
             }
+        } else {
+            console.log("Format TIDAK DIKENALI, length:", paramUlok.length);
         }
+
+        console.log("Parsed => kodeCabang:", kodeCabang, "tanggal:", tanggal, "manual:", manual, "isRenov:", isRenov);
 
         // 3. Masukkan Data ke Input Form
         if (kodeCabang) {
-            if (DOM.lokasiCabang.querySelector(`option[value="${kodeCabang}"]`)) {
+            const existingOption = DOM.lokasiCabang.querySelector(`option[value="${kodeCabang}"]`);
+            console.log("Option exists for kodeCabang?", !!existingOption, "| lokasiCabang disabled?", DOM.lokasiCabang.disabled);
+            
+            if (existingOption) {
                 DOM.lokasiCabang.value = kodeCabang;
                 $(DOM.lokasiCabang).val(kodeCabang).trigger('change'); // Penting untuk Select2
             } else {
                 const newOption = new Option(kodeCabang, kodeCabang, true, true);
-                DOM.lokasiCabang.add(newOption).trigger('change');
+                DOM.lokasiCabang.add(newOption);
+                $(DOM.lokasiCabang).trigger('change');
             }
             DOM.lokasiCabang.disabled = true; // Kunci input
 
@@ -887,6 +953,14 @@ async function initializePage() {
             }
             DOM.toggleRenovasi.disabled = true;
             updateNomorUlok();
+            
+            console.log("After filling => lokasiCabang:", DOM.lokasiCabang.value, 
+                        "lokasiTanggal:", DOM.lokasiTanggal.value,
+                        "lokasiManual:", DOM.lokasiManual.value,
+                        "toggleRenovasi.checked:", DOM.toggleRenovasi.checked,
+                        "lokasi (hidden):", DOM.lokasi.value);
+        } else {
+            console.log("kodeCabang is empty, skipping form fill");
         }
     }
 

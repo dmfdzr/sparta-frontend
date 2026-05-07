@@ -362,8 +362,8 @@ const PDFGenerator = {
         // --- CEK CABANG BATAM UNTUK PDF ---
         const cabangPdfTxt = selectedStore.cabang || selectedStore.nama_cabang || selectedStore.kota || "";
         const userPdfCabang = sessionStorage.getItem("loggedInUserCabang") || "";
-        const isBatamPdf = cabangPdfTxt.toUpperCase() === "BATAM" || userPdfCabang.toUpperCase() === "BATAM";
-        const ppnRatePdf = isBatamPdf ? 0 : 0.11;
+        const isNoPPNPdf = ["BATAM", "BINTAN"].includes(cabangPdfTxt.toUpperCase()) || ["BATAM", "BINTAN"].includes(userPdfCabang.toUpperCase());
+        const ppnRatePdf = isNoPPNPdf ? 0 : 0.11;
 
         // --- HELPER: Print Summary Box ---
         const printSummaryBox = (label, totalReal, startY) => {
@@ -375,7 +375,7 @@ const PDFGenerator = {
                 body: [
                     [label, formatRupiah(totalReal)],
                     ["PEMBULATAN", formatRupiah(totalPembulatan)],
-                    [`PPN ${isBatamPdf ? '0' : '11'}%`, formatRupiah(ppn)],
+                    [`PPN ${isNoPPNPdf ? '0' : '11'}%`, formatRupiah(ppn)],
                     [`GRAND TOTAL ${label.replace("TOTAL ", "")}`, formatRupiah(grandTotal)]
                 ],
                 startY: startY,
@@ -402,17 +402,28 @@ const PDFGenerator = {
         let rabData = await fetchRabData(selectedStore.kode_toko, selectedUlok, lingkupFix);
 
         if (user.role === 'kontraktor') {
-            const currentIdent = user.email || sessionStorage.getItem("loggedInUserEmail") || user.username;
+            const currentIdent = (user.email || sessionStorage.getItem("loggedInUserEmail") || user.username || "").toLowerCase();
+            const currentUname = (user.username || "").toLowerCase();
 
             rabData = rabData.filter(rabItem => {
-                if (rabItem.kontraktor_username || rabItem.kontraktor_email || rabItem.email) {
-                    return rabItem.kontraktor_username === user.username ||
-                        rabItem.kontraktor_email === currentIdent ||
-                        rabItem.email === currentIdent;
+                const kUname = (rabItem.kontraktor_username || "").toLowerCase();
+                const kEmail = (rabItem.kontraktor_email || "").toLowerCase();
+                const rEmail = (rabItem.email || "").toLowerCase();
+                
+                let isMatch = false;
+                if (kUname || kEmail || rEmail) {
+                    if ((kUname && kUname === currentUname) ||
+                        (kEmail && kEmail === currentIdent) ||
+                        (rEmail && rEmail === currentIdent)) {
+                        isMatch = true;
+                    }
                 }
+                
+                if (isMatch) return true;
+
                 return submissions.some(sub =>
-                    sub.jenis_pekerjaan === rabItem.jenis_pekerjaan &&
-                    sub.kategori_pekerjaan === rabItem.kategori_pekerjaan
+                    (sub.jenis_pekerjaan || "").trim().toLowerCase() === (rabItem.jenis_pekerjaan || "").trim().toLowerCase() &&
+                    (sub.kategori_pekerjaan || "").trim().toLowerCase() === (rabItem.kategori_pekerjaan || "").trim().toLowerCase()
                 );
             });
         }
@@ -948,21 +959,56 @@ const Render = {
         const u = AppState.user;
 
         if ((type === 'opname' || type === 'final-opname') && u.role === 'pic') {
-            url = `${API_BASE_URL}/api/toko?username=${u.username}`;
+            url = `${API_BASE_URL}/api/toko?username=${encodeURIComponent(u.username || "")}`;
         } else if (u.role === 'kontraktor') {
-            url = `${API_BASE_URL}/api/toko_kontraktor?username=${u.username}`;
+            const uname = u.email || sessionStorage.getItem("loggedInUserEmail") || u.kontraktor_username || u.username || "";
+            url = `${API_BASE_URL}/api/toko_kontraktor?username=${encodeURIComponent(uname)}`;
         }
 
         try {
+            console.log("=== DEBUG STORE SELECTION ===");
+            console.log("Fetching URL:", url);
             const res = await fetch(url);
             const stores = await res.json();
+            console.log("Raw Response stores:", stores);
 
             if (!Array.isArray(stores)) throw new Error("Gagal mengambil data toko.");
 
+            // Deduplikasi: gabungkan toko dengan kode_toko + nama_toko yang sama (case-insensitive)
+            const storeMap = new Map();
+            stores.forEach(store => {
+                const key = `${(store.kode_toko || "").toUpperCase()}||${(store.nama_toko || "").toUpperCase()}`;
+                
+                // Ekstrak ulok baik dari no_uloks (array) maupun no_ulok (array/string)
+                let ulokList = [];
+                if (store.no_uloks && Array.isArray(store.no_uloks)) ulokList.push(...store.no_uloks);
+                if (store.no_ulok) {
+                    if (Array.isArray(store.no_ulok)) ulokList.push(...store.no_ulok);
+                    else ulokList.push(store.no_ulok);
+                }
+                
+                if (storeMap.has(key)) {
+                    const existing = storeMap.get(key);
+                    // Gabungkan ulok tanpa duplikat
+                    ulokList.forEach(ulok => {
+                        if (!existing.no_uloks.includes(ulok)) {
+                            existing.no_uloks.push(ulok);
+                        }
+                    });
+                } else {
+                    storeMap.set(key, {
+                        ...store,
+                        no_uloks: [...ulokList]
+                    });
+                }
+            });
+            const uniqueStores = Array.from(storeMap.values());
+            console.log("Unique Stores after deduplication:", uniqueStores);
+
             const combinedList = [];
 
-            stores.forEach(store => {
-                if (store.no_uloks && Array.isArray(store.no_uloks) && store.no_uloks.length > 0) {
+            uniqueStores.forEach(store => {
+                if (store.no_uloks && store.no_uloks.length > 0) {
                     store.no_uloks.forEach(ulokNo => {
                         combinedList.push({
                             store: store,
@@ -973,73 +1019,84 @@ const Render = {
             });
 
             combinedList.sort((a, b) => {
-                const nameCompare = a.store.nama_toko.localeCompare(b.store.nama_toko);
+                const nameA = a.store.nama_toko || "";
+                const nameB = b.store.nama_toko || "";
+                const nameCompare = nameA.localeCompare(nameB);
                 if (nameCompare !== 0) return nameCompare;
-                return a.ulok.localeCompare(b.ulok);
+                
+                const ulokA = a.ulok || "";
+                const ulokB = b.ulok || "";
+                return ulokA.localeCompare(ulokB);
             });
+
+            container.innerHTML = `
+                <div class="container" style="padding-top:20px;">
+                    <div class="card">
+                        <div class="d-flex align-center gap-2" style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:16px;">
+                            <button id="btn-back-store" class="btn btn-back">← Dashboard</button>
+                            <div>
+                                <h2 style="color:var(--primary); margin:0;">Pilih Pekerjaan</h2>
+                                <span style="font-size:0.9rem; color:#666;">Daftar Toko & ULOK (Sesuai RAB)</span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom:24px;">
+                            <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Toko atau No. ULOK..." value="">
+                        </div>
+                        
+                        <div id="store-list-container"></div>
+                    </div>
+                </div>
+            `;
+
+            container.querySelector('#btn-back-store').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
+
+            const searchInput = document.getElementById('store-search');
+            searchInput.oninput = (e) => {
+                renderList(e.target.value);
+            };
 
             const renderList = (filter = "") => {
                 const f = filter.toLowerCase();
                 const filtered = combinedList.filter(item =>
-                    item.store.nama_toko.toLowerCase().includes(f) ||
-                    item.store.kode_toko.toLowerCase().includes(f) ||
-                    item.ulok.toLowerCase().includes(f)
+                    (item.store.nama_toko || "").toLowerCase().includes(f) ||
+                    (item.store.kode_toko || "").toLowerCase().includes(f) ||
+                    (item.ulok || "").toLowerCase().includes(f)
                 );
 
+                const listContainer = document.getElementById('store-list-container');
+                if (!listContainer) return;
+
                 let html = `
-                    <div class="container" style="padding-top:20px;">
-                        <div class="card">
-                            <div class="d-flex align-center gap-2" style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:16px;">
-                                <button id="btn-back-store" class="btn btn-back">← Dashboard</button>
-                                <div>
-                                    <h2 style="color:var(--primary); margin:0;">Pilih Pekerjaan</h2>
-                                    <span style="font-size:0.9rem; color:#666;">Daftar Toko & ULOK (Sesuai RAB)</span>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
+                        ${filtered.map((item, idx) => `
+                            <button class="btn btn-secondary job-item" data-idx="${idx}" style="height:auto; min-height:110px; flex-direction:column; align-items:flex-start; text-align:left; padding:16px; border-left:5px solid var(--secondary-yellow); position:relative; overflow:hidden;">
+                                
+                                <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); margin-bottom:4px;">
+                                    ${item.store.nama_toko}
                                 </div>
-                            </div>
-                            
-                            <div style="margin-bottom:24px;">
-                                <input type="text" id="store-search" class="form-input" placeholder="🔍 Cari Toko atau No. ULOK..." value="${filter}">
-                            </div>
-                            
-                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
-                                ${filtered.map((item, idx) => `
-                                    <button class="btn btn-secondary job-item" data-idx="${idx}" style="height:auto; min-height:110px; flex-direction:column; align-items:flex-start; text-align:left; padding:16px; border-left:5px solid var(--secondary-yellow); position:relative; overflow:hidden;">
-                                        
-                                        <div style="font-size:1.1rem; font-weight:700; color:var(--neutral-700); margin-bottom:4px;">
-                                            ${item.store.nama_toko}
-                                        </div>
-                                        
-                                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
-                                            Kode: <strong>${item.store.kode_toko}</strong>
-                                        </div>
+                                
+                                <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                                    Kode: <strong>${item.store.kode_toko}</strong>
+                                </div>
 
-                                        <div class="badge badge-success" style="font-size:0.85rem; padding:6px 10px; background-color:#e0f2fe; color:#0284c7; border:1px solid #bae6fd;">
-                                            📄 ULOK: ${item.ulok}
-                                        </div>
-                                    </button>
-                                `).join('')}
-                            </div>
-                            
-                            ${filtered.length === 0 ? `
-                                <div class="text-center" style="padding:40px; color:#666;">
-                                    <div style="font-size:30px; margin-bottom:10px;">📭</div>
-                                    <p>Tidak ada data pekerjaan yang sesuai.</p>
+                                <div class="badge badge-success" style="font-size:0.85rem; padding:6px 10px; background-color:#e0f2fe; color:#0284c7; border:1px solid #bae6fd;">
+                                    📄 ULOK: ${item.ulok}
                                 </div>
-                            ` : ''}
-                        </div>
+                            </button>
+                        `).join('')}
                     </div>
+                    
+                    ${filtered.length === 0 ? `
+                        <div class="text-center" style="padding:40px; color:#666;">
+                            <div style="font-size:30px; margin-bottom:10px;">📭</div>
+                            <p>Tidak ada data pekerjaan yang sesuai.</p>
+                        </div>
+                    ` : ''}
                 `;
-                container.innerHTML = html;
+                listContainer.innerHTML = html;
 
-                container.querySelector('#btn-back-store').onclick = () => { AppState.activeView = 'dashboard'; Render.app(); };
-
-                const searchInput = document.getElementById('store-search');
-                searchInput.oninput = (e) => {
-                    renderList(e.target.value);
-                    document.getElementById('store-search').focus();
-                };
-
-                container.querySelectorAll('.job-item').forEach((btn, index) => {
+                listContainer.querySelectorAll('.job-item').forEach((btn, index) => {
                     btn.onclick = () => {
                         const selectedItem = filtered[index];
                         AppState.selectedStore = selectedItem.store;
@@ -1059,13 +1116,16 @@ const Render = {
             renderList();
 
         } catch (e) {
-            console.error(e);
+            console.error("=== ERROR FETCH STORE ===", e);
+            console.error("Failed URL:", url);
             container.innerHTML = `
                 <div class="container" style="padding-top:40px;">
-                    <div class="alert-error">
-                        <h3>Gagal Memuat Data</h3>
-                        <p>${e.message}</p>
-                        <button class="btn btn-back" onclick="AppState.activeView='dashboard'; Render.app()" style="margin-top:10px;">Dashboard</button>
+                    <div class="alert-error" style="background:#fee2e2; border-left:5px solid #ef4444; padding:20px; text-align:left;">
+                        <h3 style="color:#b91c1c; margin-top:0;">Gagal Memuat Data</h3>
+                        <p style="color:#7f1d1d; word-break: break-all;"><strong>Pesan Error:</strong> ${e.message}</p>
+                        <p style="color:#7f1d1d; word-break: break-all; font-size: 0.85rem; margin-top: 8px;"><strong>URL:</strong> ${url}</p>
+                        <p style="color:#7f1d1d; font-size: 0.85rem;">Silakan cek Console (F12) untuk detail lebih lanjut.</p>
+                        <button class="btn btn-back" onclick="AppState.activeView='dashboard'; Render.app()" style="margin-top:15px; border-color:#b91c1c; color:#b91c1c;">Kembali ke Dashboard</button>
                     </div>
                 </div>`;
         }
